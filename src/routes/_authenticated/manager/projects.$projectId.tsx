@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Plus } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarClock, CheckCircle2, Plus, TrendingUp } from "lucide-react";
 import { useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
@@ -84,16 +84,16 @@ function ProjectDetail() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Progress" value={`${stats.percent}%`} tone="primary" />
-          <StatCard label="Tasks done" value={`${stats.completed} / ${stats.total}`} tone="success" />
-          <StatCard label="Overdue" value={count("overdue")} tone="danger" />
-          <StatCard label="Deadline" value={formatDate(project.deadline)} hint={project.deadline ? deadlineText(project.deadline) : undefined} tone="neutral" />
+          <StatCard label="Progress" icon={TrendingUp} value={`${stats.progress}%`} tone="primary" />
+          <StatCard label="Tasks done" icon={CheckCircle2} value={`${stats.completed} / ${stats.total}`} tone="success" />
+          <StatCard label="Overdue" icon={AlertTriangle} value={count("overdue")} tone="danger" />
+          <StatCard label="Deadline" icon={CalendarClock} value={formatDate(project.deadline)} hint={project.deadline ? deadlineText(project.deadline) : ""} tone="neutral" />
         </TabsContent>
 
         <TabsContent value="progress" className="mt-4">
           <SectionCard title="Completion">
-            <ProgressBar value={stats.percent} />
-            <p className="tabular mt-2 text-sm text-muted-foreground">{stats.percent}% complete · {stats.completed}/{stats.total} tasks</p>
+            <ProgressBar value={stats.progress} />
+            <p className="tabular mt-2 text-sm text-muted-foreground">{stats.progress}% complete · {stats.completed}/{stats.total} tasks</p>
             <div className="mt-4 flex flex-wrap gap-3">
               {(["on_track", "due_soon", "overdue", "completed_on_time", "completed_late"] as const).map((s) => (
                 <span key={s} className="flex items-center gap-2 text-sm"><StatusBadge state={s} /> <span className="tabular font-semibold">{count(s)}</span></span>

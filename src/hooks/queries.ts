@@ -231,7 +231,7 @@ function useInvalidate() {
 
 async function logActivity(input: {
   actorId: string | null;
-  projectId?: string | null;
+  projectId?: string | null | undefined;
   taskId?: string | null;
   message: string;
 }) {
@@ -285,7 +285,7 @@ export function useUpdateProject(actorId: string | null) {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: async ({ id, ...patch }: { id: string } & Partial<Project>) => {
-      const { error } = await supabase.from("projects").update(patch).eq("id", id);
+      const { error } = await supabase.from("projects").update(patch as never).eq("id", id);
       if (error) throw new Error(error.message);
       await logActivity({ actorId, projectId: id, message: "updated the project details" });
     },
@@ -364,7 +364,7 @@ export function useUpdateTask(actorId: string | null) {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: async ({ id, projectId, ...patch }: { id: string; projectId: string } & Record<string, unknown>) => {
-      const { error } = await supabase.from("tasks").update(patch).eq("id", id);
+      const { error } = await supabase.from("tasks").update(patch as never).eq("id", id);
       if (error) throw new Error(error.message);
       await logActivity({ actorId, projectId, taskId: id, message: "updated a task" });
     },
