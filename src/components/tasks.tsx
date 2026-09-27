@@ -301,7 +301,7 @@ export function TaskCard({
   subtasks: Subtask[];
   href: string;
   commentCount?: number;
-  onToggle?: (completed: boolean) => void;
+  onToggle?: ((completed: boolean) => void) | undefined;
   toggleDisabled?: boolean;
 }) {
   const state = statusOf(task);
