@@ -4,22 +4,12 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { CreateTaskDialog } from "@/components/dialogs";
 import { ErrorState, LoadingState, PageHeader } from "@/components/primitives";
-import { meta } from "@/components/pages";
+import { ConfirmDelete, meta } from "@/components/pages";
 import { TaskFilters, TaskTable, useFilteredTasks } from "@/components/tasks";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useAllSubtasks, useDeleteTask, useMembers, useProjects, useTasks, type Task } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 
-export const Route = createFileRoute("/_authenticated/manager/tasks")({
+export const Route = createFileRoute("/_authenticated/manager/tasks/")({
   head: () => meta("All tasks", "Search, filter and sort every task across your projects."),
   component: ManagerTasks,
 });
@@ -62,36 +52,3 @@ function ManagerTasks() {
   );
 }
 
-export function ConfirmDelete({
-  task,
-  onClose,
-  onConfirm,
-}: {
-  task: Task | null;
-  onClose: () => void;
-  onConfirm: (task: Task) => void;
-}) {
-  return (
-    <AlertDialog open={!!task} onOpenChange={(o) => !o && onClose()}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete this task?</AlertDialogTitle>
-          <AlertDialogDescription>
-            "{task?.title}" and its subtasks and comments will be permanently removed.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => {
-              if (task) onConfirm(task);
-              onClose();
-            }}
-          >
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
