@@ -21,8 +21,8 @@ import { Route as AuthenticatedDeveloperSettingsRouteImport } from './routes/_au
 import { Route as AuthenticatedManagerDashboardRouteImport } from './routes/_authenticated/manager/dashboard'
 import { Route as AuthenticatedManagerNotificationsRouteImport } from './routes/_authenticated/manager/notifications'
 import { Route as AuthenticatedManagerSettingsRouteImport } from './routes/_authenticated/manager/settings'
-import { Route as AuthenticatedManagerTasksRouteImport } from './routes/_authenticated/manager/tasks'
 import { Route as AuthenticatedManagerProjectsIndexRouteImport } from './routes/_authenticated/manager/projects.index'
+import { Route as AuthenticatedManagerTasksIndexRouteImport } from './routes/_authenticated/manager/tasks.index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -89,16 +89,16 @@ const AuthenticatedManagerSettingsRoute =
     path: '/manager/settings',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedManagerTasksRoute =
-  AuthenticatedManagerTasksRouteImport.update({
-    id: '/manager/tasks',
-    path: '/manager/tasks',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedManagerProjectsIndexRoute =
   AuthenticatedManagerProjectsIndexRouteImport.update({
     id: '/manager/projects/',
     path: '/manager/projects/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedManagerTasksIndexRoute =
+  AuthenticatedManagerTasksIndexRouteImport.update({
+    id: '/manager/tasks/',
+    path: '/manager/tasks/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 
@@ -114,8 +114,8 @@ export interface FileRoutesByFullPath {
   '/manager/dashboard': typeof AuthenticatedManagerDashboardRoute
   '/manager/notifications': typeof AuthenticatedManagerNotificationsRoute
   '/manager/settings': typeof AuthenticatedManagerSettingsRoute
-  '/manager/tasks': typeof AuthenticatedManagerTasksRoute
   '/manager/projects/': typeof AuthenticatedManagerProjectsIndexRoute
+  '/manager/tasks/': typeof AuthenticatedManagerTasksIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -129,8 +129,8 @@ export interface FileRoutesByTo {
   '/manager/dashboard': typeof AuthenticatedManagerDashboardRoute
   '/manager/notifications': typeof AuthenticatedManagerNotificationsRoute
   '/manager/settings': typeof AuthenticatedManagerSettingsRoute
-  '/manager/tasks': typeof AuthenticatedManagerTasksRoute
   '/manager/projects': typeof AuthenticatedManagerProjectsIndexRoute
+  '/manager/tasks': typeof AuthenticatedManagerTasksIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -146,8 +146,8 @@ export interface FileRoutesById {
   '/_authenticated/manager/dashboard': typeof AuthenticatedManagerDashboardRoute
   '/_authenticated/manager/notifications': typeof AuthenticatedManagerNotificationsRoute
   '/_authenticated/manager/settings': typeof AuthenticatedManagerSettingsRoute
-  '/_authenticated/manager/tasks': typeof AuthenticatedManagerTasksRoute
   '/_authenticated/manager/projects/': typeof AuthenticatedManagerProjectsIndexRoute
+  '/_authenticated/manager/tasks/': typeof AuthenticatedManagerTasksIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -163,8 +163,8 @@ export interface FileRouteTypes {
     | '/manager/dashboard'
     | '/manager/notifications'
     | '/manager/settings'
-    | '/manager/tasks'
     | '/manager/projects/'
+    | '/manager/tasks/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -178,8 +178,8 @@ export interface FileRouteTypes {
     | '/manager/dashboard'
     | '/manager/notifications'
     | '/manager/settings'
-    | '/manager/tasks'
     | '/manager/projects'
+    | '/manager/tasks'
   id:
     | '__root__'
     | '/'
@@ -194,8 +194,8 @@ export interface FileRouteTypes {
     | '/_authenticated/manager/dashboard'
     | '/_authenticated/manager/notifications'
     | '/_authenticated/manager/settings'
-    | '/_authenticated/manager/tasks'
     | '/_authenticated/manager/projects/'
+    | '/_authenticated/manager/tasks/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -293,18 +293,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedManagerSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/manager/tasks': {
-      id: '/_authenticated/manager/tasks'
-      path: '/manager/tasks'
-      fullPath: '/manager/tasks'
-      preLoaderRoute: typeof AuthenticatedManagerTasksRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/manager/projects/': {
       id: '/_authenticated/manager/projects/'
       path: '/manager/projects'
       fullPath: '/manager/projects/'
       preLoaderRoute: typeof AuthenticatedManagerProjectsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/manager/tasks/': {
+      id: '/_authenticated/manager/tasks/'
+      path: '/manager/tasks'
+      fullPath: '/manager/tasks/'
+      preLoaderRoute: typeof AuthenticatedManagerTasksIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
   }
@@ -317,8 +317,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedManagerDashboardRoute: typeof AuthenticatedManagerDashboardRoute
   AuthenticatedManagerNotificationsRoute: typeof AuthenticatedManagerNotificationsRoute
   AuthenticatedManagerSettingsRoute: typeof AuthenticatedManagerSettingsRoute
-  AuthenticatedManagerTasksRoute: typeof AuthenticatedManagerTasksRoute
   AuthenticatedManagerProjectsIndexRoute: typeof AuthenticatedManagerProjectsIndexRoute
+  AuthenticatedManagerTasksIndexRoute: typeof AuthenticatedManagerTasksIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -330,9 +330,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedManagerNotificationsRoute:
     AuthenticatedManagerNotificationsRoute,
   AuthenticatedManagerSettingsRoute: AuthenticatedManagerSettingsRoute,
-  AuthenticatedManagerTasksRoute: AuthenticatedManagerTasksRoute,
   AuthenticatedManagerProjectsIndexRoute:
     AuthenticatedManagerProjectsIndexRoute,
+  AuthenticatedManagerTasksIndexRoute: AuthenticatedManagerTasksIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
