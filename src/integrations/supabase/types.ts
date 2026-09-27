@@ -14,16 +14,359 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          message: string
+          project_id: string | null
+          task_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          project_id?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          project_id?: string | null
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          audience: Database["public"]["Enums"]["app_role"] | null
+          body: string
+          created_at: string
+          id: string
+          is_read: boolean
+          kind: string
+          project_id: string | null
+          recipient_id: string | null
+          task_id: string | null
+          title: string
+        }
+        Insert: {
+          audience?: Database["public"]["Enums"]["app_role"] | null
+          body?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          kind: string
+          project_id?: string | null
+          recipient_id?: string | null
+          task_id?: string | null
+          title: string
+        }
+        Update: {
+          audience?: Database["public"]["Enums"]["app_role"] | null
+          body?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          kind?: string
+          project_id?: string | null
+          recipient_id?: string | null
+          task_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_demo: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_demo?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_demo?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string
+          deadline: string | null
+          description: string
+          id: string
+          manager_id: string | null
+          priority: Database["public"]["Enums"]["priority_level"]
+          start_date: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          manager_id?: string | null
+          priority?: Database["public"]["Enums"]["priority_level"]
+          start_date?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          manager_id?: string | null
+          priority?: Database["public"]["Enums"]["priority_level"]
+          start_date?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subtasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          is_completed: boolean
+          task_id: string
+          title: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          task_id: string
+          title: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          task_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subtasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assigned_developer_id: string | null
+          completed_at: string | null
+          created_at: string
+          deadline: string | null
+          description: string
+          id: string
+          is_completed: boolean
+          priority: Database["public"]["Enums"]["priority_level"]
+          project_id: string
+          title: string
+        }
+        Insert: {
+          assigned_developer_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          is_completed?: boolean
+          priority?: Database["public"]["Enums"]["priority_level"]
+          project_id: string
+          title: string
+        }
+        Update: {
+          assigned_developer_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          is_completed?: boolean
+          priority?: Database["public"]["Enums"]["priority_level"]
+          project_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_developer_id_fkey"
+            columns: ["assigned_developer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_account: {
+        Args: {
+          _email: string
+          _name: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: undefined
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "manager" | "developer"
+      priority_level: "low" | "medium" | "high" | "critical"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +493,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["manager", "developer"],
+      priority_level: ["low", "medium", "high", "critical"],
+    },
   },
 } as const
