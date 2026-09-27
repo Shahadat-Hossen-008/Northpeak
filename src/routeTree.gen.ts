@@ -15,7 +15,20 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as AuthenticatedDeveloperDashboardRouteImport } from './routes/_authenticated/developer/dashboard'
+import { Route as AuthenticatedDeveloperNotificationsRouteImport } from './routes/_authenticated/developer/notifications'
+import { Route as AuthenticatedDeveloperProjectsRouteImport } from './routes/_authenticated/developer/projects'
+import { Route as AuthenticatedDeveloperSettingsRouteImport } from './routes/_authenticated/developer/settings'
 import { Route as AuthenticatedManagerDashboardRouteImport } from './routes/_authenticated/manager/dashboard'
+import { Route as AuthenticatedManagerNotificationsRouteImport } from './routes/_authenticated/manager/notifications'
+import { Route as AuthenticatedManagerSettingsRouteImport } from './routes/_authenticated/manager/settings'
+import { Route as AuthenticatedManagerTeamRouteImport } from './routes/_authenticated/manager/team'
+import { Route as AuthenticatedDeveloperTasksIndexRouteImport } from './routes/_authenticated/developer/tasks.index'
+import { Route as AuthenticatedDeveloperTasksTaskIdRouteImport } from './routes/_authenticated/developer/tasks.$taskId'
+import { Route as AuthenticatedManagerProjectsIndexRouteImport } from './routes/_authenticated/manager/projects.index'
+import { Route as AuthenticatedManagerProjectsProjectIdRouteImport } from './routes/_authenticated/manager/projects.$projectId'
+import { Route as AuthenticatedManagerTasksIndexRouteImport } from './routes/_authenticated/manager/tasks.index'
+import { Route as AuthenticatedManagerTasksTaskIdRouteImport } from './routes/_authenticated/manager/tasks.$taskId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,10 +59,88 @@ const WelcomeRoute = WelcomeRouteImport.update({
   path: '/welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedDeveloperDashboardRoute =
+  AuthenticatedDeveloperDashboardRouteImport.update({
+    id: '/developer/dashboard',
+    path: '/developer/dashboard',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDeveloperNotificationsRoute =
+  AuthenticatedDeveloperNotificationsRouteImport.update({
+    id: '/developer/notifications',
+    path: '/developer/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDeveloperProjectsRoute =
+  AuthenticatedDeveloperProjectsRouteImport.update({
+    id: '/developer/projects',
+    path: '/developer/projects',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDeveloperSettingsRoute =
+  AuthenticatedDeveloperSettingsRouteImport.update({
+    id: '/developer/settings',
+    path: '/developer/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedManagerDashboardRoute =
   AuthenticatedManagerDashboardRouteImport.update({
     id: '/manager/dashboard',
     path: '/manager/dashboard',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedManagerNotificationsRoute =
+  AuthenticatedManagerNotificationsRouteImport.update({
+    id: '/manager/notifications',
+    path: '/manager/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedManagerSettingsRoute =
+  AuthenticatedManagerSettingsRouteImport.update({
+    id: '/manager/settings',
+    path: '/manager/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedManagerTeamRoute =
+  AuthenticatedManagerTeamRouteImport.update({
+    id: '/manager/team',
+    path: '/manager/team',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDeveloperTasksIndexRoute =
+  AuthenticatedDeveloperTasksIndexRouteImport.update({
+    id: '/developer/tasks/',
+    path: '/developer/tasks/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDeveloperTasksTaskIdRoute =
+  AuthenticatedDeveloperTasksTaskIdRouteImport.update({
+    id: '/developer/tasks/$taskId',
+    path: '/developer/tasks/$taskId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedManagerProjectsIndexRoute =
+  AuthenticatedManagerProjectsIndexRouteImport.update({
+    id: '/manager/projects/',
+    path: '/manager/projects/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedManagerProjectsProjectIdRoute =
+  AuthenticatedManagerProjectsProjectIdRouteImport.update({
+    id: '/manager/projects/$projectId',
+    path: '/manager/projects/$projectId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedManagerTasksIndexRoute =
+  AuthenticatedManagerTasksIndexRouteImport.update({
+    id: '/manager/tasks/',
+    path: '/manager/tasks/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedManagerTasksTaskIdRoute =
+  AuthenticatedManagerTasksTaskIdRouteImport.update({
+    id: '/manager/tasks/$taskId',
+    path: '/manager/tasks/$taskId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 
@@ -59,7 +150,20 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/welcome': typeof WelcomeRoute
+  '/developer/dashboard': typeof AuthenticatedDeveloperDashboardRoute
+  '/developer/notifications': typeof AuthenticatedDeveloperNotificationsRoute
+  '/developer/projects': typeof AuthenticatedDeveloperProjectsRoute
+  '/developer/settings': typeof AuthenticatedDeveloperSettingsRoute
   '/manager/dashboard': typeof AuthenticatedManagerDashboardRoute
+  '/manager/notifications': typeof AuthenticatedManagerNotificationsRoute
+  '/manager/settings': typeof AuthenticatedManagerSettingsRoute
+  '/manager/team': typeof AuthenticatedManagerTeamRoute
+  '/developer/tasks/$taskId': typeof AuthenticatedDeveloperTasksTaskIdRoute
+  '/manager/projects/$projectId': typeof AuthenticatedManagerProjectsProjectIdRoute
+  '/manager/tasks/$taskId': typeof AuthenticatedManagerTasksTaskIdRoute
+  '/developer/tasks/': typeof AuthenticatedDeveloperTasksIndexRoute
+  '/manager/projects/': typeof AuthenticatedManagerProjectsIndexRoute
+  '/manager/tasks/': typeof AuthenticatedManagerTasksIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -67,7 +171,20 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/welcome': typeof WelcomeRoute
+  '/developer/dashboard': typeof AuthenticatedDeveloperDashboardRoute
+  '/developer/notifications': typeof AuthenticatedDeveloperNotificationsRoute
+  '/developer/projects': typeof AuthenticatedDeveloperProjectsRoute
+  '/developer/settings': typeof AuthenticatedDeveloperSettingsRoute
   '/manager/dashboard': typeof AuthenticatedManagerDashboardRoute
+  '/manager/notifications': typeof AuthenticatedManagerNotificationsRoute
+  '/manager/settings': typeof AuthenticatedManagerSettingsRoute
+  '/manager/team': typeof AuthenticatedManagerTeamRoute
+  '/developer/tasks/$taskId': typeof AuthenticatedDeveloperTasksTaskIdRoute
+  '/manager/projects/$projectId': typeof AuthenticatedManagerProjectsProjectIdRoute
+  '/manager/tasks/$taskId': typeof AuthenticatedManagerTasksTaskIdRoute
+  '/developer/tasks': typeof AuthenticatedDeveloperTasksIndexRoute
+  '/manager/projects': typeof AuthenticatedManagerProjectsIndexRoute
+  '/manager/tasks': typeof AuthenticatedManagerTasksIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,7 +194,20 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/welcome': typeof WelcomeRoute
+  '/_authenticated/developer/dashboard': typeof AuthenticatedDeveloperDashboardRoute
+  '/_authenticated/developer/notifications': typeof AuthenticatedDeveloperNotificationsRoute
+  '/_authenticated/developer/projects': typeof AuthenticatedDeveloperProjectsRoute
+  '/_authenticated/developer/settings': typeof AuthenticatedDeveloperSettingsRoute
   '/_authenticated/manager/dashboard': typeof AuthenticatedManagerDashboardRoute
+  '/_authenticated/manager/notifications': typeof AuthenticatedManagerNotificationsRoute
+  '/_authenticated/manager/settings': typeof AuthenticatedManagerSettingsRoute
+  '/_authenticated/manager/team': typeof AuthenticatedManagerTeamRoute
+  '/_authenticated/developer/tasks/$taskId': typeof AuthenticatedDeveloperTasksTaskIdRoute
+  '/_authenticated/manager/projects/$projectId': typeof AuthenticatedManagerProjectsProjectIdRoute
+  '/_authenticated/manager/tasks/$taskId': typeof AuthenticatedManagerTasksTaskIdRoute
+  '/_authenticated/developer/tasks/': typeof AuthenticatedDeveloperTasksIndexRoute
+  '/_authenticated/manager/projects/': typeof AuthenticatedManagerProjectsIndexRoute
+  '/_authenticated/manager/tasks/': typeof AuthenticatedManagerTasksIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,7 +217,20 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/welcome'
+    | '/developer/dashboard'
+    | '/developer/notifications'
+    | '/developer/projects'
+    | '/developer/settings'
     | '/manager/dashboard'
+    | '/manager/notifications'
+    | '/manager/settings'
+    | '/manager/team'
+    | '/developer/tasks/$taskId'
+    | '/manager/projects/$projectId'
+    | '/manager/tasks/$taskId'
+    | '/developer/tasks/'
+    | '/manager/projects/'
+    | '/manager/tasks/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -95,7 +238,20 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/welcome'
+    | '/developer/dashboard'
+    | '/developer/notifications'
+    | '/developer/projects'
+    | '/developer/settings'
     | '/manager/dashboard'
+    | '/manager/notifications'
+    | '/manager/settings'
+    | '/manager/team'
+    | '/developer/tasks/$taskId'
+    | '/manager/projects/$projectId'
+    | '/manager/tasks/$taskId'
+    | '/developer/tasks'
+    | '/manager/projects'
+    | '/manager/tasks'
   id:
     | '__root__'
     | '/'
@@ -104,7 +260,20 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/welcome'
+    | '/_authenticated/developer/dashboard'
+    | '/_authenticated/developer/notifications'
+    | '/_authenticated/developer/projects'
+    | '/_authenticated/developer/settings'
     | '/_authenticated/manager/dashboard'
+    | '/_authenticated/manager/notifications'
+    | '/_authenticated/manager/settings'
+    | '/_authenticated/manager/team'
+    | '/_authenticated/developer/tasks/$taskId'
+    | '/_authenticated/manager/projects/$projectId'
+    | '/_authenticated/manager/tasks/$taskId'
+    | '/_authenticated/developer/tasks/'
+    | '/_authenticated/manager/projects/'
+    | '/_authenticated/manager/tasks/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -160,6 +329,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/developer/dashboard': {
+      id: '/_authenticated/developer/dashboard'
+      path: '/developer/dashboard'
+      fullPath: '/developer/dashboard'
+      preLoaderRoute: typeof AuthenticatedDeveloperDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/developer/notifications': {
+      id: '/_authenticated/developer/notifications'
+      path: '/developer/notifications'
+      fullPath: '/developer/notifications'
+      preLoaderRoute: typeof AuthenticatedDeveloperNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/developer/projects': {
+      id: '/_authenticated/developer/projects'
+      path: '/developer/projects'
+      fullPath: '/developer/projects'
+      preLoaderRoute: typeof AuthenticatedDeveloperProjectsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/developer/settings': {
+      id: '/_authenticated/developer/settings'
+      path: '/developer/settings'
+      fullPath: '/developer/settings'
+      preLoaderRoute: typeof AuthenticatedDeveloperSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/manager/dashboard': {
       id: '/_authenticated/manager/dashboard'
       path: '/manager/dashboard'
@@ -167,15 +364,109 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedManagerDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/manager/notifications': {
+      id: '/_authenticated/manager/notifications'
+      path: '/manager/notifications'
+      fullPath: '/manager/notifications'
+      preLoaderRoute: typeof AuthenticatedManagerNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/manager/settings': {
+      id: '/_authenticated/manager/settings'
+      path: '/manager/settings'
+      fullPath: '/manager/settings'
+      preLoaderRoute: typeof AuthenticatedManagerSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/manager/team': {
+      id: '/_authenticated/manager/team'
+      path: '/manager/team'
+      fullPath: '/manager/team'
+      preLoaderRoute: typeof AuthenticatedManagerTeamRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/developer/tasks/': {
+      id: '/_authenticated/developer/tasks/'
+      path: '/developer/tasks'
+      fullPath: '/developer/tasks/'
+      preLoaderRoute: typeof AuthenticatedDeveloperTasksIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/developer/tasks/$taskId': {
+      id: '/_authenticated/developer/tasks/$taskId'
+      path: '/developer/tasks/$taskId'
+      fullPath: '/developer/tasks/$taskId'
+      preLoaderRoute: typeof AuthenticatedDeveloperTasksTaskIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/manager/projects/': {
+      id: '/_authenticated/manager/projects/'
+      path: '/manager/projects'
+      fullPath: '/manager/projects/'
+      preLoaderRoute: typeof AuthenticatedManagerProjectsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/manager/projects/$projectId': {
+      id: '/_authenticated/manager/projects/$projectId'
+      path: '/manager/projects/$projectId'
+      fullPath: '/manager/projects/$projectId'
+      preLoaderRoute: typeof AuthenticatedManagerProjectsProjectIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/manager/tasks/': {
+      id: '/_authenticated/manager/tasks/'
+      path: '/manager/tasks'
+      fullPath: '/manager/tasks/'
+      preLoaderRoute: typeof AuthenticatedManagerTasksIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/manager/tasks/$taskId': {
+      id: '/_authenticated/manager/tasks/$taskId'
+      path: '/manager/tasks/$taskId'
+      fullPath: '/manager/tasks/$taskId'
+      preLoaderRoute: typeof AuthenticatedManagerTasksTaskIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedDeveloperDashboardRoute: typeof AuthenticatedDeveloperDashboardRoute
+  AuthenticatedDeveloperNotificationsRoute: typeof AuthenticatedDeveloperNotificationsRoute
+  AuthenticatedDeveloperProjectsRoute: typeof AuthenticatedDeveloperProjectsRoute
+  AuthenticatedDeveloperSettingsRoute: typeof AuthenticatedDeveloperSettingsRoute
   AuthenticatedManagerDashboardRoute: typeof AuthenticatedManagerDashboardRoute
+  AuthenticatedManagerNotificationsRoute: typeof AuthenticatedManagerNotificationsRoute
+  AuthenticatedManagerSettingsRoute: typeof AuthenticatedManagerSettingsRoute
+  AuthenticatedManagerTeamRoute: typeof AuthenticatedManagerTeamRoute
+  AuthenticatedDeveloperTasksTaskIdRoute: typeof AuthenticatedDeveloperTasksTaskIdRoute
+  AuthenticatedManagerProjectsProjectIdRoute: typeof AuthenticatedManagerProjectsProjectIdRoute
+  AuthenticatedManagerTasksTaskIdRoute: typeof AuthenticatedManagerTasksTaskIdRoute
+  AuthenticatedDeveloperTasksIndexRoute: typeof AuthenticatedDeveloperTasksIndexRoute
+  AuthenticatedManagerProjectsIndexRoute: typeof AuthenticatedManagerProjectsIndexRoute
+  AuthenticatedManagerTasksIndexRoute: typeof AuthenticatedManagerTasksIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedDeveloperDashboardRoute: AuthenticatedDeveloperDashboardRoute,
+  AuthenticatedDeveloperNotificationsRoute:
+    AuthenticatedDeveloperNotificationsRoute,
+  AuthenticatedDeveloperProjectsRoute: AuthenticatedDeveloperProjectsRoute,
+  AuthenticatedDeveloperSettingsRoute: AuthenticatedDeveloperSettingsRoute,
   AuthenticatedManagerDashboardRoute: AuthenticatedManagerDashboardRoute,
+  AuthenticatedManagerNotificationsRoute:
+    AuthenticatedManagerNotificationsRoute,
+  AuthenticatedManagerSettingsRoute: AuthenticatedManagerSettingsRoute,
+  AuthenticatedManagerTeamRoute: AuthenticatedManagerTeamRoute,
+  AuthenticatedDeveloperTasksTaskIdRoute:
+    AuthenticatedDeveloperTasksTaskIdRoute,
+  AuthenticatedManagerProjectsProjectIdRoute:
+    AuthenticatedManagerProjectsProjectIdRoute,
+  AuthenticatedManagerTasksTaskIdRoute: AuthenticatedManagerTasksTaskIdRoute,
+  AuthenticatedDeveloperTasksIndexRoute: AuthenticatedDeveloperTasksIndexRoute,
+  AuthenticatedManagerProjectsIndexRoute:
+    AuthenticatedManagerProjectsIndexRoute,
+  AuthenticatedManagerTasksIndexRoute: AuthenticatedManagerTasksIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
