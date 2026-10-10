@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -11,7 +11,7 @@ import { useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
 import { PriorityBadge, StatusBadge, statusOf } from "@/components/badges";
-import { CreateTaskDialog } from "@/components/dialogs";
+import { CreateTaskDialog, EditProjectDialog, DeleteProjectDialog } from "@/components/dialogs";
 import { ConfirmDelete, meta } from "@/components/pages";
 import { projectStats } from "@/components/ProjectCard";
 import {
@@ -44,6 +44,7 @@ export const Route = createFileRoute("/_authenticated/manager/projects/$projectI
 
 function ProjectDetail() {
   const { projectId } = Route.useParams();
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const projects = useProjects();
   const tasks = useTasks();
@@ -113,7 +114,14 @@ function ProjectDetail() {
           </div>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{project.description}</p>
         </div>
-        {addTask}
+        <div className="flex flex-wrap items-center gap-2">
+          <EditProjectDialog project={project} />
+          <DeleteProjectDialog
+            project={project}
+            onDeleted={() => void navigate({ to: "/manager/projects", replace: true })}
+          />
+          {addTask}
+        </div>
       </div>
 
       <Tabs defaultValue="overview" className="mt-6">

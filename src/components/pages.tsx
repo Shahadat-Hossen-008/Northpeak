@@ -7,7 +7,7 @@ import { PageHeader, SectionCard, UserAvatar } from "@/components/primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth, type AppRole } from "@/hooks/useAuth";
 import type { Task } from "@/hooks/queries";
 import {
@@ -48,32 +48,32 @@ export function SettingsPage({ section }: { section: AppRole }) {
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ name: name.trim() })
-      .eq("id", user.id);
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await api.updateProfile({ name: name.trim() });
+      toast.success("Profile updated");
+      await reload();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update profile";
+      toast.error(message);
+    } finally {
+      setSaving(false);
     }
-    toast.success("Profile updated");
-    reload();
   }
 
   async function savePassword(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 8) {
-      toast.error("Password must be at least 8 characters");
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters");
       return;
     }
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await api.updateProfile({ password });
+      setPassword("");
+      toast.success("Password changed");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to change password";
+      toast.error(message);
     }
-    setPassword("");
-    toast.success("Password changed");
   }
 
   return (

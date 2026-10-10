@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -13,17 +13,27 @@ import {
 import { CommentSection } from "@/components/CommentSection";
 import { SubtaskList } from "@/components/SubtaskList";
 import { ErrorState, LoadingState, ProgressBar, UserAvatar } from "@/components/primitives";
-import { useActivity, useSetTaskCompletion, useSubtasks, useTask } from "@/hooks/queries";
+import { EditTaskDialog, DeleteTaskDialog } from "@/components/dialogs";
+import {
+  useActivity,
+  useMembers,
+  useSetTaskCompletion,
+  useSubtasks,
+  useTask,
+} from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate, timeAgo } from "@/lib/deadline";
 import { cn } from "@/lib/utils";
 
 export function TaskDetail({ taskId, backHref }: { taskId: string; backHref: string }) {
+  const navigate = useNavigate();
   const { profile, role } = useAuth();
   const { data: task, isLoading, isError, error } = useTask(taskId);
   const { data: subtasks } = useSubtasks(taskId);
+  const { data: members } = useMembers();
   const { data: activity } = useActivity({ taskId, limit: 15 });
   const setCompletion = useSetTaskCompletion(profile?.id ?? null);
+  const developers = (members ?? []).filter((m) => m.role === "developer");
 
   if (isLoading) return <LoadingState label="Loading task…" />;
   if (isError) return <ErrorState message={(error as Error)?.message} />;
@@ -61,18 +71,29 @@ export function TaskDetail({ taskId, backHref }: { taskId: string; backHref: str
           <div className="flex flex-col items-start gap-3 lg:items-end">
             <StatusBadge state={state} />
             {canEdit ? (
-              <Button
-                variant={task.is_completed ? "outline" : "default"}
-                disabled={setCompletion.isPending}
-                onClick={() =>
-                  setCompletion.mutate({
-                    task: { id: task.id, title: task.title, project_id: task.project_id },
-                    completed: !task.is_completed,
-                  })
-                }
-              >
-                {task.is_completed ? "Reopen task" : "Mark complete"}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <EditTaskDialog task={task} developers={developers} />
+                {role === "manager" ? (
+                  <DeleteTaskDialog
+                    task={task}
+                    onDeleted={() => {
+                      void navigate({ to: backHref });
+                    }}
+                  />
+                ) : null}
+                <Button
+                  variant={task.is_completed ? "outline" : "default"}
+                  disabled={setCompletion.isPending}
+                  onClick={() =>
+                    setCompletion.mutate({
+                      task: { id: task.id, title: task.title, project_id: task.project_id },
+                      completed: !task.is_completed,
+                    })
+                  }
+                >
+                  {task.is_completed ? "Reopen task" : "Mark complete"}
+                </Button>
+              </div>
             ) : null}
           </div>
         </div>

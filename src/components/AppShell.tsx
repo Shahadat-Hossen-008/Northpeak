@@ -26,7 +26,6 @@ import {
 import { UserAvatar } from "@/components/primitives";
 import { useAuth, homePathForRole, type AppRole } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/queries";
-import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 type NavItem = { label: string; to: string; icon: typeof LayoutDashboard };
@@ -87,9 +86,8 @@ function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => 
 }
 
 export function AppShell({ section, children }: { section: AppRole; children: ReactNode }) {
-  const { user, profile, role, loading } = useAuth();
+  const { user, profile, role, loading, logout } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const { data: notifications } = useNotifications();
   const unread = (notifications ?? []).filter((n) => !n.is_read).length;
@@ -109,10 +107,8 @@ export function AppShell({ section, children }: { section: AppRole; children: Re
     }
   }, [loading, user, role, section, navigate]);
 
-  async function signOut() {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    await supabase.auth.signOut();
+  function signOut() {
+    logout();
     void navigate({ to: "/login", replace: true });
   }
 
