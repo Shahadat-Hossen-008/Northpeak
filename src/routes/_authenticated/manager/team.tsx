@@ -3,7 +3,13 @@ import { Users } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { statusOf } from "@/components/badges";
-import { EmptyState, LoadingState, PageHeader, ProgressBar, UserAvatar } from "@/components/primitives";
+import {
+  EmptyState,
+  LoadingState,
+  PageHeader,
+  ProgressBar,
+  UserAvatar,
+} from "@/components/primitives";
 import { meta } from "@/components/pages";
 import { useMembers, useTasks } from "@/hooks/queries";
 
@@ -19,12 +25,19 @@ function Team() {
   const all = tasks.data ?? [];
   return (
     <AppShell section="manager">
-      <PageHeader title="Team" description="See who is carrying what, and where deadlines are slipping." />
+      <PageHeader
+        title="Team"
+        description="See who is carrying what, and where deadlines are slipping."
+      />
       <div className="mt-6">
         {members.isLoading || tasks.isLoading ? (
           <LoadingState />
         ) : devs.length === 0 ? (
-          <EmptyState icon={Users} title="No developers yet" description="Developers appear here once they register." />
+          <EmptyState
+            icon={Users}
+            title="No developers yet"
+            description="Developers appear here once they register."
+          />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {devs.map((dev) => {
@@ -39,19 +52,34 @@ function Team() {
                     <UserAvatar name={dev.name} />
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{dev.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">{dev.email ?? "Developer"}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {dev.email ?? "Developer"}
+                      </p>
                     </div>
                   </div>
                   <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
-                    <div className="rounded-md bg-muted p-2"><dt className="text-xs text-muted-foreground">Active</dt><dd className="tabular font-bold">{active}</dd></div>
-                    <div className="rounded-md bg-success/10 p-2"><dt className="text-xs text-muted-foreground">Done</dt><dd className="tabular font-bold text-success">{done}</dd></div>
-                    <div className="rounded-md bg-destructive/10 p-2"><dt className="text-xs text-muted-foreground">Overdue</dt><dd className="tabular font-bold text-destructive">{overdue}</dd></div>
+                    <div className="rounded-md bg-muted p-2">
+                      <dt className="text-xs text-muted-foreground">Active</dt>
+                      <dd className="tabular font-bold">{active}</dd>
+                    </div>
+                    <div className="rounded-md bg-success/10 p-2">
+                      <dt className="text-xs text-muted-foreground">Done</dt>
+                      <dd className="tabular font-bold text-success">{done}</dd>
+                    </div>
+                    <div className="rounded-md bg-destructive/10 p-2">
+                      <dt className="text-xs text-muted-foreground">Overdue</dt>
+                      <dd className="tabular font-bold text-destructive">{overdue}</dd>
+                    </div>
                   </dl>
                   <div className="mt-4">
                     <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-                      <span>Workload</span><span className="tabular">{load}%</span>
+                      <span>Workload</span>
+                      <span className="tabular">{load}%</span>
                     </div>
-                    <ProgressBar value={load} tone={overdue > 0 ? "danger" : load > 60 ? "warning" : "primary"} />
+                    <ProgressBar
+                      value={load}
+                      tone={overdue > 0 ? "danger" : load > 60 ? "warning" : "primary"}
+                    />
                   </div>
                 </div>
               );

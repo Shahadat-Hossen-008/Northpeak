@@ -29,10 +29,30 @@ export const Route = createFileRoute("/")({
 });
 
 const STATES = [
-  { icon: CircleDot, label: "On track", tone: "bg-info-soft text-info", copy: "Deadline is comfortably ahead" },
-  { icon: Clock, label: "Due soon", tone: "bg-warning-soft text-warning-foreground", copy: "Three days or less remaining" },
-  { icon: AlertTriangle, label: "Overdue", tone: "bg-danger-soft text-danger", copy: "Deadline has already passed" },
-  { icon: CheckCircle2, label: "Completed", tone: "bg-success-soft text-success", copy: "On time, or flagged as late" },
+  {
+    icon: CircleDot,
+    label: "On track",
+    tone: "bg-info-soft text-info",
+    copy: "Deadline is comfortably ahead",
+  },
+  {
+    icon: Clock,
+    label: "Due soon",
+    tone: "bg-warning-soft text-warning-foreground",
+    copy: "Three days or less remaining",
+  },
+  {
+    icon: AlertTriangle,
+    label: "Overdue",
+    tone: "bg-danger-soft text-danger",
+    copy: "Deadline has already passed",
+  },
+  {
+    icon: CheckCircle2,
+    label: "Completed",
+    tone: "bg-success-soft text-success",
+    copy: "On time, or flagged as late",
+  },
 ];
 
 function Landing() {

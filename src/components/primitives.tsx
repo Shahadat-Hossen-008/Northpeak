@@ -14,7 +14,8 @@ export function UserAvatar({
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const dims = size === "sm" ? "size-7 text-[11px]" : size === "lg" ? "size-12 text-base" : "size-9 text-xs";
+  const dims =
+    size === "sm" ? "size-7 text-[11px]" : size === "lg" ? "size-12 text-base" : "size-9 text-xs";
   // Deterministic tint from the name so avatars stay stable across renders.
   const tints = [
     "bg-primary-soft text-primary",
@@ -99,7 +100,9 @@ export function StatCard({
           <p className="tabular mt-2 text-3xl font-bold text-foreground">{value}</p>
           {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
         </div>
-        <span className={cn("inline-flex size-10 items-center justify-center rounded-lg", toneClass)}>
+        <span
+          className={cn("inline-flex size-10 items-center justify-center rounded-lg", toneClass)}
+        >
           <Icon className="size-5" aria-hidden />
         </span>
       </div>

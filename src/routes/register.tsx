@@ -182,7 +182,11 @@ function RegisterPage() {
           >
             {(
               [
-                { value: "manager", label: "Project manager", hint: "Create projects and assign work" },
+                {
+                  value: "manager",
+                  label: "Project manager",
+                  hint: "Create projects and assign work",
+                },
                 { value: "developer", label: "Developer", hint: "Deliver tasks and subtasks" },
               ] as const
             ).map((option) => (

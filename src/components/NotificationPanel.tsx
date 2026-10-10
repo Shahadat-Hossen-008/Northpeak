@@ -82,7 +82,10 @@ export function NotificationPanel() {
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-semibold text-foreground">{item.title}</p>
                   {!item.is_read ? (
-                    <span className="inline-flex size-2 rounded-full bg-primary" aria-label="Unread" />
+                    <span
+                      className="inline-flex size-2 rounded-full bg-primary"
+                      aria-label="Unread"
+                    />
                   ) : null}
                 </div>
                 {item.body ? (

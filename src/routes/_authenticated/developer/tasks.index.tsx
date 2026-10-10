@@ -20,15 +20,27 @@ function DeveloperTasks() {
   const { filters, setFilters, filtered } = useFilteredTasks(mine, subtasks.data ?? []);
   return (
     <AppShell section="developer">
-      <PageHeader title="My tasks" description="Search, filter and sort the work assigned to you." />
+      <PageHeader
+        title="My tasks"
+        description="Search, filter and sort the work assigned to you."
+      />
       <div className="mt-6 space-y-4">
-        <TaskFilters filters={filters} setFilters={setFilters} developers={[]} showDeveloper={false} />
+        <TaskFilters
+          filters={filters}
+          setFilters={setFilters}
+          developers={[]}
+          showDeveloper={false}
+        />
         {tasks.isLoading ? (
           <LoadingState />
         ) : tasks.isError ? (
           <ErrorState message={(tasks.error as Error).message} />
         ) : (
-          <TaskTable tasks={filtered} subtasks={subtasks.data ?? []} hrefFor={(t) => `/developer/tasks/${t.id}`} />
+          <TaskTable
+            tasks={filtered}
+            subtasks={subtasks.data ?? []}
+            hrefFor={(t) => `/developer/tasks/${t.id}`}
+          />
         )}
       </div>
     </AppShell>

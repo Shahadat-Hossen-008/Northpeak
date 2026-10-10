@@ -12,7 +12,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DeadlineBadge, PriorityBadge, StatusBadge, borderForState, statusOf } from "@/components/badges";
+import {
+  DeadlineBadge,
+  PriorityBadge,
+  StatusBadge,
+  borderForState,
+  statusOf,
+} from "@/components/badges";
 import { EmptyState, ProgressBar, UserAvatar } from "@/components/primitives";
 import type { Member, Subtask, Task } from "@/hooks/queries";
 import { formatDate } from "@/lib/deadline";
@@ -161,7 +167,10 @@ export function TaskFilters({
           <SelectItem value="low">Low</SelectItem>
         </SelectContent>
       </Select>
-      <Select value={filters.sort} onValueChange={(value) => setFilters({ ...filters, sort: value })}>
+      <Select
+        value={filters.sort}
+        onValueChange={(value) => setFilters({ ...filters, sort: value })}
+      >
         <SelectTrigger className="sm:w-40" aria-label="Sort tasks">
           <SelectValue placeholder="Sort" />
         </SelectTrigger>
@@ -219,9 +228,15 @@ export function TaskTable({
               const { done, total } = subtaskProgress(task.id, subtasks);
               const progress = taskProgress(task, subtasks);
               return (
-                <tr key={task.id} className="border-b border-border/70 last:border-0 hover:bg-secondary/60">
+                <tr
+                  key={task.id}
+                  className="border-b border-border/70 last:border-0 hover:bg-secondary/60"
+                >
                   <td className="px-3 py-3">
-                    <Link to={hrefFor(task)} className="font-semibold text-foreground hover:text-primary">
+                    <Link
+                      to={hrefFor(task)}
+                      className="font-semibold text-foreground hover:text-primary"
+                    >
                       {task.title}
                     </Link>
                     <p className="text-xs text-muted-foreground">{task.project?.title}</p>
@@ -246,7 +261,9 @@ export function TaskTable({
                   <td className="px-3 py-3 w-40">
                     <ProgressBar
                       value={progress}
-                      tone={task.is_completed ? "success" : state === "overdue" ? "danger" : "primary"}
+                      tone={
+                        task.is_completed ? "success" : state === "overdue" ? "danger" : "primary"
+                      }
                     />
                     <span className="tabular mt-1 block text-xs text-muted-foreground">
                       {total > 0 ? `${done}/${total} subtasks` : `${progress}%`}
@@ -338,7 +355,9 @@ export function TaskCard({
           tone={task.is_completed ? "success" : state === "overdue" ? "danger" : "primary"}
         />
         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-          <span className="tabular">{total > 0 ? `${done}/${total} subtasks` : `${progress}%`}</span>
+          <span className="tabular">
+            {total > 0 ? `${done}/${total} subtasks` : `${progress}%`}
+          </span>
           <DeadlineBadge deadline={task.deadline} state={state} />
         </div>
       </div>

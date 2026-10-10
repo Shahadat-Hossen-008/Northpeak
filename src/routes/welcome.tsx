@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AuthLayout } from "@/components/AuthLayout";
@@ -33,6 +33,31 @@ function WelcomePage() {
   const [submitting, setSubmitting] = useState(false);
   const autoClaimed = useRef(false);
 
+  const claim = useCallback(
+    async (selected: AppRole) => {
+      if (!user) return;
+      setSubmitting(true);
+      const displayName =
+        name.trim() ||
+        (user.user_metadata?.["full_name"] as string | undefined) ||
+        user.email?.split("@")[0] ||
+        "Member";
+      const { error } = await supabase.rpc("claim_account", {
+        _name: displayName,
+        _email: user.email ?? "",
+        _role: selected,
+      });
+      setSubmitting(false);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      await reload();
+      void navigate({ to: homePathForRole(selected), replace: true });
+    },
+    [user, name, reload, navigate],
+  );
+
   useEffect(() => {
     if (loading) return;
     if (!user) {
@@ -53,29 +78,7 @@ function WelcomePage() {
       autoClaimed.current = true;
       void claim(metaRole);
     }
-  }, [loading, user, role, navigate]);
-
-  async function claim(selected: AppRole) {
-    if (!user) return;
-    setSubmitting(true);
-    const displayName =
-      name.trim() ||
-      (user.user_metadata?.["full_name"] as string | undefined) ||
-      user.email?.split("@")[0] ||
-      "Member";
-    const { error } = await supabase.rpc("claim_account", {
-      _name: displayName,
-      _email: user.email ?? null,
-      _role: selected,
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    await reload();
-    void navigate({ to: homePathForRole(selected), replace: true });
-  }
+  }, [loading, user, role, navigate, claim]);
 
   if (loading || !user) return <LoadingState label="Preparing your workspace…" />;
 

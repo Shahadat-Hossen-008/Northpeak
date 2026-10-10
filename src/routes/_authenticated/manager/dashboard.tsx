@@ -1,5 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AlertTriangle, CheckCircle2, FolderKanban, Activity as ActivityIcon, Rocket } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  FolderKanban,
+  Activity as ActivityIcon,
+  Rocket,
+} from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { CreateProjectDialog } from "@/components/dialogs";
@@ -79,9 +85,24 @@ function ManagerDashboard() {
       ) : (
         <div className="mt-6 space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Total projects" value={allProjects.length} icon={FolderKanban} tone="primary" />
-            <StatCard label="Active projects" value={activeProjects.length} icon={Rocket} tone="neutral" />
-            <StatCard label="Completed tasks" value={completedTasks} icon={CheckCircle2} tone="success" />
+            <StatCard
+              label="Total projects"
+              value={allProjects.length}
+              icon={FolderKanban}
+              tone="primary"
+            />
+            <StatCard
+              label="Active projects"
+              value={activeProjects.length}
+              icon={Rocket}
+              tone="neutral"
+            />
+            <StatCard
+              label="Completed tasks"
+              value={completedTasks}
+              icon={CheckCircle2}
+              tone="success"
+            />
             <StatCard
               label="Overdue tasks"
               value={overdueTasks.length}
@@ -96,7 +117,10 @@ function ManagerDashboard() {
               <h2 className="text-sm font-semibold tracking-wide text-foreground uppercase">
                 Projects overview
               </h2>
-              <Link to="/manager/projects" className="text-sm font-medium text-primary hover:underline">
+              <Link
+                to="/manager/projects"
+                className="text-sm font-medium text-primary hover:underline"
+              >
                 View all
               </Link>
             </div>

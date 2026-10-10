@@ -1,10 +1,5 @@
 export type DeadlineState =
-  | "completed_on_time"
-  | "completed_late"
-  | "overdue"
-  | "due_soon"
-  | "on_track"
-  | "no_deadline";
+  "completed_on_time" | "completed_late" | "overdue" | "due_soon" | "on_track" | "no_deadline";
 
 export const DUE_SOON_DAYS = 3;
 

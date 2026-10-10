@@ -167,7 +167,9 @@ export function useComments(taskId: string) {
       unwrap(
         await supabase
           .from("comments")
-          .select("id, task_id, body, created_at, author:profiles!comments_author_id_fkey(id, name)")
+          .select(
+            "id, task_id, body, created_at, author:profiles!comments_author_id_fkey(id, name)",
+          )
           .eq("task_id", taskId)
           .order("created_at", { ascending: true }),
       ) as Comment[],
@@ -285,7 +287,10 @@ export function useUpdateProject(actorId: string | null) {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: async ({ id, ...patch }: { id: string } & Partial<Project>) => {
-      const { error } = await supabase.from("projects").update(patch as never).eq("id", id);
+      const { error } = await supabase
+        .from("projects")
+        .update(patch as never)
+        .eq("id", id);
       if (error) throw new Error(error.message);
       await logActivity({ actorId, projectId: id, message: "updated the project details" });
     },
@@ -363,8 +368,15 @@ export function useSetTaskCompletion(actorId: string | null) {
 export function useUpdateTask(actorId: string | null) {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: async ({ id, projectId, ...patch }: { id: string; projectId: string } & Record<string, unknown>) => {
-      const { error } = await supabase.from("tasks").update(patch as never).eq("id", id);
+    mutationFn: async ({
+      id,
+      projectId,
+      ...patch
+    }: { id: string; projectId: string } & Record<string, unknown>) => {
+      const { error } = await supabase
+        .from("tasks")
+        .update(patch as never)
+        .eq("id", id);
       if (error) throw new Error(error.message);
       await logActivity({ actorId, projectId, taskId: id, message: "updated a task" });
     },

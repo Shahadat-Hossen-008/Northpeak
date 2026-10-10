@@ -3,7 +3,13 @@ import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DeadlineBadge, PriorityBadge, StatusBadge, borderForState, statusOf } from "@/components/badges";
+import {
+  DeadlineBadge,
+  PriorityBadge,
+  StatusBadge,
+  borderForState,
+  statusOf,
+} from "@/components/badges";
 import { CommentSection } from "@/components/CommentSection";
 import { SubtaskList } from "@/components/SubtaskList";
 import { ErrorState, LoadingState, ProgressBar, UserAvatar } from "@/components/primitives";

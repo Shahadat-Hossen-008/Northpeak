@@ -21,11 +21,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-
 export function NotificationsPage({ section }: { section: AppRole }) {
   return (
     <AppShell section={section}>
-      <PageHeader title="Notifications" description="Assignments, deadlines, comments and progress updates." />
+      <PageHeader
+        title="Notifications"
+        description="Assignments, deadlines, comments and progress updates."
+      />
       <div className="mt-6">
         <NotificationPanel />
       </div>
@@ -41,20 +43,35 @@ export function SettingsPage({ section }: { section: AppRole }) {
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
-    if (!user || name.trim().length < 2) { toast.error("Name must be at least 2 characters"); return; }
+    if (!user || name.trim().length < 2) {
+      toast.error("Name must be at least 2 characters");
+      return;
+    }
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({ name: name.trim() }).eq("id", user.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ name: name.trim() })
+      .eq("id", user.id);
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Profile updated");
     reload();
   }
 
   async function savePassword(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password });
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setPassword("");
     toast.success("Password changed");
   }
@@ -80,16 +97,26 @@ export function SettingsPage({ section }: { section: AppRole }) {
               <Label>Email</Label>
               <Input value={user?.email ?? ""} disabled />
             </div>
-            <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving…" : "Save changes"}
+            </Button>
           </form>
         </SectionCard>
         <SectionCard title="Security">
           <form onSubmit={savePassword} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="pw">New password</Label>
-              <Input id="pw" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" />
+              <Input
+                id="pw"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 8 characters"
+              />
             </div>
-            <Button type="submit" variant="outline" disabled={!password}>Change password</Button>
+            <Button type="submit" variant="outline" disabled={!password}>
+              Change password
+            </Button>
           </form>
         </SectionCard>
       </div>

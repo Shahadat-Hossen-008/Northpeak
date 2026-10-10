@@ -6,7 +6,14 @@ import { CreateTaskDialog } from "@/components/dialogs";
 import { ErrorState, LoadingState, PageHeader } from "@/components/primitives";
 import { ConfirmDelete, meta } from "@/components/pages";
 import { TaskFilters, TaskTable, useFilteredTasks } from "@/components/tasks";
-import { useAllSubtasks, useDeleteTask, useMembers, useProjects, useTasks, type Task } from "@/hooks/queries";
+import {
+  useAllSubtasks,
+  useDeleteTask,
+  useMembers,
+  useProjects,
+  useTasks,
+  type Task,
+} from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/_authenticated/manager/tasks/")({
@@ -30,7 +37,13 @@ function ManagerTasks() {
       <PageHeader
         title="Tasks"
         description="Every task across your projects with live deadline status."
-        action={<CreateTaskDialog actorId={profile?.id ?? null} projects={projects.data ?? []} developers={developers} />}
+        action={
+          <CreateTaskDialog
+            actorId={profile?.id ?? null}
+            projects={projects.data ?? []}
+            developers={developers}
+          />
+        }
       />
       <div className="mt-6 space-y-4">
         <TaskFilters filters={filters} setFilters={setFilters} developers={developers} />
@@ -47,8 +60,11 @@ function ManagerTasks() {
           />
         )}
       </div>
-      <ConfirmDelete task={pending} onClose={() => setPending(null)} onConfirm={(t) => del.mutate(t.id)} />
+      <ConfirmDelete
+        task={pending}
+        onClose={() => setPending(null)}
+        onConfirm={(t) => del.mutate(t.id)}
+      />
     </AppShell>
   );
 }
-

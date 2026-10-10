@@ -21,14 +21,20 @@ function DeveloperProjects() {
   const list = (projects.data ?? []).filter((p) => ids.has(p.id));
   return (
     <AppShell section="developer">
-      <PageHeader title="My projects" description="Projects you're contributing to. Progress reflects your tasks." />
+      <PageHeader
+        title="My projects"
+        description="Projects you're contributing to. Progress reflects your tasks."
+      />
       <div className="mt-6">
         {projects.isLoading || tasks.isLoading ? (
           <LoadingState />
         ) : projects.isError ? (
           <ErrorState message={(projects.error as Error).message} />
         ) : list.length === 0 ? (
-          <EmptyState title="No projects yet" description="You'll see projects here once a manager assigns you a task." />
+          <EmptyState
+            title="No projects yet"
+            description="You'll see projects here once a manager assigns you a task."
+          />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {list.map((p) => (

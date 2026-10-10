@@ -3,7 +3,13 @@ import { AlertTriangle, CheckCircle2, ListTodo, Timer } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { statusOf } from "@/components/badges";
-import { EmptyState, ErrorState, LoadingState, PageHeader, StatCard } from "@/components/primitives";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+  StatCard,
+} from "@/components/primitives";
 import { meta } from "@/components/pages";
 import { TaskBoard } from "@/components/tasks";
 import { useAllSubtasks, useCommentCounts, useSetTaskCompletion, useTasks } from "@/hooks/queries";
@@ -35,14 +41,26 @@ function DeveloperDashboard() {
       {tasks.isLoading ? (
         <LoadingState />
       ) : tasks.isError ? (
-        <div className="mt-6"><ErrorState message={(tasks.error as Error).message} /></div>
+        <div className="mt-6">
+          <ErrorState message={(tasks.error as Error).message} />
+        </div>
       ) : (
         <div className="mt-6 space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Assigned" value={mine.length} icon={ListTodo} tone="primary" />
             <StatCard label="In progress" value={inProgress} icon={Timer} tone="neutral" />
-            <StatCard label="Completed" value={mine.filter((t) => t.is_completed).length} icon={CheckCircle2} tone="success" />
-            <StatCard label="Overdue" value={mine.filter((t) => statusOf(t) === "overdue").length} icon={AlertTriangle} tone="danger" />
+            <StatCard
+              label="Completed"
+              value={mine.filter((t) => t.is_completed).length}
+              icon={CheckCircle2}
+              tone="success"
+            />
+            <StatCard
+              label="Overdue"
+              value={mine.filter((t) => statusOf(t) === "overdue").length}
+              icon={AlertTriangle}
+              tone="danger"
+            />
           </div>
           {mine.length === 0 ? (
             <EmptyState title="No tasks assigned" description="You're all caught up." />
