@@ -47,12 +47,27 @@ projectsRouter.get("/", authenticate, async (req, res) => {
 // Get single project by ID
 projectsRouter.get("/:id", authenticate, async (req, res) => {
   try {
-    if (!isValidObjectId(req.params.id)) {
-      res.status(404).json({ message: "Project not found" });
-      return;
+    const rawId = Array.isArray(req.params.id) ? (req.params.id[0] ?? "") : (req.params.id ?? "");
+    let project = null;
+    if (isValidObjectId(rawId)) {
+      project = await Project.findById(rawId);
     }
 
-    const project = await Project.findById(req.params.id);
+    if (!project) {
+      const target = rawId.toLowerCase().trim();
+      const all = await Project.find();
+      project =
+        all.find((p) => {
+          const slug = p.title
+            .toLowerCase()
+            .trim()
+            .replace(/[^\w\s-]/g, "")
+            .replace(/[\s_-]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+          return slug === target || p.title.toLowerCase() === target;
+        }) ?? null;
+    }
+
     if (!project) {
       res.status(404).json({ message: "Project not found" });
       return;

@@ -23,6 +23,7 @@ function formatTask(task: any) {
         : null,
     deadline: task.deadline ? new Date(task.deadline).toISOString() : null,
     priority: task.priority,
+    status: (task.status as string) || (task.isCompleted ? "done" : "todo"),
     is_completed: Boolean(task.isCompleted),
     completed_at: task.completedAt ? new Date(task.completedAt).toISOString() : null,
     created_at: task.createdAt ? new Date(task.createdAt).toISOString() : new Date().toISOString(),
@@ -39,10 +40,10 @@ function formatTask(task: any) {
   };
 }
 
-// Get all tasks (supports project_id, assigned_to, priority, is_completed, search query filters)
+// Get all tasks (supports project_id, assigned_to, priority, status, is_completed, search query filters)
 tasksRouter.get("/", authenticate, async (req, res) => {
   try {
-    const { project_id, assigned_to, priority, is_completed, search } = req.query;
+    const { project_id, assigned_to, priority, status, is_completed, search } = req.query;
     const filter: Record<string, any> = {};
 
     if (project_id && isValidObjectId(project_id as string)) {
@@ -53,6 +54,9 @@ tasksRouter.get("/", authenticate, async (req, res) => {
     }
     if (priority && typeof priority === "string") {
       filter.priority = priority;
+    }
+    if (status && typeof status === "string") {
+      filter.status = status;
     }
     if (is_completed !== undefined) {
       filter.isCompleted = is_completed === "true";
@@ -101,7 +105,8 @@ tasksRouter.get("/:id", authenticate, async (req, res) => {
 // Create task (Manager only)
 tasksRouter.post("/", authenticate, requireRole("manager"), async (req: AuthRequest, res) => {
   try {
-    const { project_id, title, description, assigned_developer_id, deadline, priority } = req.body;
+    const { project_id, title, description, assigned_developer_id, deadline, priority, status } =
+      req.body;
 
     if (!project_id || !title || title.trim().length < 3) {
       res.status(400).json({ message: "Project and task title (min 3 chars) are required" });
@@ -118,9 +123,16 @@ tasksRouter.post("/", authenticate, requireRole("manager"), async (req: AuthRequ
       project: project_id,
       title: title.trim(),
       description: (description || "").trim(),
-      assignedDeveloper: assigned_developer_id || null,
+      assignedDeveloper:
+        assigned_developer_id && isValidObjectId(assigned_developer_id)
+          ? assigned_developer_id
+          : null,
       deadline: deadline ? new Date(deadline) : null,
       priority: priority || "medium",
+      status:
+        status && ["todo", "in_progress", "in_review", "done"].includes(status) ? status : "todo",
+      isCompleted: status === "done",
+      completedAt: status === "done" ? new Date() : null,
     });
 
     // Record activity
@@ -176,10 +188,11 @@ tasksRouter.patch("/:id", authenticate, async (req: AuthRequest, res) => {
       return;
     }
 
-    const { title, description, assigned_developer_id, deadline, priority, is_completed } =
+    const { title, description, assigned_developer_id, deadline, priority, is_completed, status } =
       req.body;
 
     const previousAssignee = task.assignedDeveloper?.toString();
+    const previousStatus = task.status;
 
     // Managers can update all fields
     if (isManager) {
@@ -188,24 +201,42 @@ tasksRouter.patch("/:id", authenticate, async (req: AuthRequest, res) => {
       if (deadline !== undefined) task.deadline = deadline ? new Date(deadline) : null;
       if (priority !== undefined) task.priority = priority;
       if (assigned_developer_id !== undefined) {
-        task.assignedDeveloper = assigned_developer_id || null;
+        task.assignedDeveloper =
+          assigned_developer_id && isValidObjectId(assigned_developer_id)
+            ? assigned_developer_id
+            : null;
       }
     }
 
-    // Both manager and assignee can toggle completion
-    if (is_completed !== undefined) {
+    // Both manager and assignee can update workflow status
+    if (status !== undefined && ["todo", "in_progress", "in_review", "done"].includes(status)) {
+      task.status = status;
+      if (status === "done") {
+        task.isCompleted = true;
+        if (!task.completedAt) task.completedAt = new Date();
+      } else {
+        task.isCompleted = false;
+        task.completedAt = null;
+      }
+    } else if (is_completed !== undefined) {
       task.isCompleted = Boolean(is_completed);
       task.completedAt = task.isCompleted ? new Date() : null;
+      task.status = task.isCompleted ? "done" : "todo";
     }
 
     await task.save();
 
     // Activity log
+    const activityMsg =
+      status !== undefined && status !== previousStatus
+        ? `moved ${task.title} to ${status.replace("_", " ")}`
+        : `updated task ${task.title}`;
+
     await Activity.create({
       project: task.project,
       task: task._id,
       actor: req.user!.id,
-      message: `updated task ${task.title}`,
+      message: activityMsg,
     });
 
     // Notify new developer if assignment changed
@@ -253,6 +284,7 @@ tasksRouter.patch("/:id/complete", authenticate, async (req: AuthRequest, res) =
 
     task.isCompleted = isCompleted;
     task.completedAt = isCompleted ? new Date() : null;
+    task.status = isCompleted ? "done" : "todo";
     await task.save();
 
     await Activity.create({
