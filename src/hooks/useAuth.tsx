@@ -1,5 +1,4 @@
 import { useQueryClient } from "@tanstack/react-query";
-import type { Session, User } from "@supabase/supabase-js";
 import {
   createContext,
   useCallback,
@@ -9,8 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-
-import { supabase } from "@/integrations/supabase/client";
+import { api, getAuthToken, setAuthToken } from "@/lib/api";
 
 export type AppRole = "manager" | "developer";
 
@@ -20,13 +18,21 @@ export type Profile = {
   email: string | null;
 };
 
+export type AuthUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: AppRole;
+};
+
 type AuthValue = {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
+  session: { access_token: string } | null;
   profile: Profile | null;
   role: AppRole | null;
   loading: boolean;
   reload: () => Promise<void>;
+  logout: () => void;
 };
 
 const AuthContext = createContext<AuthValue>({
@@ -36,70 +42,84 @@ const AuthContext = createContext<AuthValue>({
   role: null,
   loading: true,
   reload: async () => {},
+  logout: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [role, setRole] = useState<AppRole | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadMember = useCallback(async (userId: string | undefined) => {
-    if (!userId) {
-      setProfile(null);
-      setRole(null);
+  const loadUser = useCallback(async () => {
+    const token = getAuthToken();
+    if (!token) {
+      setUser(null);
+      setLoading(false);
       return;
     }
-    const [{ data: profileRow }, { data: roleRow }] = await Promise.all([
-      supabase.from("profiles").select("id, name, email").eq("id", userId).maybeSingle(),
-      supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
-    ]);
-    setProfile(profileRow ?? null);
-    setRole((roleRow?.role as AppRole | undefined) ?? null);
+
+    try {
+      const data = await api.getMe();
+      if (data?.id) {
+        setUser({
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          role: data.role as AppRole,
+        });
+      } else {
+        setAuthToken(null);
+        setUser(null);
+      }
+    } catch {
+      setAuthToken(null);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    let active = true;
-
-    const { data: sub } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      if (!active) return;
-      setSession(nextSession);
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
-        void loadMember(nextSession?.user.id);
-        if (event !== "SIGNED_OUT") void queryClient.invalidateQueries();
-      }
-    });
-
-    void supabase.auth.getSession().then(async ({ data }) => {
-      if (!active) return;
-      setSession(data.session);
-      await loadMember(data.session?.user.id);
-      setLoading(false);
-    });
-
-    return () => {
-      active = false;
-      sub.subscription.unsubscribe();
-    };
-  }, [loadMember, queryClient]);
+    void loadUser();
+  }, [loadUser]);
 
   const reload = useCallback(async () => {
-    const { data } = await supabase.auth.getSession();
-    setSession(data.session);
-    await loadMember(data.session?.user.id);
-  }, [loadMember]);
+    await loadUser();
+  }, [loadUser]);
+
+  const logout = useCallback(() => {
+    setAuthToken(null);
+    setUser(null);
+    queryClient.clear();
+  }, [queryClient]);
+
+  const profile = useMemo<Profile | null>(() => {
+    if (!user) return null;
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    };
+  }, [user]);
+
+  const role = user?.role ?? null;
+  const session = useMemo(() => {
+    if (!user) return null;
+    const token = getAuthToken();
+    return token ? { access_token: token } : null;
+  }, [user]);
 
   const value = useMemo<AuthValue>(
     () => ({
-      user: session?.user ?? null,
+      user,
       session,
       profile,
       role,
       loading,
       reload,
+      logout,
     }),
-    [session, profile, role, loading, reload],
+    [user, session, profile, role, loading, reload, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

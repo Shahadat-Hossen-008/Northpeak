@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import type { AppRole } from "@/hooks/useAuth";
 
 export type Priority = "low" | "medium" | "high" | "critical";
@@ -76,26 +75,14 @@ export type AppNotification = {
   project_id: string | null;
 };
 
-function unwrap<T>(result: { data: T | null; error: { message: string } | null }): T {
-  if (result.error) throw new Error(result.error.message);
-  return (result.data ?? []) as T;
-}
-
 /* ------------------------------- queries ------------------------------- */
 
 export function useMembers() {
   return useQuery({
     queryKey: ["members"],
     queryFn: async (): Promise<Member[]> => {
-      const profiles = unwrap(
-        await supabase.from("profiles").select("id, name, email").order("name"),
-      ) as Omit<Member, "role">[];
-      const roles = unwrap(await supabase.from("user_roles").select("user_id, role")) as {
-        user_id: string;
-        role: AppRole;
-      }[];
-      const map = new Map(roles.map((r) => [r.user_id, r.role]));
-      return profiles.map((p) => ({ ...p, role: map.get(p.id) ?? null }));
+      const data = await api.getMembers();
+      return (data || []) as Member[];
     },
   });
 }
@@ -103,23 +90,20 @@ export function useMembers() {
 export function useProjects() {
   return useQuery({
     queryKey: ["projects"],
-    queryFn: async (): Promise<Project[]> =>
-      unwrap(
-        await supabase.from("projects").select("*").order("created_at", { ascending: false }),
-      ) as Project[],
+    queryFn: async (): Promise<Project[]> => {
+      const data = await api.getProjects();
+      return (data || []) as Project[];
+    },
   });
 }
-
-const TASK_SELECT =
-  "*, project:projects(id, title), assignee:profiles!tasks_assigned_developer_id_fkey(id, name)";
 
 export function useTasks() {
   return useQuery({
     queryKey: ["tasks"],
-    queryFn: async (): Promise<Task[]> =>
-      unwrap(
-        await supabase.from("tasks").select(TASK_SELECT).order("deadline", { ascending: true }),
-      ) as Task[],
+    queryFn: async (): Promise<Task[]> => {
+      const data = await api.getTasks();
+      return (data || []) as Task[];
+    },
   });
 }
 
@@ -127,52 +111,45 @@ export function useTask(taskId: string) {
   return useQuery({
     queryKey: ["task", taskId],
     queryFn: async (): Promise<Task | null> => {
-      const { data, error } = await supabase
-        .from("tasks")
-        .select(TASK_SELECT)
-        .eq("id", taskId)
-        .maybeSingle();
-      if (error) throw new Error(error.message);
+      if (!taskId) return null;
+      const data = await api.getTask(taskId);
       return (data as Task | null) ?? null;
     },
+    enabled: Boolean(taskId),
   });
 }
 
 export function useSubtasks(taskId: string) {
   return useQuery({
     queryKey: ["subtasks", taskId],
-    queryFn: async (): Promise<Subtask[]> =>
-      unwrap(
-        await supabase
-          .from("subtasks")
-          .select("*")
-          .eq("task_id", taskId)
-          .order("created_at", { ascending: true }),
-      ) as Subtask[],
+    queryFn: async (): Promise<Subtask[]> => {
+      if (!taskId) return [];
+      const data = await api.getSubtasks(taskId);
+      return (data || []) as Subtask[];
+    },
+    enabled: Boolean(taskId),
   });
 }
 
 export function useAllSubtasks() {
   return useQuery({
     queryKey: ["subtasks", "all"],
-    queryFn: async (): Promise<Subtask[]> =>
-      unwrap(await supabase.from("subtasks").select("*")) as Subtask[],
+    queryFn: async (): Promise<Subtask[]> => {
+      const data = await api.getAllSubtasks();
+      return (data || []) as Subtask[];
+    },
   });
 }
 
 export function useComments(taskId: string) {
   return useQuery({
     queryKey: ["comments", taskId],
-    queryFn: async (): Promise<Comment[]> =>
-      unwrap(
-        await supabase
-          .from("comments")
-          .select(
-            "id, task_id, body, created_at, author:profiles!comments_author_id_fkey(id, name)",
-          )
-          .eq("task_id", taskId)
-          .order("created_at", { ascending: true }),
-      ) as Comment[],
+    queryFn: async (): Promise<Comment[]> => {
+      if (!taskId) return [];
+      const data = await api.getComments(taskId);
+      return (data || []) as Comment[];
+    },
+    enabled: Boolean(taskId),
   });
 }
 
@@ -180,12 +157,8 @@ export function useCommentCounts() {
   return useQuery({
     queryKey: ["comment-counts"],
     queryFn: async (): Promise<Record<string, number>> => {
-      const rows = unwrap(await supabase.from("comments").select("task_id")) as {
-        task_id: string;
-      }[];
-      const counts: Record<string, number> = {};
-      for (const row of rows) counts[row.task_id] = (counts[row.task_id] ?? 0) + 1;
-      return counts;
+      const data = await api.getCommentCounts();
+      return data || {};
     },
   });
 }
@@ -194,16 +167,8 @@ export function useActivity(filter?: { projectId?: string; taskId?: string; limi
   return useQuery({
     queryKey: ["activity", filter?.projectId ?? null, filter?.taskId ?? null],
     queryFn: async (): Promise<ActivityItem[]> => {
-      let query = supabase
-        .from("activity")
-        .select(
-          "id, message, created_at, project_id, task_id, actor:profiles!activity_actor_id_fkey(id, name)",
-        )
-        .order("created_at", { ascending: false })
-        .limit(filter?.limit ?? 20);
-      if (filter?.projectId) query = query.eq("project_id", filter.projectId);
-      if (filter?.taskId) query = query.eq("task_id", filter.taskId);
-      return unwrap(await query) as ActivityItem[];
+      const data = await api.getActivity(filter);
+      return (data || []) as ActivityItem[];
     },
   });
 }
@@ -211,14 +176,10 @@ export function useActivity(filter?: { projectId?: string; taskId?: string; limi
 export function useNotifications() {
   return useQuery({
     queryKey: ["notifications"],
-    queryFn: async (): Promise<AppNotification[]> =>
-      unwrap(
-        await supabase
-          .from("notifications")
-          .select("id, kind, title, body, is_read, created_at, task_id, project_id")
-          .order("created_at", { ascending: false })
-          .limit(50),
-      ) as AppNotification[],
+    queryFn: async (): Promise<AppNotification[]> => {
+      const data = await api.getNotifications();
+      return (data || []) as AppNotification[];
+    },
   });
 }
 
@@ -231,21 +192,7 @@ function useInvalidate() {
   };
 }
 
-async function logActivity(input: {
-  actorId: string | null;
-  projectId?: string | null | undefined;
-  taskId?: string | null;
-  message: string;
-}) {
-  await supabase.from("activity").insert({
-    actor_id: input.actorId,
-    project_id: input.projectId ?? null,
-    task_id: input.taskId ?? null,
-    message: input.message,
-  });
-}
-
-export function useCreateProject(actorId: string | null) {
+export function useCreateProject(_actorId?: string | null) {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: async (input: {
@@ -255,25 +202,7 @@ export function useCreateProject(actorId: string | null) {
       deadline: string | null;
       priority: Priority;
     }) => {
-      const { data, error } = await supabase
-        .from("projects")
-        .insert({ ...input, manager_id: actorId })
-        .select("id, title")
-        .single();
-      if (error) throw new Error(error.message);
-      await logActivity({
-        actorId,
-        projectId: data.id,
-        message: `created project ${data.title}`,
-      });
-      await supabase.from("notifications").insert({
-        audience: "manager",
-        kind: "project_created",
-        title: "Project created",
-        body: `${data.title} was created.`,
-        project_id: data.id,
-      });
-      return data;
+      return api.createProject(input);
     },
     onSuccess: () => {
       invalidate(["projects", "activity", "notifications"]);
@@ -283,16 +212,11 @@ export function useCreateProject(actorId: string | null) {
   });
 }
 
-export function useUpdateProject(actorId: string | null) {
+export function useUpdateProject(_actorId?: string | null) {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: async ({ id, ...patch }: { id: string } & Partial<Project>) => {
-      const { error } = await supabase
-        .from("projects")
-        .update(patch as never)
-        .eq("id", id);
-      if (error) throw new Error(error.message);
-      await logActivity({ actorId, projectId: id, message: "updated the project details" });
+      return api.updateProject(id, patch);
     },
     onSuccess: () => {
       invalidate(["projects", "activity"]);
@@ -302,7 +226,21 @@ export function useUpdateProject(actorId: string | null) {
   });
 }
 
-export function useCreateTask(actorId: string | null) {
+export function useDeleteProject() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return api.deleteProject(id);
+    },
+    onSuccess: () => {
+      invalidate(["projects", "tasks", "subtasks", "activity", "notifications"]);
+      toast.success("Project deleted");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useCreateTask(_actorId?: string | null) {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: async (input: {
@@ -313,19 +251,7 @@ export function useCreateTask(actorId: string | null) {
       deadline: string | null;
       priority: Priority;
     }) => {
-      const { data, error } = await supabase
-        .from("tasks")
-        .insert(input)
-        .select("id, title, project_id")
-        .single();
-      if (error) throw new Error(error.message);
-      await logActivity({
-        actorId,
-        projectId: data.project_id,
-        taskId: data.id,
-        message: `created task ${data.title}`,
-      });
-      return data;
+      return api.createTask(input);
     },
     onSuccess: () => {
       invalidate(["tasks", "activity", "notifications"]);
@@ -335,27 +261,14 @@ export function useCreateTask(actorId: string | null) {
   });
 }
 
-export function useSetTaskCompletion(actorId: string | null) {
+export function useSetTaskCompletion(_actorId?: string | null) {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: async (input: {
       task: { id: string; title: string; project_id: string };
       completed: boolean;
     }) => {
-      const { error } = await supabase
-        .from("tasks")
-        .update({
-          is_completed: input.completed,
-          completed_at: input.completed ? new Date().toISOString() : null,
-        })
-        .eq("id", input.task.id);
-      if (error) throw new Error(error.message);
-      await logActivity({
-        actorId,
-        projectId: input.task.project_id,
-        taskId: input.task.id,
-        message: `${input.completed ? "completed" : "reopened"} ${input.task.title}`,
-      });
+      return api.setTaskCompletion(input.task.id, input.completed);
     },
     onSuccess: (_data, variables) => {
       invalidate(["tasks", "task", "activity"]);
@@ -365,20 +278,24 @@ export function useSetTaskCompletion(actorId: string | null) {
   });
 }
 
-export function useUpdateTask(actorId: string | null) {
+export function useUpdateTask(_actorId?: string | null) {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: async ({
       id,
-      projectId,
+      projectId: _projectId,
       ...patch
-    }: { id: string; projectId: string } & Record<string, unknown>) => {
-      const { error } = await supabase
-        .from("tasks")
-        .update(patch as never)
-        .eq("id", id);
-      if (error) throw new Error(error.message);
-      await logActivity({ actorId, projectId, taskId: id, message: "updated a task" });
+    }: {
+      id: string;
+      projectId?: string;
+      title?: string;
+      description?: string;
+      assigned_developer_id?: string | null;
+      deadline?: string | null;
+      priority?: Priority;
+      is_completed?: boolean;
+    } & Record<string, unknown>) => {
+      return api.updateTask(id, patch);
     },
     onSuccess: () => {
       invalidate(["tasks", "task", "activity", "notifications"]);
@@ -392,8 +309,7 @@ export function useDeleteTask() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("tasks").delete().eq("id", id);
-      if (error) throw new Error(error.message);
+      return api.deleteTask(id);
     },
     onSuccess: () => {
       invalidate(["tasks", "activity"]);
@@ -403,14 +319,12 @@ export function useDeleteTask() {
   });
 }
 
-export function useSubtaskMutations(taskId: string, actorId: string | null, projectId?: string) {
+export function useSubtaskMutations(taskId: string, _actorId?: string | null, _projectId?: string) {
   const invalidate = useInvalidate();
 
   const add = useMutation({
     mutationFn: async (title: string) => {
-      const { error } = await supabase.from("subtasks").insert({ task_id: taskId, title });
-      if (error) throw new Error(error.message);
-      await logActivity({ actorId, projectId, taskId, message: `added subtask ${title}` });
+      return api.createSubtask(taskId, title);
     },
     onSuccess: () => {
       invalidate(["subtasks", "activity"]);
@@ -422,24 +336,7 @@ export function useSubtaskMutations(taskId: string, actorId: string | null, proj
   const toggle = useMutation({
     mutationFn: async (subtask: Subtask) => {
       const completed = !subtask.is_completed;
-      const { error } = await supabase
-        .from("subtasks")
-        .update({
-          is_completed: completed,
-          completed_at: completed ? new Date().toISOString() : null,
-        })
-        .eq("id", subtask.id);
-      if (error) throw new Error(error.message);
-      if (completed) {
-        await supabase.from("notifications").insert({
-          audience: "manager",
-          kind: "subtask_completed",
-          title: "Subtask completed",
-          body: `${subtask.title} was marked complete.`,
-          task_id: taskId,
-          project_id: projectId ?? null,
-        });
-      }
+      return api.updateSubtask(subtask.id, { is_completed: completed });
     },
     onSuccess: () => invalidate(["subtasks", "notifications"]),
     onError: (error: Error) => toast.error(error.message),
@@ -447,8 +344,7 @@ export function useSubtaskMutations(taskId: string, actorId: string | null, proj
 
   const rename = useMutation({
     mutationFn: async ({ id, title }: { id: string; title: string }) => {
-      const { error } = await supabase.from("subtasks").update({ title }).eq("id", id);
-      if (error) throw new Error(error.message);
+      return api.updateSubtask(id, { title });
     },
     onSuccess: () => invalidate(["subtasks"]),
     onError: (error: Error) => toast.error(error.message),
@@ -456,8 +352,7 @@ export function useSubtaskMutations(taskId: string, actorId: string | null, proj
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("subtasks").delete().eq("id", id);
-      if (error) throw new Error(error.message);
+      return api.deleteSubtask(id);
     },
     onSuccess: () => {
       invalidate(["subtasks"]);
@@ -469,17 +364,27 @@ export function useSubtaskMutations(taskId: string, actorId: string | null, proj
   return { add, toggle, rename, remove };
 }
 
-export function useAddComment(taskId: string, actorId: string | null, projectId?: string) {
+export function useAddComment(taskId: string, _actorId?: string | null, _projectId?: string) {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: async (body: string) => {
-      const { error } = await supabase
-        .from("comments")
-        .insert({ task_id: taskId, author_id: actorId, body });
-      if (error) throw new Error(error.message);
-      await logActivity({ actorId, projectId, taskId, message: "added a comment" });
+      return api.addComment(taskId, body);
     },
     onSuccess: () => invalidate(["comments", "comment-counts", "activity", "notifications"]),
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useDeleteComment(taskId: string) {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async (commentId: string) => {
+      return api.deleteComment(commentId);
+    },
+    onSuccess: () => {
+      invalidate(["comments", "comment-counts"]);
+      toast.success("Comment deleted");
+    },
     onError: (error: Error) => toast.error(error.message),
   });
 }
@@ -489,11 +394,7 @@ export function useMarkNotifications() {
   return useMutation({
     mutationFn: async (ids: string[]) => {
       if (ids.length === 0) return;
-      const { error } = await supabase
-        .from("notifications")
-        .update({ is_read: true })
-        .in("id", ids);
-      if (error) throw new Error(error.message);
+      return api.markNotifications(ids);
     },
     onSuccess: () => invalidate(["notifications"]),
     onError: (error: Error) => toast.error(error.message),

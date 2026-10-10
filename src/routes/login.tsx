@@ -8,8 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { homePathForRole, useAuth } from "@/hooks/useAuth";
-import { lovable } from "@/integrations/lovable/index";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -25,7 +24,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, reload } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
@@ -49,37 +48,17 @@ function LoginPage() {
     event.preventDefault();
     if (!validate()) return;
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setSubmitting(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const data = await api.login({ email, password });
+      setSubmitting(false);
+      toast.success("Welcome back");
+      await reload();
+      void navigate({ to: homePathForRole(data.user.role), replace: true });
+    } catch (error) {
+      setSubmitting(false);
+      const message = error instanceof Error ? error.message : "Failed to sign in";
+      toast.error(message);
     }
-    if (!remember) sessionStorage.setItem("northpeak:ephemeral", "1");
-    toast.success("Welcome back");
-  }
-
-  async function handleGoogle() {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      toast.error("Google sign-in failed. Please try again.");
-      return;
-    }
-    if (result.redirected) return;
-  }
-
-  async function handleForgotPassword() {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error("Enter your email address first, then tap Forgot password.");
-      return;
-    }
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    if (error) toast.error(error.message);
-    else toast.success("Password reset link sent. Check your inbox.");
   }
 
   return (
@@ -127,28 +106,11 @@ function LoginPage() {
             <Checkbox checked={remember} onCheckedChange={(v) => setRemember(Boolean(v))} />
             Remember me
           </label>
-          <button
-            type="button"
-            onClick={handleForgotPassword}
-            className="text-sm font-medium text-primary hover:underline"
-          >
-            Forgot password?
-          </button>
         </div>
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? "Signing in…" : "Sign in"}
         </Button>
       </form>
-
-      <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-        <span className="h-px flex-1 bg-border" />
-        OR
-        <span className="h-px flex-1 bg-border" />
-      </div>
-
-      <Button type="button" variant="outline" className="w-full" onClick={handleGoogle}>
-        Continue with Google
-      </Button>
     </AuthLayout>
   );
 }

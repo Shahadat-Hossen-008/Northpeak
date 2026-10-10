@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { homePathForRole, useAuth, type AppRole } from "@/hooks/useAuth";
-import { lovable } from "@/integrations/lovable/index";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 export const Route = createFileRoute("/register")({
   head: () => ({
@@ -33,23 +32,22 @@ type Errors = Partial<Record<"name" | "email" | "password" | "confirm", string>>
 
 function RegisterPage() {
   const navigate = useNavigate();
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, reload } = useAuth();
   const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
   const [selectedRole, setSelectedRole] = useState<AppRole>("manager");
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
-  const [confirmSent, setConfirmSent] = useState(false);
 
   useEffect(() => {
-    if (loading || !user || confirmSent) return;
+    if (loading || !user) return;
     void navigate({ to: role ? homePathForRole(role) : "/welcome", replace: true });
-  }, [loading, user, role, confirmSent, navigate]);
+  }, [loading, user, role, navigate]);
 
   function validate() {
     const next: Errors = {};
     if (form.name.trim().length < 2) next.name = "Enter your full name.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) next.email = "Enter a valid email address.";
-    if (form.password.length < 8) next.password = "Use at least 8 characters.";
+    if (form.password.length < 6) next.password = "Use at least 6 characters.";
     if (form.password !== form.confirm) next.confirm = "Passwords do not match.";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -59,60 +57,22 @@ function RegisterPage() {
     event.preventDefault();
     if (!validate()) return;
     setSubmitting(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { name: form.name.trim(), role: selectedRole },
-      },
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const data = await api.register({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        role: selectedRole,
+      });
+      setSubmitting(false);
+      toast.success("Account created");
+      await reload();
+      void navigate({ to: homePathForRole(data.user.role), replace: true });
+    } catch (error) {
+      setSubmitting(false);
+      const message = error instanceof Error ? error.message : "Failed to create account";
+      toast.error(message);
     }
-    if (!data.session) {
-      setConfirmSent(true);
-      return;
-    }
-    const { error: rpcError } = await supabase.rpc("claim_account", {
-      _name: form.name.trim(),
-      _email: form.email,
-      _role: selectedRole,
-    });
-    if (rpcError) {
-      toast.error(rpcError.message);
-      return;
-    }
-    toast.success("Account created");
-    void navigate({ to: homePathForRole(selectedRole), replace: true });
-  }
-
-  async function handleGoogle() {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) toast.error("Google sign-up failed. Please try again.");
-  }
-
-  if (confirmSent) {
-    return (
-      <AuthLayout
-        title="Confirm your email"
-        subtitle={`We sent a confirmation link to ${form.email}.`}
-        footer={
-          <Link to="/login" className="font-semibold text-primary hover:underline">
-            Back to sign in
-          </Link>
-        }
-      >
-        <div className="surface-card p-5 text-sm text-muted-foreground">
-          Open the link in that email to activate your account. You can close this tab — you'll land
-          straight in your workspace afterwards.
-        </div>
-      </AuthLayout>
-    );
   }
 
   return (
@@ -187,7 +147,11 @@ function RegisterPage() {
                   label: "Project manager",
                   hint: "Create projects and assign work",
                 },
-                { value: "developer", label: "Developer", hint: "Deliver tasks and subtasks" },
+                {
+                  value: "developer",
+                  label: "Developer",
+                  hint: "Deliver tasks and subtasks",
+                },
               ] as const
             ).map((option) => (
               <label
@@ -212,16 +176,6 @@ function RegisterPage() {
           {submitting ? "Creating account…" : "Create account"}
         </Button>
       </form>
-
-      <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-        <span className="h-px flex-1 bg-border" />
-        OR
-        <span className="h-px flex-1 bg-border" />
-      </div>
-
-      <Button type="button" variant="outline" className="w-full" onClick={handleGoogle}>
-        Continue with Google
-      </Button>
     </AuthLayout>
   );
 }

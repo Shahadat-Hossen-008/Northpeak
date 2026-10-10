@@ -6,7 +6,7 @@ import { AuthLayout } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 export const Route = createFileRoute("/reset-password")({
   ssr: false,
@@ -29,8 +29,8 @@ function ResetPasswordPage() {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (password.length < 8) {
-      toast.error("Use at least 8 characters.");
+    if (password.length < 6) {
+      toast.error("Use at least 6 characters.");
       return;
     }
     if (password !== confirm) {
@@ -38,14 +38,16 @@ function ResetPasswordPage() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    setSubmitting(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await api.updateProfile({ password });
+      setSubmitting(false);
+      toast.success("Password updated");
+      void navigate({ to: "/login", replace: true });
+    } catch (err) {
+      setSubmitting(false);
+      const message = err instanceof Error ? err.message : "Failed to update password";
+      toast.error(message);
     }
-    toast.success("Password updated");
-    void navigate({ to: "/welcome", replace: true });
   }
 
   return (
