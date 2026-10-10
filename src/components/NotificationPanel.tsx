@@ -1,10 +1,12 @@
 import { AlertTriangle, Bell, CheckCircle2, Clock, FolderPlus, MessageSquare } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/primitives";
-import { useMarkNotifications, useNotifications } from "@/hooks/queries";
+import { useMarkNotifications, useNotifications, useProjects } from "@/hooks/queries";
+import { useAuth } from "@/hooks/useAuth";
 import { timeAgo } from "@/lib/deadline";
-import { cn } from "@/lib/utils";
+import { cn, findProjectByIdOrSlug, projectSlug } from "@/lib/utils";
 
 const ICONS: Record<string, typeof Bell> = {
   task_assigned: CheckCircle2,
@@ -25,7 +27,9 @@ const TONES: Record<string, string> = {
 };
 
 export function NotificationPanel() {
+  const { role } = useAuth();
   const { data, isLoading, isError, error } = useNotifications();
+  const projects = useProjects();
   const mark = useMarkNotifications();
   const items = data ?? [];
   const unreadIds = items.filter((n) => !n.is_read).map((n) => n.id);
@@ -60,6 +64,18 @@ export function NotificationPanel() {
       <ul className="space-y-2">
         {items.map((item) => {
           const Icon = ICONS[item.kind] ?? Bell;
+          const notifProject = item.project_id
+            ? findProjectByIdOrSlug(projects.data ?? [], item.project_id)
+            : null;
+          const projectTarget = notifProject ? projectSlug(notifProject) : item.project_id;
+          const targetHref = item.task_id
+            ? role === "developer"
+              ? `/developer/tasks/${item.task_id}`
+              : `/manager/tasks/${item.task_id}`
+            : projectTarget && role === "manager"
+              ? `/manager/projects/${projectTarget}`
+              : null;
+
           return (
             <li
               key={item.id}
@@ -80,7 +96,16 @@ export function NotificationPanel() {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                  {targetHref ? (
+                    <Link
+                      to={targetHref}
+                      className="text-sm font-semibold text-foreground hover:text-primary transition-colors underline-offset-2 hover:underline"
+                    >
+                      {item.title}
+                    </Link>
+                  ) : (
+                    <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                  )}
                   {!item.is_read ? (
                     <span
                       className="inline-flex size-2 rounded-full bg-primary"

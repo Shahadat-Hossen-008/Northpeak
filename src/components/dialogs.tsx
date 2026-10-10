@@ -1,5 +1,5 @@
 import { Pencil, Plus, Trash2 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +32,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { WORKFLOW_COLUMNS } from "@/components/tasks";
 import {
   useCreateProject,
   useUpdateProject,
@@ -43,6 +45,7 @@ import {
   type Priority,
   type Project,
   type Task,
+  type TaskWorkflowStatus,
 } from "@/hooks/queries";
 
 const PRIORITIES: Priority[] = ["low", "medium", "high", "critical"];
@@ -184,12 +187,14 @@ export function CreateTaskDialog({
   projects,
   developers,
   defaultProjectId,
+  defaultStatus = "todo",
   trigger,
 }: {
   actorId: string | null;
   projects: Project[];
   developers: Member[];
-  defaultProjectId?: string;
+  defaultProjectId?: string | undefined;
+  defaultStatus?: TaskWorkflowStatus | undefined;
   trigger?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -201,6 +206,7 @@ export function CreateTaskDialog({
     developerId: "",
     deadline: "",
     priority: "medium" as Priority,
+    status: (defaultStatus ?? "todo") as TaskWorkflowStatus,
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -215,9 +221,11 @@ export function CreateTaskDialog({
         project_id: form.projectId,
         title: form.title.trim(),
         description: form.description.trim(),
-        assigned_developer_id: form.developerId || null,
+        assigned_developer_id:
+          form.developerId && form.developerId !== "unassigned" ? form.developerId : null,
         deadline: toIso(form.deadline),
         priority: form.priority,
+        status: form.status,
       },
       {
         onSuccess: () => {
@@ -229,6 +237,7 @@ export function CreateTaskDialog({
             developerId: "",
             deadline: "",
             priority: "medium",
+            status: (defaultStatus ?? "todo") as TaskWorkflowStatus,
           });
         },
       },
@@ -292,13 +301,16 @@ export function CreateTaskDialog({
             <div className="space-y-1.5">
               <Label>Developer</Label>
               <Select
-                value={form.developerId}
-                onValueChange={(value) => setForm({ ...form, developerId: value })}
+                value={form.developerId || "unassigned"}
+                onValueChange={(value) =>
+                  setForm({ ...form, developerId: value === "unassigned" ? "" : value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Assign to…" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {developers.map((dev) => (
                     <SelectItem key={dev.id} value={dev.id}>
                       {dev.name}
@@ -317,23 +329,46 @@ export function CreateTaskDialog({
               />
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Priority</Label>
-            <Select
-              value={form.priority}
-              onValueChange={(value) => setForm({ ...form, priority: value as Priority })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PRIORITIES.map((p) => (
-                  <SelectItem key={p} value={p} className="capitalize">
-                    {p}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Priority</Label>
+              <Select
+                value={form.priority}
+                onValueChange={(value) => setForm({ ...form, priority: value as Priority })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRIORITIES.map((p) => (
+                    <SelectItem key={p} value={p} className="capitalize">
+                      {p}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Workflow Stage</Label>
+              <Select
+                value={form.status}
+                onValueChange={(value) => setForm({ ...form, status: value as TaskWorkflowStatus })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {WORKFLOW_COLUMNS.map((col) => (
+                    <SelectItem key={col.key} value={col.key}>
+                      <span className="flex items-center gap-2">
+                        <span className={cn("size-2 rounded-full", col.dotColor)} />
+                        {col.title}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           {error ? <p className="text-sm text-danger">{error}</p> : null}
           <DialogFooter>
@@ -366,6 +401,19 @@ export function EditProjectDialog({ project, trigger }: { project: Project; trig
     priority: project.priority,
   });
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setForm({
+        title: project.title,
+        description: project.description,
+        start: toInputDate(project.start_date),
+        deadline: toInputDate(project.deadline),
+        priority: project.priority,
+      });
+      setError(null);
+    }
+  }, [open, project]);
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -542,11 +590,26 @@ export function EditTaskDialog({
   const [form, setForm] = useState({
     title: task.title,
     description: task.description,
-    developerId: task.assigned_developer_id || "",
+    developerId: task.assigned_developer_id || "unassigned",
     deadline: toInputDate(task.deadline),
     priority: task.priority,
+    status: task.status ?? (task.is_completed ? "done" : "todo"),
   });
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setForm({
+        title: task.title,
+        description: task.description,
+        developerId: task.assigned_developer_id || "unassigned",
+        deadline: toInputDate(task.deadline),
+        priority: task.priority,
+        status: task.status ?? (task.is_completed ? "done" : "todo"),
+      });
+      setError(null);
+    }
+  }, [open, task]);
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -561,9 +624,11 @@ export function EditTaskDialog({
         projectId: task.project_id,
         title: form.title.trim(),
         description: form.description.trim(),
-        assigned_developer_id: form.developerId || null,
+        assigned_developer_id:
+          form.developerId && form.developerId !== "unassigned" ? form.developerId : null,
         deadline: toIso(form.deadline),
         priority: form.priority,
+        status: form.status,
       },
       {
         onSuccess: () => setOpen(false),
@@ -610,7 +675,7 @@ export function EditTaskDialog({
             <div className="space-y-1.5">
               <Label>Assigned developer</Label>
               <Select
-                value={form.developerId}
+                value={form.developerId || "unassigned"}
                 onValueChange={(val) => setForm({ ...form, developerId: val })}
               >
                 <SelectTrigger>
@@ -636,23 +701,46 @@ export function EditTaskDialog({
               />
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Priority</Label>
-            <Select
-              value={form.priority}
-              onValueChange={(val) => setForm({ ...form, priority: val as Priority })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PRIORITIES.map((p) => (
-                  <SelectItem key={p} value={p} className="capitalize">
-                    {p}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Priority</Label>
+              <Select
+                value={form.priority}
+                onValueChange={(val) => setForm({ ...form, priority: val as Priority })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRIORITIES.map((p) => (
+                    <SelectItem key={p} value={p} className="capitalize">
+                      {p}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Workflow Stage</Label>
+              <Select
+                value={form.status}
+                onValueChange={(val) => setForm({ ...form, status: val as TaskWorkflowStatus })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {WORKFLOW_COLUMNS.map((col) => (
+                    <SelectItem key={col.key} value={col.key}>
+                      <span className="flex items-center gap-2">
+                        <span className={cn("size-2 rounded-full", col.dotColor)} />
+                        {col.title}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           {error ? <p className="text-sm text-danger">{error}</p> : null}
           <DialogFooter>

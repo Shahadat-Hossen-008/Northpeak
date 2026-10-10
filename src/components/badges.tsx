@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle2, Clock, CircleDot, CalendarClock } from "lu
 
 import { cn } from "@/lib/utils";
 import { DEADLINE_LABEL, deadlineState, deadlineText, type DeadlineState } from "@/lib/deadline";
+export type { DeadlineState };
 import type { Priority } from "@/hooks/queries";
 
 const STATE_STYLES: Record<DeadlineState, string> = {

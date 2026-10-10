@@ -3,26 +3,46 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { ErrorState, LoadingState, PageHeader } from "@/components/primitives";
 import { meta } from "@/components/pages";
-import { TaskFilters, TaskTable, useFilteredTasks } from "@/components/tasks";
-import { useAllSubtasks, useTasks } from "@/hooks/queries";
+import { TaskBoard, TaskFilters, useFilteredTasks } from "@/components/tasks";
+import { useAllSubtasks, useCommentCounts, useProjects, useTasks } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
+import { findProjectByIdOrSlug } from "@/lib/utils";
+
+type TasksSearch = {
+  project?: string;
+};
 
 export const Route = createFileRoute("/_authenticated/developer/tasks/")({
+  validateSearch: (search: Record<string, unknown>): TasksSearch => ({
+    project: typeof search.project === "string" ? search.project : undefined,
+  }),
   head: () => meta("My tasks", "Every task assigned to you with deadline status."),
   component: DeveloperTasks,
 });
 
 function DeveloperTasks() {
   const { profile } = useAuth();
+  const { project } = Route.useSearch();
   const tasks = useTasks();
+  const projects = useProjects();
   const subtasks = useAllSubtasks();
+  const commentCounts = useCommentCounts();
   const mine = (tasks.data ?? []).filter((t) => t.assigned_developer_id === profile?.id);
-  const { filters, setFilters, filtered } = useFilteredTasks(mine, subtasks.data ?? []);
+  const { filters, setFilters, filtered } = useFilteredTasks(mine, subtasks.data ?? [], {
+    project: project || "all",
+  });
+
+  const selectedProject = findProjectByIdOrSlug(projects.data ?? [], filters.project);
+
   return (
     <AppShell section="developer">
       <PageHeader
-        title="My tasks"
-        description="Search, filter and sort the work assigned to you."
+        title={selectedProject ? `My tasks · ${selectedProject.title}` : "My tasks"}
+        description={
+          selectedProject
+            ? `Tracking your assigned work and deadlines for ${selectedProject.title}.`
+            : "Search, filter by project, manage workflow stages, and track deadlines for work assigned to you."
+        }
       />
       <div className="mt-6 space-y-4">
         <TaskFilters
@@ -30,15 +50,18 @@ function DeveloperTasks() {
           setFilters={setFilters}
           developers={[]}
           showDeveloper={false}
+          projects={projects.data ?? []}
+          showProject={true}
         />
         {tasks.isLoading ? (
           <LoadingState />
         ) : tasks.isError ? (
           <ErrorState message={(tasks.error as Error).message} />
         ) : (
-          <TaskTable
+          <TaskBoard
             tasks={filtered}
             subtasks={subtasks.data ?? []}
+            commentCounts={commentCounts.data ?? {}}
             hrefFor={(t) => `/developer/tasks/${t.id}`}
           />
         )}

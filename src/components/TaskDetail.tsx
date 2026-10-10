@@ -14,12 +14,14 @@ import { CommentSection } from "@/components/CommentSection";
 import { SubtaskList } from "@/components/SubtaskList";
 import { ErrorState, LoadingState, ProgressBar, UserAvatar } from "@/components/primitives";
 import { EditTaskDialog, DeleteTaskDialog } from "@/components/dialogs";
+import { WorkflowStatusBadge } from "@/components/tasks";
 import {
   useActivity,
   useMembers,
   useSetTaskCompletion,
   useSubtasks,
   useTask,
+  useUpdateTaskStatus,
 } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate, timeAgo } from "@/lib/deadline";
@@ -33,6 +35,7 @@ export function TaskDetail({ taskId, backHref }: { taskId: string; backHref: str
   const { data: members } = useMembers();
   const { data: activity } = useActivity({ taskId, limit: 15 });
   const setCompletion = useSetTaskCompletion(profile?.id ?? null);
+  const updateStatus = useUpdateTaskStatus();
   const developers = (members ?? []).filter((m) => m.role === "developer");
 
   if (isLoading) return <LoadingState label="Loading task…" />;
@@ -50,12 +53,25 @@ export function TaskDetail({ taskId, backHref }: { taskId: string; backHref: str
   const isAssignee = task.assigned_developer_id === profile?.id;
   const canEdit = role === "manager" || isAssignee;
 
+  const isBackToProject = backHref.includes("/projects");
+  const isBackToDashboard = backHref.includes("/dashboard");
+  const isBackToTeam = backHref.includes("/team");
+  const backLabel = isBackToProject
+    ? task.project?.title
+      ? `Back to ${task.project.title}`
+      : "Back to project"
+    : isBackToDashboard
+      ? "Back to dashboard"
+      : isBackToTeam
+        ? "Back to team"
+        : "Back to tasks";
+
   return (
     <div className="space-y-6">
       <Button asChild variant="ghost" size="sm" className="-ml-2">
         <Link to={backHref}>
           <ArrowLeft className="size-4" />
-          Back
+          {backLabel}
         </Link>
       </Button>
 
@@ -69,7 +85,18 @@ export function TaskDetail({ taskId, backHref }: { taskId: string; backHref: str
             </p>
           </div>
           <div className="flex flex-col items-start gap-3 lg:items-end">
-            <StatusBadge state={state} />
+            <div className="flex items-center gap-2">
+              <WorkflowStatusBadge
+                status={task.status || (task.is_completed ? "done" : "todo")}
+                onSelect={
+                  canEdit
+                    ? (newStatus) => updateStatus.mutate({ id: task.id, status: newStatus })
+                    : undefined
+                }
+                disabled={updateStatus.isPending}
+              />
+              <StatusBadge state={state} />
+            </div>
             {canEdit ? (
               <div className="flex flex-wrap items-center gap-2">
                 <EditTaskDialog task={task} developers={developers} />

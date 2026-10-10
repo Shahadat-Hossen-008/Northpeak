@@ -1,33 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  CalendarClock,
-  CheckCircle2,
-  Plus,
-  TrendingUp,
-} from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, ArrowUpRight, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
-import { PriorityBadge, StatusBadge, statusOf } from "@/components/badges";
+import { MemberDetailSheet } from "@/components/MemberDetailSheet";
+import { PriorityBadge, statusOf } from "@/components/badges";
 import { CreateTaskDialog, EditProjectDialog, DeleteProjectDialog } from "@/components/dialogs";
 import { ConfirmDelete, meta } from "@/components/pages";
-import { projectStats } from "@/components/ProjectCard";
-import {
-  EmptyState,
-  LoadingState,
-  ProgressBar,
-  SectionCard,
-  StatCard,
-  UserAvatar,
-} from "@/components/primitives";
-import { TaskFilters, TaskTable, useFilteredTasks } from "@/components/tasks";
+import { EmptyState, LoadingState, SectionCard, UserAvatar } from "@/components/primitives";
+import { ProjectOverviewCard, ProjectTasksList } from "@/components/ProjectDeliverables";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useActivity,
   useAllSubtasks,
+  useCommentCounts,
   useDeleteTask,
   useMembers,
   useProjects,
@@ -35,7 +22,8 @@ import {
   type Task,
 } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
-import { deadlineText, formatDate, timeAgo } from "@/lib/deadline";
+import { timeAgo } from "@/lib/deadline";
+import { findProjectByIdOrSlug, projectSlug } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/manager/projects/$projectId")({
   head: () => meta("Project details", "Project overview, progress, tasks, team and activity."),
@@ -50,14 +38,24 @@ function ProjectDetail() {
   const tasks = useTasks();
   const subtasks = useAllSubtasks();
   const members = useMembers();
-  const activity = useActivity({ projectId, limit: 30 });
+
+  const project = findProjectByIdOrSlug(projects.data ?? [], projectId);
+  const actualProjectId = project?.id ?? projectId;
+
+  const activity = useActivity({ projectId: actualProjectId, limit: 30 });
+  const commentCounts = useCommentCounts();
   const del = useDeleteTask();
   const [pending, setPending] = useState<Task | null>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
-  const project = (projects.data ?? []).find((p) => p.id === projectId);
-  const projectTasks = (tasks.data ?? []).filter((t) => t.project_id === projectId);
+  const projectTasks = (tasks.data ?? []).filter((t) => t.project_id === actualProjectId);
   const developers = (members.data ?? []).filter((m) => m.role === "developer");
-  const { filters, setFilters, filtered } = useFilteredTasks(projectTasks, subtasks.data ?? []);
+
+  useEffect(() => {
+    if (project?.title) {
+      document.title = `${project.title} — Northpeak`;
+    }
+  }, [project?.title]);
 
   if (projects.isLoading || tasks.isLoading)
     return (
@@ -80,7 +78,6 @@ function ProjectDetail() {
       </AppShell>
     );
 
-  const stats = projectStats(project, tasks.data ?? []);
   const teamIds = new Set(projectTasks.map((t) => t.assigned_developer_id).filter(Boolean));
   const team = developers.filter((d) => teamIds.has(d.id));
   const addTask = (
@@ -96,16 +93,21 @@ function ProjectDetail() {
       }
     />
   );
-  const count = (s: string) => projectTasks.filter((t) => statusOf(t) === s).length;
 
   return (
     <AppShell section="manager">
-      <Link
-        to="/manager/projects"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" /> Projects
-      </Link>
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link
+          to="/manager/projects"
+          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="size-4" /> Projects
+        </Link>
+        <span>/</span>
+        <span className="font-semibold text-foreground truncate max-w-xs sm:max-w-md">
+          {project.title}
+        </span>
+      </div>
       <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
@@ -124,71 +126,47 @@ function ProjectDetail() {
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="mt-6">
+      <Tabs defaultValue="tasks" className="mt-6">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="progress">Progress</TabsTrigger>
           <TabsTrigger value="tasks">Tasks ({projectTasks.length})</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
+          <TabsTrigger value="team">Team ({team.length})</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Progress"
-            icon={TrendingUp}
-            value={`${stats.progress}%`}
-            tone="primary"
+        <TabsContent value="tasks" className="mt-4 space-y-6">
+          <ProjectOverviewCard
+            project={project}
+            tasks={projectTasks}
+            subtasks={subtasks.data ?? []}
           />
-          <StatCard
-            label="Tasks done"
-            icon={CheckCircle2}
-            value={`${stats.completed} / ${stats.total}`}
-            tone="success"
-          />
-          <StatCard label="Overdue" icon={AlertTriangle} value={count("overdue")} tone="danger" />
-          <StatCard
-            label="Deadline"
-            icon={CalendarClock}
-            value={formatDate(project.deadline)}
-            hint={project.deadline ? deadlineText(project.deadline) : ""}
-            tone="neutral"
-          />
-        </TabsContent>
 
-        <TabsContent value="progress" className="mt-4">
-          <SectionCard title="Completion">
-            <ProgressBar value={stats.progress} />
-            <p className="tabular mt-2 text-sm text-muted-foreground">
-              {stats.progress}% complete · {stats.completed}/{stats.total} tasks
-            </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              {(
-                ["on_track", "due_soon", "overdue", "completed_on_time", "completed_late"] as const
-              ).map((s) => (
-                <span key={s} className="flex items-center gap-2 text-sm">
-                  <StatusBadge state={s} />{" "}
-                  <span className="tabular font-semibold">{count(s)}</span>
-                </span>
-              ))}
-            </div>
-          </SectionCard>
-        </TabsContent>
-
-        <TabsContent value="tasks" className="mt-4 space-y-4">
-          <TaskFilters filters={filters} setFilters={setFilters} developers={developers} />
           {projectTasks.length === 0 ? (
             <EmptyState
               title="No tasks yet"
-              description="Break this project into tasks and assign them."
+              description="Break this project down into tasks and assign them to team members."
               action={addTask}
             />
           ) : (
-            <TaskTable
-              tasks={filtered}
+            <ProjectTasksList
+              tasks={projectTasks}
               subtasks={subtasks.data ?? []}
-              hrefFor={(t) => `/manager/tasks/${t.id}`}
-              onDelete={setPending}
+              commentCounts={commentCounts.data ?? {}}
+              hrefFor={(t) =>
+                `/manager/tasks/${t.id}?from=/manager/projects/${projectSlug(project)}`
+              }
+              renderAddTask={
+                <CreateTaskDialog
+                  actorId={profile?.id ?? null}
+                  projects={projects.data ?? []}
+                  developers={developers}
+                  defaultProjectId={project.id}
+                  trigger={
+                    <Button size="sm" className="h-9">
+                      <Plus className="size-3.5" /> Add task
+                    </Button>
+                  }
+                />
+              }
             />
           )}
         </TabsContent>
@@ -197,22 +175,42 @@ function ProjectDetail() {
           {team.length === 0 ? (
             <EmptyState
               title="No one assigned yet"
-              description="Assign tasks to add developers to this project."
+              description="Assign deliverables to add developers to this project."
             />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {team.map((d) => {
                 const mine = projectTasks.filter((t) => t.assigned_developer_id === d.id);
                 return (
-                  <div key={d.id} className="surface-card flex items-center gap-3 p-4">
-                    <UserAvatar name={d.name} />
-                    <div>
-                      <p className="font-semibold">{d.name}</p>
-                      <p className="tabular text-xs text-muted-foreground">
-                        {mine.filter((t) => t.is_completed).length}/{mine.length} done ·{" "}
-                        {mine.filter((t) => statusOf(t) === "overdue").length} overdue
-                      </p>
+                  <div
+                    key={d.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedMemberId(d.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedMemberId(d.id);
+                      }
+                    }}
+                    className="surface-card group cursor-pointer flex items-center justify-between gap-3 p-4 transition-all hover:border-primary/50 hover:shadow-card hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <UserAvatar name={d.name} />
+                      <div className="min-w-0">
+                        <p className="font-semibold truncate group-hover:text-primary transition-colors">
+                          {d.name}
+                        </p>
+                        <p className="tabular text-xs text-muted-foreground truncate">
+                          {mine.filter((t) => t.is_completed).length}/{mine.length} done ·{" "}
+                          {mine.filter((t) => statusOf(t) === "overdue").length} overdue
+                        </p>
+                      </div>
                     </div>
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-primary opacity-70 group-hover:opacity-100 shrink-0 transition-opacity">
+                      Tasks
+                      <ArrowUpRight className="size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    </span>
                   </div>
                 );
               })}
@@ -246,6 +244,13 @@ function ProjectDetail() {
         task={pending}
         onClose={() => setPending(null)}
         onConfirm={(t) => del.mutate(t.id)}
+      />
+      <MemberDetailSheet
+        memberId={selectedMemberId}
+        projectId={project.id}
+        projectName={project.title}
+        fromHref={`/manager/projects/${projectSlug(project)}`}
+        onClose={() => setSelectedMemberId(null)}
       />
     </AppShell>
   );

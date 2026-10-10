@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, type MemberWorkload, type MemberWorkloadTask } from "@/lib/api";
 import type { AppRole } from "@/hooks/useAuth";
+
+export type { MemberWorkload, MemberWorkloadTask };
 
 export type Priority = "low" | "medium" | "high" | "critical";
 
@@ -10,6 +12,7 @@ export type Member = {
   name: string;
   email: string | null;
   role: AppRole | null;
+  created_at?: string;
 };
 
 export type Project = {
@@ -23,6 +26,8 @@ export type Project = {
   created_at: string;
 };
 
+export type TaskWorkflowStatus = "todo" | "in_progress" | "in_review" | "done";
+
 export type Task = {
   id: string;
   project_id: string;
@@ -31,6 +36,7 @@ export type Task = {
   assigned_developer_id: string | null;
   deadline: string | null;
   priority: Priority;
+  status: TaskWorkflowStatus;
   is_completed: boolean;
   completed_at: string | null;
   created_at: string;
@@ -84,6 +90,30 @@ export function useMembers() {
       const data = await api.getMembers();
       return (data || []) as Member[];
     },
+  });
+}
+
+export function useMember(memberId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["member", memberId],
+    queryFn: async (): Promise<Member | null> => {
+      if (!memberId) return null;
+      const data = await api.getMember(memberId);
+      return data ?? null;
+    },
+    enabled: Boolean(memberId),
+  });
+}
+
+export function useMemberWorkload(memberId: string | null | undefined, projectId?: string) {
+  return useQuery({
+    queryKey: ["member-workload", memberId, projectId ?? null],
+    queryFn: async (): Promise<MemberWorkload | null> => {
+      if (!memberId) return null;
+      const data = await api.getMemberWorkload(memberId, projectId);
+      return data ?? null;
+    },
+    enabled: Boolean(memberId),
   });
 }
 
@@ -250,11 +280,12 @@ export function useCreateTask(_actorId?: string | null) {
       assigned_developer_id: string | null;
       deadline: string | null;
       priority: Priority;
+      status?: TaskWorkflowStatus;
     }) => {
       return api.createTask(input);
     },
     onSuccess: () => {
-      invalidate(["tasks", "activity", "notifications"]);
+      invalidate(["tasks", "activity", "notifications", "member-workload"]);
       toast.success("Task created");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -271,7 +302,7 @@ export function useSetTaskCompletion(_actorId?: string | null) {
       return api.setTaskCompletion(input.task.id, input.completed);
     },
     onSuccess: (_data, variables) => {
-      invalidate(["tasks", "task", "activity"]);
+      invalidate(["tasks", "task", "activity", "member-workload"]);
       toast.success(variables.completed ? "Task marked complete" : "Task reopened");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -293,15 +324,59 @@ export function useUpdateTask(_actorId?: string | null) {
       assigned_developer_id?: string | null;
       deadline?: string | null;
       priority?: Priority;
+      status?: TaskWorkflowStatus;
       is_completed?: boolean;
     } & Record<string, unknown>) => {
       return api.updateTask(id, patch);
     },
     onSuccess: () => {
-      invalidate(["tasks", "task", "activity", "notifications"]);
+      invalidate(["tasks", "task", "activity", "notifications", "member-workload"]);
       toast.success("Task updated");
     },
     onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useUpdateTaskStatus() {
+  const queryClient = useQueryClient();
+  const invalidate = useInvalidate();
+
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: TaskWorkflowStatus }) => {
+      return api.updateTask(id, {
+        status,
+        is_completed: status === "done",
+      });
+    },
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      const previousTasks = queryClient.getQueryData<Task[]>(["tasks"]);
+
+      queryClient.setQueryData<Task[]>(["tasks"], (old) => {
+        if (!old) return old;
+        return old.map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                status,
+                is_completed: status === "done",
+                completed_at: status === "done" ? new Date().toISOString() : null,
+              }
+            : t,
+        );
+      });
+
+      return { previousTasks };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(["tasks"], context.previousTasks);
+      }
+      toast.error("Failed to move task");
+    },
+    onSettled: () => {
+      invalidate(["tasks", "task", "activity", "member-workload"]);
+    },
   });
 }
 
@@ -312,7 +387,7 @@ export function useDeleteTask() {
       return api.deleteTask(id);
     },
     onSuccess: () => {
-      invalidate(["tasks", "activity"]);
+      invalidate(["tasks", "activity", "member-workload"]);
       toast.success("Task deleted");
     },
     onError: (error: Error) => toast.error(error.message),

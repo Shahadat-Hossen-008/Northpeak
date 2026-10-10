@@ -1,13 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
+  ArrowUpRight,
   CheckCircle2,
   FolderKanban,
   Activity as ActivityIcon,
   Rocket,
 } from "lucide-react";
+import { useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
+import { MemberDetailSheet } from "@/components/MemberDetailSheet";
 import { CreateProjectDialog } from "@/components/dialogs";
 import { ProjectCard } from "@/components/ProjectCard";
 import {
@@ -24,6 +27,7 @@ import { DeadlineBadge, StatusBadge, statusOf } from "@/components/badges";
 import { useActivity, useAllSubtasks, useMembers, useProjects, useTasks } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate, timeAgo } from "@/lib/deadline";
+import { projectSlug } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/manager/dashboard")({
   head: () => ({
@@ -44,6 +48,7 @@ export const Route = createFileRoute("/_authenticated/manager/dashboard")({
 });
 
 function ManagerDashboard() {
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const { profile } = useAuth();
   const projects = useProjects();
   const tasks = useTasks();
@@ -137,7 +142,7 @@ function ManagerDashboard() {
                     key={project.id}
                     project={project}
                     tasks={allTasks}
-                    href={`/manager/projects/${project.id}`}
+                    href={`/manager/projects/${projectSlug(project)}`}
                   />
                 ))}
               </div>
@@ -154,8 +159,10 @@ function ManagerDashboard() {
                     <li key={task.id} className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <Link
-                          to={`/manager/tasks`}
-                          className="text-sm font-semibold hover:text-primary"
+                          to="/manager/tasks/$taskId"
+                          params={{ taskId: task.id }}
+                          search={{ from: "/manager/dashboard" }}
+                          className="text-sm font-semibold text-foreground hover:text-primary transition-colors"
                         >
                           {task.title}
                         </Link>
@@ -178,7 +185,14 @@ function ManagerDashboard() {
                   {upcoming.map((task) => (
                     <li key={task.id} className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold">{task.title}</p>
+                        <Link
+                          to="/manager/tasks/$taskId"
+                          params={{ taskId: task.id }}
+                          search={{ from: "/manager/dashboard" }}
+                          className="text-sm font-semibold text-foreground hover:text-primary transition-colors"
+                        >
+                          {task.title}
+                        </Link>
                         <p className="text-xs text-muted-foreground">
                           {task.project?.title} · {formatDate(task.deadline)}
                         </p>
@@ -194,7 +208,7 @@ function ManagerDashboard() {
               {developers.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No developers yet.</p>
               ) : (
-                <ul className="space-y-4">
+                <ul className="space-y-2">
                   {developers.map((dev) => {
                     const mine = allTasks.filter((t) => t.assigned_developer_id === dev.id);
                     const active = mine.filter((t) => !t.is_completed).length;
@@ -202,20 +216,36 @@ function ManagerDashboard() {
                     const load = Math.min(100, active * 20);
                     return (
                       <li key={dev.id}>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="flex items-center gap-2 text-sm font-medium">
-                            <UserAvatar name={dev.name} size="sm" />
-                            {dev.name}
-                          </span>
-                          <span className="tabular text-xs text-muted-foreground">
-                            {active} active · {overdue} overdue
-                          </span>
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedMemberId(dev.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setSelectedMemberId(dev.id);
+                            }
+                          }}
+                          className="group cursor-pointer rounded-lg p-2.5 -mx-2 transition-all hover:bg-secondary/60 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="flex items-center gap-2 text-sm font-medium group-hover:text-primary transition-colors">
+                              <UserAvatar name={dev.name} size="sm" />
+                              {dev.name}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="tabular text-xs text-muted-foreground">
+                                {active} active · {overdue} overdue
+                              </span>
+                              <ArrowUpRight className="size-3.5 text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                            </div>
+                          </div>
+                          <ProgressBar
+                            className="mt-2"
+                            value={load}
+                            tone={overdue > 0 ? "danger" : load > 60 ? "warning" : "primary"}
+                          />
                         </div>
-                        <ProgressBar
-                          className="mt-2"
-                          value={load}
-                          tone={overdue > 0 ? "danger" : load > 60 ? "warning" : "primary"}
-                        />
                       </li>
                     );
                   })}
@@ -252,6 +282,12 @@ function ManagerDashboard() {
           {subtasks.isError ? <ErrorState message="Subtask progress failed to load." /> : null}
         </div>
       )}
+
+      <MemberDetailSheet
+        memberId={selectedMemberId}
+        fromHref="/manager/dashboard"
+        onClose={() => setSelectedMemberId(null)}
+      />
     </AppShell>
   );
 }

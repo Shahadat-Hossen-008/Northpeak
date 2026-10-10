@@ -12,6 +12,35 @@ export type Member = {
   name: string;
   email: string | null;
   role: "manager" | "developer" | null;
+  created_at?: string;
+};
+
+export type MemberWorkloadTask = {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string;
+  deadline: string | null;
+  priority: Priority;
+  is_completed: boolean;
+  completed_at: string | null;
+  created_at: string;
+  status: string;
+  project: { id: string; title: string } | null;
+  subtasks_count: number;
+  subtasks_completed_count: number;
+};
+
+export type MemberWorkload = {
+  member: Member;
+  stats: {
+    total: number;
+    active: number;
+    completed: number;
+    overdue: number;
+    workload_percentage: number;
+  };
+  tasks: MemberWorkloadTask[];
 };
 
 export type Project = {
@@ -164,6 +193,15 @@ export const api = {
     return request<Member[]>("/members");
   },
 
+  async getMember(id: string) {
+    return request<Member>(`/members/${id}`);
+  },
+
+  async getMemberWorkload(id: string, projectId?: string) {
+    const query = projectId ? `?projectId=${encodeURIComponent(projectId)}` : "";
+    return request<MemberWorkload>(`/members/${id}/workload${query}`);
+  },
+
   // Projects
   async getProjects() {
     return request<Project[]>("/projects");
@@ -224,6 +262,7 @@ export const api = {
     assigned_developer_id: string | null;
     deadline: string | null;
     priority: string;
+    status?: string;
   }) {
     return request<Task>("/tasks", {
       method: "POST",
@@ -239,6 +278,7 @@ export const api = {
       assigned_developer_id: string | null;
       deadline: string | null;
       priority: string;
+      status: string;
       is_completed: boolean;
     }>,
   ) {

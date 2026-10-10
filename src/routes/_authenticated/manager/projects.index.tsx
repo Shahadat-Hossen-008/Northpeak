@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/p
 import { meta } from "@/components/pages";
 import { useProjects, useTasks } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
+import { projectSlug } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/manager/projects/")({
   head: () => meta("Projects", "All projects you manage with progress and deadline status."),
@@ -43,7 +44,7 @@ function ManagerProjects() {
                 key={p.id}
                 project={p}
                 tasks={tasks.data ?? []}
-                href={`/manager/projects/${p.id}`}
+                href={`/manager/projects/${projectSlug(p)}`}
               />
             ))}
           </div>

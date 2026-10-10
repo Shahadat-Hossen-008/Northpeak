@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/p
 import { meta } from "@/components/pages";
 import { useProjects, useTasks } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
+import { projectSlug } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/developer/projects")({
   head: () => meta("My projects", "Projects where you have assigned tasks."),
@@ -38,7 +39,12 @@ function DeveloperProjects() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {list.map((p) => (
-              <ProjectCard key={p.id} project={p} tasks={mine} href="/developer/tasks" />
+              <ProjectCard
+                key={p.id}
+                project={p}
+                tasks={mine}
+                href={`/developer/tasks?project=${projectSlug(p)}`}
+              />
             ))}
           </div>
         )}

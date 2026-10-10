@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Users } from "lucide-react";
+import { ArrowUpRight, Users } from "lucide-react";
+import { useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
+import { MemberDetailSheet } from "@/components/MemberDetailSheet";
 import { statusOf } from "@/components/badges";
 import {
   EmptyState,
@@ -19,15 +21,17 @@ export const Route = createFileRoute("/_authenticated/manager/team")({
 });
 
 function Team() {
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const members = useMembers();
   const tasks = useTasks();
   const devs = (members.data ?? []).filter((m) => m.role === "developer");
   const all = tasks.data ?? [];
+
   return (
     <AppShell section="manager">
       <PageHeader
         title="Team"
-        description="See who is carrying what, and where deadlines are slipping."
+        description="See who is carrying what, inspect individual tasks, and track capacity."
       />
       <div className="mt-6">
         {members.isLoading || tasks.isLoading ? (
@@ -46,17 +50,39 @@ function Team() {
               const done = mine.length - active;
               const overdue = mine.filter((t) => statusOf(t) === "overdue").length;
               const load = Math.min(100, active * 20);
+
               return (
-                <div key={dev.id} className="surface-card p-5">
-                  <div className="flex items-center gap-3">
-                    <UserAvatar name={dev.name} />
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold">{dev.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {dev.email ?? "Developer"}
-                      </p>
+                <div
+                  key={dev.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedMemberId(dev.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedMemberId(dev.id);
+                    }
+                  }}
+                  className="surface-card group cursor-pointer p-5 transition-all hover:border-primary/50 hover:shadow-card hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <UserAvatar name={dev.name} />
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold group-hover:text-primary transition-colors">
+                          {dev.name}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {dev.email ?? "Developer"}
+                        </p>
+                      </div>
                     </div>
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-primary opacity-70 group-hover:opacity-100 shrink-0 transition-opacity">
+                      Tasks
+                      <ArrowUpRight className="size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    </span>
                   </div>
+
                   <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
                     <div className="rounded-md bg-muted p-2">
                       <dt className="text-xs text-muted-foreground">Active</dt>
@@ -71,9 +97,10 @@ function Team() {
                       <dd className="tabular font-bold text-destructive">{overdue}</dd>
                     </div>
                   </dl>
+
                   <div className="mt-4">
                     <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-                      <span>Workload</span>
+                      <span>Workload capacity</span>
                       <span className="tabular">{load}%</span>
                     </div>
                     <ProgressBar
@@ -87,6 +114,12 @@ function Team() {
           </div>
         )}
       </div>
+
+      <MemberDetailSheet
+        memberId={selectedMemberId}
+        fromHref="/manager/team"
+        onClose={() => setSelectedMemberId(null)}
+      />
     </AppShell>
   );
 }

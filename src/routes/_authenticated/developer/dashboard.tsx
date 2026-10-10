@@ -29,7 +29,9 @@ function DeveloperDashboard() {
   const mine = (tasks.data ?? []).filter((t) => t.assigned_developer_id === profile?.id);
   const subs = subtasks.data ?? [];
   const inProgress = mine.filter(
-    (t) => !t.is_completed && subs.some((s) => s.task_id === t.id && s.is_completed),
+    (t) =>
+      t.status === "in_progress" ||
+      (!t.is_completed && subs.some((s) => s.task_id === t.id && s.is_completed)),
   ).length;
 
   return (
@@ -69,7 +71,7 @@ function DeveloperDashboard() {
               tasks={mine}
               subtasks={subs}
               commentCounts={counts.data ?? {}}
-              hrefFor={(t) => `/developer/tasks/${t.id}`}
+              hrefFor={(t) => `/developer/tasks/${t.id}?from=/developer/dashboard`}
               onToggle={(task, completed) => setDone.mutate({ task, completed })}
             />
           )}
