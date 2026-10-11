@@ -2,11 +2,13 @@ import { Router } from "express";
 import { isValidObjectId } from "mongoose";
 import { Task } from "../models/Task.js";
 import { Project } from "../models/Project.js";
+import { User } from "../models/User.js";
 import { Subtask } from "../models/Subtask.js";
 import { Comment } from "../models/Comment.js";
 import { Activity } from "../models/Activity.js";
 import { Notification } from "../models/Notification.js";
 import { authenticate, requireRole, type AuthRequest } from "../middleware/auth.js";
+import { isDeveloperInProjectTeam, concurrencyTestBarriers } from "../services/team.js";
 
 export const tasksRouter = Router();
 
@@ -40,17 +42,28 @@ function formatTask(task: any) {
   };
 }
 
-// Get all tasks (supports project_id, assigned_to, priority, status, is_completed, search query filters)
+// Get all tasks (supports project_id/projectId, assigned_to/assignedTo, priority, status, is_completed, search query filters)
 tasksRouter.get("/", authenticate, async (req, res) => {
   try {
-    const { project_id, assigned_to, priority, status, is_completed, search } = req.query;
+    const {
+      project_id,
+      projectId,
+      assigned_to,
+      assignedTo,
+      priority,
+      status,
+      is_completed,
+      search,
+    } = req.query;
     const filter: Record<string, any> = {};
 
-    if (project_id && isValidObjectId(project_id as string)) {
-      filter.project = project_id;
+    const targetProjectId = (project_id || projectId) as string;
+    if (targetProjectId && isValidObjectId(targetProjectId)) {
+      filter.project = targetProjectId;
     }
-    if (assigned_to && isValidObjectId(assigned_to as string)) {
-      filter.assignedDeveloper = assigned_to;
+    const targetAssignedTo = (assigned_to || assignedTo) as string;
+    if (targetAssignedTo && isValidObjectId(targetAssignedTo)) {
+      filter.assignedDeveloper = targetAssignedTo;
     }
     if (priority && typeof priority === "string") {
       filter.priority = priority;
@@ -113,20 +126,66 @@ tasksRouter.post("/", authenticate, requireRole("manager"), async (req: AuthRequ
       return;
     }
 
+    if (!isValidObjectId(project_id)) {
+      res.status(400).json({ message: "Invalid project ID" });
+      return;
+    }
+
     const project = await Project.findById(project_id);
     if (!project) {
       res.status(404).json({ message: "Project not found" });
       return;
     }
 
+    // Authorization boundary: Only the authorized project manager can create tasks for this project
+    if (project.manager.toString() !== req.user!.id) {
+      res.status(403).json({ message: "Not authorized to create tasks for this project" });
+      return;
+    }
+
+    let assignedDevId: string | null = null;
+    if (assigned_developer_id && assigned_developer_id !== "unassigned") {
+      if (!isValidObjectId(assigned_developer_id)) {
+        res.status(400).json({ message: "Invalid developer ID" });
+        return;
+      }
+
+      const devUser = await User.findById(assigned_developer_id);
+      if (!devUser) {
+        res.status(404).json({ message: "Developer not found" });
+        return;
+      }
+
+      if (devUser.role !== "developer") {
+        res.status(400).json({ message: "Assigned user must have developer role" });
+        return;
+      }
+
+      // Atomic project-team membership check coordinated with the project document
+      const projectWithMember = await Project.findOneAndUpdate(
+        {
+          _id: project._id,
+          team: devUser._id,
+        },
+        { $set: { updatedAt: new Date() } },
+        { new: true },
+      );
+
+      if (!projectWithMember) {
+        res.status(400).json({
+          message: "Developer does not belong to the selected project's engineering team",
+        });
+        return;
+      }
+
+      assignedDevId = devUser._id.toString();
+    }
+
     const task = await Task.create({
-      project: project_id,
+      project: project._id,
       title: title.trim(),
       description: (description || "").trim(),
-      assignedDeveloper:
-        assigned_developer_id && isValidObjectId(assigned_developer_id)
-          ? assigned_developer_id
-          : null,
+      assignedDeveloper: assignedDevId,
       deadline: deadline ? new Date(deadline) : null,
       priority: priority || "medium",
       status:
@@ -134,6 +193,27 @@ tasksRouter.post("/", authenticate, requireRole("manager"), async (req: AuthRequ
       isCompleted: status === "done",
       completedAt: status === "done" ? new Date() : null,
     });
+
+    if (concurrencyTestBarriers.afterTaskCreateSave) {
+      await concurrencyTestBarriers.afterTaskCreateSave();
+    }
+
+    // Concurrency guard: verify that assigned developer was not removed during task creation
+    if (assignedDevId) {
+      const currentProject = await Project.findById(project._id).select("team");
+      const isStillMember = currentProject?.team?.some((id) => id.toString() === assignedDevId);
+      if (!isStillMember) {
+        await Task.findByIdAndDelete(task._id);
+        res.status(400).json({
+          message: "Developer does not belong to the selected project's engineering team",
+        });
+        return;
+      }
+    }
+
+    if (concurrencyTestBarriers.afterTaskCreateMembershipCheck) {
+      await concurrencyTestBarriers.afterTaskCreateMembershipCheck();
+    }
 
     // Record activity
     await Activity.create({
@@ -188,24 +268,79 @@ tasksRouter.patch("/:id", authenticate, async (req: AuthRequest, res) => {
       return;
     }
 
+    const project = await Project.findById(task.project);
+    if (!project) {
+      res.status(404).json({ message: "Project not found" });
+      return;
+    }
+
+    // Authorization boundary: Manager must be the manager of this project
+    if (isManager && project.manager.toString() !== req.user!.id) {
+      res.status(403).json({ message: "Not authorized to manage tasks for this project" });
+      return;
+    }
+
     const { title, description, assigned_developer_id, deadline, priority, is_completed, status } =
       req.body;
 
     const previousAssignee = task.assignedDeveloper?.toString();
     const previousStatus = task.status;
 
-    // Managers can update all fields
+    let assignedDevUser: any = null;
+    // Check developer reassignment authorization & project team membership
+    if (assigned_developer_id !== undefined) {
+      if (!isManager) {
+        res.status(403).json({ message: "Not authorized to reassign this task" });
+        return;
+      }
+
+      if (!assigned_developer_id || assigned_developer_id === "unassigned") {
+        task.assignedDeveloper = null;
+      } else {
+        if (!isValidObjectId(assigned_developer_id)) {
+          res.status(400).json({ message: "Invalid developer ID" });
+          return;
+        }
+
+        const devUser = await User.findById(assigned_developer_id);
+        if (!devUser) {
+          res.status(404).json({ message: "Developer not found" });
+          return;
+        }
+
+        if (devUser.role !== "developer") {
+          res.status(400).json({ message: "Assigned user must have developer role" });
+          return;
+        }
+
+        // Atomic project-team membership check coordinated with the project document
+        const projectWithMember = await Project.findOneAndUpdate(
+          {
+            _id: task.project,
+            team: devUser._id,
+          },
+          { $set: { updatedAt: new Date() } },
+          { new: true },
+        );
+
+        if (!projectWithMember) {
+          res.status(400).json({
+            message: "Developer does not belong to the selected project's engineering team",
+          });
+          return;
+        }
+
+        task.assignedDeveloper = devUser._id;
+        assignedDevUser = devUser;
+      }
+    }
+
+    // Managers can update all other task fields
     if (isManager) {
       if (title !== undefined) task.title = title.trim();
       if (description !== undefined) task.description = description.trim();
       if (deadline !== undefined) task.deadline = deadline ? new Date(deadline) : null;
       if (priority !== undefined) task.priority = priority;
-      if (assigned_developer_id !== undefined) {
-        task.assignedDeveloper =
-          assigned_developer_id && isValidObjectId(assigned_developer_id)
-            ? assigned_developer_id
-            : null;
-      }
     }
 
     // Both manager and assignee can update workflow status
@@ -225,6 +360,30 @@ tasksRouter.patch("/:id", authenticate, async (req: AuthRequest, res) => {
     }
 
     await task.save();
+
+    if (concurrencyTestBarriers.afterTaskPatchSave) {
+      await concurrencyTestBarriers.afterTaskPatchSave();
+    }
+
+    // Concurrency guard: verify that assigned developer was not concurrently removed from project team
+    if (assignedDevUser) {
+      const currentProject = await Project.findById(task.project).select("team");
+      const isStillMember = currentProject?.team?.some(
+        (id) => id.toString() === assignedDevUser._id.toString(),
+      );
+      if (!isStillMember) {
+        task.assignedDeveloper = null;
+        await task.save();
+        res.status(400).json({
+          message: "Developer does not belong to the selected project's engineering team",
+        });
+        return;
+      }
+    }
+
+    if (concurrencyTestBarriers.afterTaskPatchMembershipCheck) {
+      await concurrencyTestBarriers.afterTaskPatchMembershipCheck();
+    }
 
     // Activity log
     const activityMsg =
@@ -279,6 +438,21 @@ tasksRouter.patch("/:id/complete", authenticate, async (req: AuthRequest, res) =
       return;
     }
 
+    const project = await Project.findById(task.project);
+    if (!project) {
+      res.status(404).json({ message: "Project not found" });
+      return;
+    }
+
+    const isManager = req.user!.role === "manager";
+    const isProjectManager = isManager && project.manager.toString() === req.user!.id;
+    const isAssignee = task.assignedDeveloper?.toString() === req.user!.id;
+
+    if (!isProjectManager && !isAssignee) {
+      res.status(403).json({ message: "Not authorized to update this task" });
+      return;
+    }
+
     const { completed } = req.body;
     const isCompleted = Boolean(completed);
 
@@ -315,6 +489,12 @@ tasksRouter.delete("/:id", authenticate, requireRole("manager"), async (req: Aut
     const task = await Task.findById(req.params.id);
     if (!task) {
       res.status(404).json({ message: "Task not found" });
+      return;
+    }
+
+    const project = await Project.findById(task.project);
+    if (!project || project.manager.toString() !== req.user!.id) {
+      res.status(403).json({ message: "Not authorized to delete tasks for this project" });
       return;
     }
 

@@ -12,6 +12,7 @@ import { subtasksRouter } from "./routes/subtasks.js";
 import { commentsRouter } from "./routes/comments.js";
 import { notificationsRouter } from "./routes/notifications.js";
 import { activityRouter } from "./routes/activity.js";
+import { testBarriersRouter } from "./routes/testBarriers.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -34,6 +35,7 @@ app.use("/api/subtasks", subtasksRouter);
 app.use("/api/comments", commentsRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/activity", activityRouter);
+app.use("/api/test/barriers", testBarriersRouter);
 
 // Health check endpoint
 app.get("/api/health", (_req, res) => {

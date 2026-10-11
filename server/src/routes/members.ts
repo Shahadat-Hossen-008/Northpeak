@@ -3,13 +3,55 @@ import { isValidObjectId } from "mongoose";
 import { User } from "../models/User.js";
 import { Task } from "../models/Task.js";
 import { Subtask } from "../models/Subtask.js";
+import { Project } from "../models/Project.js";
 import { authenticate } from "../middleware/auth.js";
+import { getProjectEligibleDevelopers } from "../services/team.js";
 
 export const membersRouter = Router();
 
-// Get all members (for assignment, team view, etc.)
-membersRouter.get("/", authenticate, async (_req, res) => {
+// Get members (optionally filtered by projectId for assignment, or all workspace members)
+membersRouter.get("/", authenticate, async (req, res) => {
   try {
+    const rawProjectId = (req.query.projectId ?? req.query.project_id) as string | undefined;
+
+    if (rawProjectId !== undefined) {
+      let project = null;
+      if (isValidObjectId(rawProjectId)) {
+        project = await Project.findById(rawProjectId);
+      }
+
+      if (!project) {
+        const target = rawProjectId.toLowerCase().trim();
+        const all = await Project.find();
+        project =
+          all.find((p) => {
+            const slug = p.title
+              .toLowerCase()
+              .trim()
+              .replace(/[^\w\s-]/g, "")
+              .replace(/[\s_-]+/g, "-")
+              .replace(/^-+|-+$/g, "");
+            return slug === target || p.title.toLowerCase() === target;
+          }) ?? null;
+      }
+
+      if (!project) {
+        res.status(404).json({ message: "Project not found" });
+        return;
+      }
+
+      const eligibleDevs = await getProjectEligibleDevelopers(project._id);
+      const formatted = eligibleDevs.map((u) => ({
+        id: u._id.toString(),
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        created_at: u.createdAt.toISOString(),
+      }));
+      res.json(formatted);
+      return;
+    }
+
     const users = await User.find().select("name email role createdAt").sort({ name: 1 });
     const formatted = users.map((u) => ({
       id: u._id.toString(),

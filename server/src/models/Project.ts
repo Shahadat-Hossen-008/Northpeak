@@ -6,6 +6,7 @@ export interface IProject extends Document {
   title: string;
   description: string;
   manager: mongoose.Types.ObjectId;
+  team: mongoose.Types.ObjectId[];
   startDate: Date | null;
   deadline: Date | null;
   priority: Priority;
@@ -18,6 +19,7 @@ const projectSchema = new Schema<IProject>(
     title: { type: String, required: true, trim: true },
     description: { type: String, default: "", trim: true },
     manager: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    team: [{ type: Schema.Types.ObjectId, ref: "User", default: [] }],
     startDate: { type: Date, default: null },
     deadline: { type: Date, default: null },
     priority: {
@@ -29,6 +31,7 @@ const projectSchema = new Schema<IProject>(
   },
   {
     timestamps: true,
+    optimisticConcurrency: true,
   },
 );
 
