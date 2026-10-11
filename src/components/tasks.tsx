@@ -37,6 +37,7 @@ import {
   borderForState,
   statusOf,
 } from "@/components/badges";
+import { CircularProgress } from "@/components/CircularProgress";
 import { EmptyState, ProgressBar, UserAvatar } from "@/components/primitives";
 import {
   useSetTaskCompletion,
@@ -327,33 +328,49 @@ export function TaskTable({
                     <span className="tabular block text-sm">{formatDate(task.deadline)}</span>
                     <DeadlineBadge deadline={task.deadline} state={state} />
                   </td>
-                  <td className="px-3 py-3 w-40">
-                    <ProgressBar
-                      value={progress}
-                      tone={
-                        task.is_completed ? "success" : state === "overdue" ? "danger" : "primary"
-                      }
-                    />
-                    <span className="tabular mt-1 block text-xs text-muted-foreground">
-                      {total > 0 ? `${done}/${total} subtasks` : `${progress}%`}
-                    </span>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <CircularProgress
+                        value={progress}
+                        size={34}
+                        strokeWidth={3.5}
+                        ariaLabel={`Progress: ${progress}%`}
+                      />
+                      <div className="min-w-0">
+                        <span className="tabular text-xs font-semibold text-foreground block">
+                          {task.is_completed
+                            ? "100% complete"
+                            : total > 0
+                              ? `${done}/${total} subtasks`
+                              : `${progress}%`}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground block">
+                          {task.is_completed
+                            ? "Completed"
+                            : progress > 0
+                              ? "In progress"
+                              : "Not started"}
+                        </span>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-3 py-3">
                     <StatusBadge state={state} />
                   </td>
                   <td className="px-3 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-1.5">
                       <Button asChild variant="ghost" size="sm">
                         <Link to={hrefFor(task)}>Open</Link>
                       </Button>
                       {onDelete ? (
                         <Button
-                          variant="ghost"
-                          size="icon"
+                          variant="destructive-outline"
+                          size="icon-sm"
                           aria-label={`Delete ${task.title}`}
+                          title={`Delete ${task.title}`}
                           onClick={() => onDelete(task)}
                         >
-                          <Trash2 className="size-4 text-danger" />
+                          <Trash2 className="size-3.5" />
                         </Button>
                       ) : null}
                     </div>
@@ -627,17 +644,20 @@ export function TaskCard({
       </div>
 
       {/* Progress & Subtasks */}
-      <div className="mt-3">
-        <ProgressBar
-          value={progress}
-          tone={task.is_completed ? "success" : state === "overdue" ? "danger" : "primary"}
-        />
-        <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
-          <span className="tabular">
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <CircularProgress
+            value={progress}
+            size={26}
+            strokeWidth={3}
+            showValue={false}
+            ariaLabel={`Progress: ${progress}%`}
+          />
+          <span className="tabular text-xs font-medium text-muted-foreground truncate">
             {total > 0 ? `${done}/${total} subtasks` : `${progress}%`}
           </span>
-          <DeadlineBadge deadline={task.deadline} state={state} />
         </div>
+        <DeadlineBadge deadline={task.deadline} state={state} />
       </div>
 
       {/* Footer: Assignee & Comments */}

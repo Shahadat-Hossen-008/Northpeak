@@ -1,9 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
 import { ErrorState, LoadingState, PageHeader } from "@/components/primitives";
 import { meta } from "@/components/pages";
-import { TaskBoard, TaskFilters, useFilteredTasks } from "@/components/tasks";
+import {
+  TaskBoard,
+  TaskFilters,
+  TaskTable,
+  TaskViewSwitcher,
+  useFilteredTasks,
+} from "@/components/tasks";
 import { useAllSubtasks, useCommentCounts, useProjects, useTasks } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { findProjectByIdOrSlug } from "@/lib/utils";
@@ -31,6 +38,7 @@ function DeveloperTasks() {
   const { filters, setFilters, filtered } = useFilteredTasks(mine, subtasks.data ?? [], {
     project: project || "all",
   });
+  const [view, setView] = useState<"board" | "table">("board");
 
   const selectedProject = findProjectByIdOrSlug(projects.data ?? [], filters.project);
 
@@ -45,18 +53,31 @@ function DeveloperTasks() {
         }
       />
       <div className="mt-6 space-y-4">
-        <TaskFilters
-          filters={filters}
-          setFilters={setFilters}
-          developers={[]}
-          showDeveloper={false}
-          projects={projects.data ?? []}
-          showProject={true}
-        />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex-1">
+            <TaskFilters
+              filters={filters}
+              setFilters={setFilters}
+              developers={[]}
+              showDeveloper={false}
+              projects={projects.data ?? []}
+              showProject={true}
+            />
+          </div>
+          <div className="shrink-0 self-end sm:self-auto">
+            <TaskViewSwitcher view={view} onViewChange={setView} />
+          </div>
+        </div>
         {tasks.isLoading ? (
           <LoadingState />
         ) : tasks.isError ? (
           <ErrorState message={(tasks.error as Error).message} />
+        ) : view === "table" ? (
+          <TaskTable
+            tasks={filtered}
+            subtasks={subtasks.data ?? []}
+            hrefFor={(t) => `/developer/tasks/${t.id}`}
+          />
         ) : (
           <TaskBoard
             tasks={filtered}

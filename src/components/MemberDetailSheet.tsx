@@ -29,6 +29,7 @@ import {
   ProgressBar,
   UserAvatar,
 } from "@/components/primitives";
+import { CircularProgress } from "@/components/CircularProgress";
 import { useMemberWorkload, type MemberWorkloadTask } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate } from "@/lib/deadline";
@@ -337,12 +338,16 @@ function TaskItemRow({
 
           {hasSubtasks ? (
             <div className="flex items-center gap-2">
-              <span className="tabular">
+              <CircularProgress
+                value={subPercent}
+                size={22}
+                strokeWidth={2.5}
+                showValue={false}
+                ariaLabel={`Subtasks progress: ${subPercent}%`}
+              />
+              <span className="tabular text-xs text-muted-foreground">
                 {task.subtasks_completed_count}/{task.subtasks_count} subtasks
               </span>
-              <div className="w-16">
-                <ProgressBar value={subPercent} tone={task.is_completed ? "success" : "primary"} />
-              </div>
             </div>
           ) : null}
         </div>

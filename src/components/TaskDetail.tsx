@@ -12,6 +12,7 @@ import {
 } from "@/components/badges";
 import { CommentSection } from "@/components/CommentSection";
 import { SubtaskList } from "@/components/SubtaskList";
+import { CircularProgress } from "@/components/CircularProgress";
 import { ErrorState, LoadingState, ProgressBar, UserAvatar } from "@/components/primitives";
 import { EditTaskDialog, DeleteTaskDialog } from "@/components/dialogs";
 import { WorkflowStatusBadge } from "@/components/tasks";
@@ -152,9 +153,21 @@ export function TaskDetail({ taskId, backHref }: { taskId: string; backHref: str
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">Progress</dt>
-            <dd className="mt-2">
-              <ProgressBar value={progress} tone={progress === 100 ? "success" : "primary"} />
-              <span className="tabular mt-1 block text-xs text-muted-foreground">{progress}%</span>
+            <dd className="mt-2 flex items-center gap-2.5">
+              <CircularProgress
+                value={progress}
+                size={36}
+                strokeWidth={3.5}
+                ariaLabel={`Task progress: ${progress}%`}
+              />
+              <div className="min-w-0">
+                <span className="tabular text-xs font-semibold text-foreground block">
+                  {progress}%
+                </span>
+                <span className="text-[11px] text-muted-foreground block">
+                  {task.is_completed ? "Completed" : progress > 0 ? "In progress" : "Not started"}
+                </span>
+              </div>
             </dd>
           </div>
         </dl>

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, ArrowUpRight, Plus } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Plus, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
@@ -42,6 +42,7 @@ function ProjectDetail() {
   const project = findProjectByIdOrSlug(projects.data ?? [], projectId);
   const actualProjectId = project?.id ?? projectId;
 
+  const projectMembers = useMembers(actualProjectId);
   const activity = useActivity({ projectId: actualProjectId, limit: 30 });
   const commentCounts = useCommentCounts();
   const del = useDeleteTask();
@@ -78,8 +79,7 @@ function ProjectDetail() {
       </AppShell>
     );
 
-  const teamIds = new Set(projectTasks.map((t) => t.assigned_developer_id).filter(Boolean));
-  const team = developers.filter((d) => teamIds.has(d.id));
+  const team = (projectMembers.data ?? []).filter((m) => m.role === "developer");
   const addTask = (
     <CreateTaskDialog
       actorId={profile?.id ?? null}
@@ -117,10 +117,22 @@ function ProjectDetail() {
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{project.description}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <EditProjectDialog project={project} />
+          <EditProjectDialog
+            project={project}
+            trigger={
+              <Button variant="outline">
+                <Pencil className="size-4" /> Edit project
+              </Button>
+            }
+          />
           <DeleteProjectDialog
             project={project}
             onDeleted={() => void navigate({ to: "/manager/projects", replace: true })}
+            trigger={
+              <Button variant="destructive-outline">
+                <Trash2 className="size-4" /> Delete project
+              </Button>
+            }
           />
           {addTask}
         </div>
@@ -161,7 +173,7 @@ function ProjectDetail() {
                   developers={developers}
                   defaultProjectId={project.id}
                   trigger={
-                    <Button size="sm" className="h-9">
+                    <Button size="sm">
                       <Plus className="size-3.5" /> Add task
                     </Button>
                   }
@@ -174,8 +186,8 @@ function ProjectDetail() {
         <TabsContent value="team" className="mt-4">
           {team.length === 0 ? (
             <EmptyState
-              title="No one assigned yet"
-              description="Assign deliverables to add developers to this project."
+              title="No team members assigned"
+              description="Edit this project to assign developers to its engineering team."
             />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -97,7 +97,7 @@ export function SettingsPage({ section }: { section: AppRole }) {
               <Label>Email</Label>
               <Input value={user?.email ?? ""} disabled />
             </div>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving} loading={saving}>
               {saving ? "Saving…" : "Save changes"}
             </Button>
           </form>

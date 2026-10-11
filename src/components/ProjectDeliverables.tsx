@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
+  AlertTriangle,
   CalendarClock,
   CheckCircle2,
   CheckSquare,
@@ -11,6 +12,7 @@ import {
 import { useMemo, useState } from "react";
 
 import { DeadlineBadge, PriorityBadge, StatusBadge, statusOf } from "@/components/badges";
+import { CircularProgress } from "@/components/CircularProgress";
 import { EmptyState, ProgressBar, UserAvatar } from "@/components/primitives";
 import { subtaskProgress } from "@/components/tasks";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -84,16 +86,34 @@ export function ProjectOverviewCard({
         </div>
       </div>
 
-      {/* Progress Bar */}
-      <div className="mt-4">
-        <div className="flex items-center justify-between text-xs mb-2">
-          <span className="font-semibold text-foreground">Completion Progress</span>
-          <span className="tabular font-bold text-foreground">{progress}%</span>
+      {/* Circular Progress & Completion Overview */}
+      <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-border/70 bg-muted/20 p-3.5">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <CircularProgress
+            value={progress}
+            size={48}
+            strokeWidth={4.5}
+            ariaLabel={`Project completion: ${progress}%`}
+          />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm text-foreground">Completion Progress</span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                ({progress === 100 ? "Completed" : progress === 0 ? "Not started" : `${progress}%`})
+              </span>
+            </div>
+            <p className="tabular text-xs text-muted-foreground mt-0.5">
+              {completed} of {total} tasks completed · {doneSubtasks} of {totalSubtasks} subtasks
+              checked ({subtaskPct}%)
+            </p>
+          </div>
         </div>
-        <ProgressBar
-          value={progress}
-          tone={progress === 100 ? "success" : overdueCount > 0 ? "danger" : "primary"}
-        />
+        {overdueCount > 0 ? (
+          <div className="flex items-center gap-1.5 self-start sm:self-auto rounded-lg bg-danger-soft px-2.5 py-1 text-xs font-semibold text-danger border border-danger/30 shrink-0">
+            <AlertTriangle className="size-3.5" />
+            <span>{overdueCount} overdue</span>
+          </div>
+        ) : null}
       </div>
 
       {/* Metric Chips */}

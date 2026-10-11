@@ -1,10 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-
+import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { CreateTaskDialog } from "@/components/dialogs";
 import { ErrorState, LoadingState, PageHeader } from "@/components/primitives";
 import { meta } from "@/components/pages";
-import { TaskBoard, TaskFilters, useFilteredTasks } from "@/components/tasks";
+import {
+  TaskBoard,
+  TaskFilters,
+  TaskTable,
+  TaskViewSwitcher,
+  useFilteredTasks,
+} from "@/components/tasks";
 import {
   useAllSubtasks,
   useCommentCounts,
@@ -44,6 +50,8 @@ function ManagerTasks() {
     },
   );
 
+  const [view, setView] = useState<"board" | "table">("board");
+
   const selectedProject = findProjectByIdOrSlug(projects.data ?? [], filters.project);
 
   return (
@@ -65,17 +73,30 @@ function ManagerTasks() {
         }
       />
       <div className="mt-6 space-y-4">
-        <TaskFilters
-          filters={filters}
-          setFilters={setFilters}
-          developers={developers}
-          projects={projects.data ?? []}
-          showProject={true}
-        />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex-1">
+            <TaskFilters
+              filters={filters}
+              setFilters={setFilters}
+              developers={developers}
+              projects={projects.data ?? []}
+              showProject={true}
+            />
+          </div>
+          <div className="shrink-0 self-end sm:self-auto">
+            <TaskViewSwitcher view={view} onViewChange={setView} />
+          </div>
+        </div>
         {tasks.isLoading ? (
           <LoadingState />
         ) : tasks.isError ? (
           <ErrorState message={(tasks.error as Error).message} />
+        ) : view === "table" ? (
+          <TaskTable
+            tasks={filtered}
+            subtasks={subtasks.data ?? []}
+            hrefFor={(t) => `/manager/tasks/${t.id}`}
+          />
         ) : (
           <TaskBoard
             tasks={filtered}

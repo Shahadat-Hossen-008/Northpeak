@@ -48,6 +48,7 @@ export type Project = {
   title: string;
   description: string;
   manager_id: string | null;
+  team: string[];
   start_date: string | null;
   deadline: string | null;
   priority: Priority;
@@ -189,8 +190,9 @@ export const api = {
   },
 
   // Members
-  async getMembers() {
-    return request<Member[]>("/members");
+  async getMembers(projectId?: string) {
+    const query = projectId ? `?projectId=${encodeURIComponent(projectId)}` : "";
+    return request<Member[]>(`/members${query}`);
   },
 
   async getMember(id: string) {
@@ -217,6 +219,7 @@ export const api = {
     start_date: string | null;
     deadline: string | null;
     priority: string;
+    team?: string[];
   }) {
     return request<Project>("/projects", {
       method: "POST",
@@ -232,6 +235,7 @@ export const api = {
       start_date: string | null;
       deadline: string | null;
       priority: string;
+      team: string[];
     }>,
   ) {
     return request<Project>(`/projects/${id}`, {

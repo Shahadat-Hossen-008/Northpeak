@@ -75,17 +75,24 @@ export function SubtaskList({
                     onChange={(e) => setEditing({ id: subtask.id, title: e.target.value })}
                     autoFocus
                   />
-                  <Button type="submit" size="icon" variant="ghost" aria-label="Save subtask">
-                    <Check className="size-4" />
+                  <Button
+                    type="submit"
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label="Save subtask"
+                    title="Save"
+                  >
+                    <Check className="size-3.5 text-success" />
                   </Button>
                   <Button
                     type="button"
-                    size="icon"
+                    size="icon-sm"
                     variant="ghost"
                     aria-label="Cancel edit"
+                    title="Cancel"
                     onClick={() => setEditing(null)}
                   >
-                    <X className="size-4" />
+                    <X className="size-3.5" />
                   </Button>
                 </form>
               ) : (
@@ -99,19 +106,22 @@ export function SubtaskList({
                     {subtask.title}
                   </span>
                   {canEdit ? (
-                    <span className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                    <span className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
                       <Button
-                        size="icon"
+                        size="icon-sm"
                         variant="ghost"
                         aria-label={`Edit ${subtask.title}`}
+                        title="Edit subtask"
                         onClick={() => setEditing({ id: subtask.id, title: subtask.title })}
                       >
-                        <Pencil className="size-3.5" />
+                        <Pencil className="size-3.5 text-muted-foreground hover:text-foreground" />
                       </Button>
                       <Button
-                        size="icon"
+                        size="icon-sm"
                         variant="ghost"
                         aria-label={`Delete ${subtask.title}`}
+                        title="Delete subtask"
+                        className="hover:text-danger hover:bg-danger-soft/40"
                         onClick={() => mutations.remove.mutate(subtask.id)}
                       >
                         <Trash2 className="size-3.5 text-danger" />
@@ -142,7 +152,11 @@ export function SubtaskList({
             placeholder="Add a subtask…"
             aria-label="New subtask"
           />
-          <Button type="submit" disabled={!newTitle.trim() || mutations.add.isPending}>
+          <Button
+            type="submit"
+            disabled={!newTitle.trim() || mutations.add.isPending}
+            loading={mutations.add.isPending}
+          >
             <Plus className="size-4" />
             Add
           </Button>

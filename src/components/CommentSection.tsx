@@ -58,15 +58,18 @@ export function CommentSection({
                       </span>
                     </div>
                     {canDelete ? (
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-sm"
                         aria-label="Delete comment"
-                        className="opacity-0 transition-opacity group-hover:opacity-100 hover:text-danger text-muted-foreground"
+                        title="Delete comment"
+                        className="opacity-0 transition-opacity group-hover:opacity-100 text-muted-foreground hover:text-danger hover:bg-danger-soft/40 size-7"
                         disabled={deleteComment.isPending}
                         onClick={() => deleteComment.mutate(comment.id)}
                       >
                         <Trash2 className="size-3.5" />
-                      </button>
+                      </Button>
                     ) : null}
                   </div>
                   <p className="mt-1 text-sm whitespace-pre-line text-foreground">{comment.body}</p>
@@ -94,7 +97,11 @@ export function CommentSection({
           aria-label="Write a comment"
         />
         <div className="flex justify-end">
-          <Button type="submit" disabled={!body.trim() || addComment.isPending}>
+          <Button
+            type="submit"
+            disabled={!body.trim() || addComment.isPending}
+            loading={addComment.isPending}
+          >
             <Send className="size-4" />
             {addComment.isPending ? "Sending…" : "Send"}
           </Button>
