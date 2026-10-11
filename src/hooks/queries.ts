@@ -20,6 +20,7 @@ export type Project = {
   title: string;
   description: string;
   manager_id: string | null;
+  team?: string[];
   start_date: string | null;
   deadline: string | null;
   priority: Priority;
@@ -83,13 +84,14 @@ export type AppNotification = {
 
 /* ------------------------------- queries ------------------------------- */
 
-export function useMembers() {
+export function useMembers(projectId?: string | null) {
   return useQuery({
-    queryKey: ["members"],
+    queryKey: projectId ? ["members", { projectId }] : ["members"],
     queryFn: async (): Promise<Member[]> => {
-      const data = await api.getMembers();
+      const data = await api.getMembers(projectId || undefined);
       return (data || []) as Member[];
     },
+    enabled: projectId !== null,
   });
 }
 
@@ -231,11 +233,12 @@ export function useCreateProject(_actorId?: string | null) {
       start_date: string | null;
       deadline: string | null;
       priority: Priority;
+      team?: string[];
     }) => {
       return api.createProject(input);
     },
     onSuccess: () => {
-      invalidate(["projects", "activity", "notifications"]);
+      invalidate(["projects", "members", "activity", "notifications"]);
       toast.success("Project created");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -249,7 +252,7 @@ export function useUpdateProject(_actorId?: string | null) {
       return api.updateProject(id, patch);
     },
     onSuccess: () => {
-      invalidate(["projects", "activity"]);
+      invalidate(["projects", "members", "tasks", "activity"]);
       toast.success("Project updated");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -350,7 +353,9 @@ export function useUpdateTaskStatus() {
     },
     onMutate: async ({ id, status }) => {
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      await queryClient.cancelQueries({ queryKey: ["task", id] });
       const previousTasks = queryClient.getQueryData<Task[]>(["tasks"]);
+      const previousTask = queryClient.getQueryData<Task>(["task", id]);
 
       queryClient.setQueryData<Task[]>(["tasks"], (old) => {
         if (!old) return old;
@@ -366,11 +371,24 @@ export function useUpdateTaskStatus() {
         );
       });
 
-      return { previousTasks };
+      queryClient.setQueryData<Task | null>(["task", id], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          status,
+          is_completed: status === "done",
+          completed_at: status === "done" ? new Date().toISOString() : null,
+        };
+      });
+
+      return { previousTasks, previousTask };
     },
-    onError: (_err, _variables, context) => {
+    onError: (_err, { id }, context) => {
       if (context?.previousTasks) {
         queryClient.setQueryData(["tasks"], context.previousTasks);
+      }
+      if (context?.previousTask) {
+        queryClient.setQueryData(["task", id], context.previousTask);
       }
       toast.error("Failed to move task");
     },

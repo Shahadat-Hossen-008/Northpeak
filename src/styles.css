@@ -204,3 +204,39 @@
   font-variant-numeric: tabular-nums;
   font-family: var(--font-mono);
 }
+
+@utility project-title-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  & .project-title-text {
+    position: relative;
+    padding-bottom: 2px;
+
+    &::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 0;
+      height: 2px;
+      background-color: var(--color-primary);
+      transition: width 250ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  }
+
+  &:hover .project-title-text::after {
+    width: 100%;
+  }
+
+  & .project-redirect-icon {
+    transition: transform 200ms ease, color 200ms ease;
+  }
+
+  &:hover .project-redirect-icon {
+    transform: translate(2px, -2px);
+    color: var(--color-primary);
+  }
+}

@@ -24,6 +24,9 @@ import {
   UserAvatar,
 } from "@/components/primitives";
 import { DeadlineBadge, StatusBadge, statusOf } from "@/components/badges";
+import { DashboardMetricCard } from "@/components/DashboardMetricCard";
+import { ProjectStatusDonutChart } from "@/components/ProjectStatusDonutChart";
+import { TaskStatusDonutChart } from "@/components/TaskStatusDonutChart";
 import { useActivity, useAllSubtasks, useMembers, useProjects, useTasks } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate, timeAgo } from "@/lib/deadline";
@@ -63,8 +66,24 @@ function ManagerDashboard() {
   const allProjects = projects.data ?? [];
   const developers = (members.data ?? []).filter((m) => m.role === "developer");
 
-  const completedTasks = allTasks.filter((t) => t.is_completed).length;
-  const overdueTasks = allTasks.filter((t) => statusOf(t) === "overdue");
+  const completedTasks = allTasks.filter((t) => t.is_completed || t.status === "done").length;
+  const inProgressTasks = allTasks.filter(
+    (t) =>
+      !t.is_completed &&
+      t.status !== "done" &&
+      (t.status === "in_progress" || t.status === "in_review"),
+  ).length;
+  const overdueTasks = allTasks.filter(
+    (t) =>
+      !t.is_completed &&
+      t.status !== "done" &&
+      t.status !== "in_progress" &&
+      t.status !== "in_review" &&
+      statusOf(t) === "overdue",
+  );
+  const allOverdueTasks = allTasks.filter(
+    (t) => !t.is_completed && t.status !== "done" && statusOf(t) === "overdue",
+  );
   const activeProjects = allProjects.filter((project) => {
     const projectTasks = allTasks.filter((t) => t.project_id === project.id);
     return projectTasks.length === 0 || projectTasks.some((t) => !t.is_completed);
@@ -89,39 +108,73 @@ function ManagerDashboard() {
         </div>
       ) : (
         <div className="mt-6 space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard
-              label="Total projects"
-              value={allProjects.length}
-              icon={FolderKanban}
+          {/* Top Row: Four Circular Metric Cards */}
+          <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <DashboardMetricCard
+              title="Overall Tasks"
+              value={allTasks.length > 0 ? Math.round((completedTasks / allTasks.length) * 100) : 0}
+              countSummary={`Total Tasks · ${allTasks.length}`}
               tone="primary"
+              strokeColor="#6366f1"
             />
-            <StatCard
-              label="Active projects"
-              value={activeProjects.length}
-              icon={Rocket}
-              tone="neutral"
-            />
-            <StatCard
-              label="Completed tasks"
-              value={completedTasks}
-              icon={CheckCircle2}
+            <DashboardMetricCard
+              title="Completed Tasks"
+              value={allTasks.length > 0 ? Math.round((completedTasks / allTasks.length) * 100) : 0}
+              countSummary={`Completed · ${completedTasks}`}
               tone="success"
+              strokeColor="#10b981"
             />
-            <StatCard
-              label="Overdue tasks"
-              value={overdueTasks.length}
-              icon={AlertTriangle}
+            <DashboardMetricCard
+              title="In-Progress Tasks"
+              value={
+                allTasks.length > 0 ? Math.round((inProgressTasks / allTasks.length) * 100) : 0
+              }
+              countSummary={`In Progress · ${inProgressTasks}`}
+              tone="info"
+              strokeColor="#3b82f6"
+            />
+            <DashboardMetricCard
+              title="Overdue Tasks"
+              value={
+                allTasks.length > 0 ? Math.round((overdueTasks.length / allTasks.length) * 100) : 0
+              }
+              countSummary={`Overdue · ${overdueTasks.length}`}
               tone="danger"
-              hint={overdueTasks.length > 0 ? "Needs attention today" : "All clear"}
+              strokeColor="#ef4444"
+            />
+          </div>
+
+          {/* Middle Row: Two Balanced Columns: Project Status (left) & Task Status (right) */}
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-2 items-stretch">
+            <ProjectStatusDonutChart
+              projects={allProjects}
+              tasks={allTasks}
+              isLoading={projects.isLoading}
+              isError={projects.isError}
+              errorMessage={projects.error instanceof Error ? projects.error.message : undefined}
+            />
+            <TaskStatusDonutChart
+              tasks={allTasks}
+              isLoading={tasks.isLoading}
+              isError={tasks.isError}
+              errorMessage={tasks.error instanceof Error ? tasks.error.message : undefined}
             />
           </div>
 
           <section>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold tracking-wide text-foreground uppercase">
-                Projects overview
-              </h2>
+              <Link
+                to="/manager/projects"
+                className="project-title-link text-sm font-semibold tracking-wide text-foreground uppercase hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs"
+              >
+                <span className="project-title-text">
+                  Projects overview
+                </span>
+                <ArrowUpRight
+                  className="project-redirect-icon size-3.5 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </Link>
               <Link
                 to="/manager/projects"
                 className="text-sm font-medium text-primary hover:underline"
@@ -151,11 +204,11 @@ function ManagerDashboard() {
 
           <div className="grid gap-6 lg:grid-cols-2">
             <SectionCard title="Overdue tasks">
-              {overdueTasks.length === 0 ? (
+              {allOverdueTasks.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nothing is overdue. Nice work.</p>
               ) : (
                 <ul className="space-y-3">
-                  {overdueTasks.slice(0, 6).map((task) => (
+                  {allOverdueTasks.slice(0, 6).map((task) => (
                     <li key={task.id} className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <Link
