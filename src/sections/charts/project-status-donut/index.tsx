@@ -1,27 +1,9 @@
 import * as React from "react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import { AlertCircle } from "lucide-react";
-
 import { cn } from "@/lib/utils";
-import { projectStats } from "@/components/ProjectCard";
-import type { Project, Task } from "@/hooks/queries";
-
-export interface ProjectStatusDonutChartProps {
-  projects: Project[];
-  tasks: Task[];
-  isLoading?: boolean;
-  isError?: boolean;
-  errorMessage?: string;
-  className?: string;
-}
-
-interface ProjectSlice {
-  key: "on_track" | "due_soon" | "overdue" | "completed";
-  label: string;
-  count: number;
-  percentage: number;
-  color: string;
-}
+import { projectStats } from "@/lib/project-utils";
+import type { ProjectSlice, ProjectStatusDonutChartProps } from "./interface";
 
 export function ProjectStatusDonutChart({
   projects,
@@ -39,15 +21,17 @@ export function ProjectStatusDonutChart({
   }, []);
 
   const { total, slices, hasData } = React.useMemo(() => {
-    const totalCount = projects.length;
+    const projectList = projects ?? [];
+    const taskList = tasks ?? [];
+    const totalCount = projectList.length;
 
     let completed = 0;
     let overdue = 0;
     let dueSoon = 0;
     let onTrack = 0;
 
-    for (const project of projects) {
-      const stats = projectStats(project, tasks);
+    for (const project of projectList) {
+      const stats = projectStats(project, taskList);
       if (
         stats.allDone ||
         stats.state === "completed_on_time" ||
@@ -130,7 +114,15 @@ export function ProjectStatusDonutChart({
   // Data formatted for Recharts Pie
   const chartData = React.useMemo(() => {
     if (!hasData) {
-      return [{ name: "No projects", value: 1, color: "var(--border, #e2e8f0)", percentage: 0, key: "none" }];
+      return [
+        {
+          name: "No projects",
+          value: 1,
+          color: "var(--border, #e2e8f0)",
+          percentage: 0,
+          key: "none",
+        },
+      ];
     }
     const nonZero = slices.filter((s) => s.count > 0);
     return nonZero.map((s) => ({
@@ -284,7 +276,7 @@ export function ProjectStatusDonutChart({
                   <span className="text-xs sm:text-sm font-semibold text-foreground">
                     {slice.count}
                   </span>
-                  <span className="text-xs text-muted-foreground min-w-[34px] text-right">
+                  <span className="text-xs text-muted-foreground min-w-8.5 text-right">
                     {slice.percentage}%
                   </span>
                 </div>
@@ -296,3 +288,6 @@ export function ProjectStatusDonutChart({
     </div>
   );
 }
+
+export default ProjectStatusDonutChart;
+export type { ProjectStatusDonutChartProps, ProjectSlice } from "./interface";

@@ -1,12 +1,14 @@
 import { AlertTriangle, Bell, CheckCircle2, Clock, FolderPlus, MessageSquare } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-
 import { Button } from "@/components/ui/button";
-import { EmptyState, ErrorState, LoadingState } from "@/components/primitives";
+import { EmptyState } from "@/components/feedback/empty-state";
+import { ErrorState } from "@/components/feedback/error-state";
+import { LoadingState } from "@/components/feedback/loading-state";
 import { useMarkNotifications, useNotifications, useProjects } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { timeAgo } from "@/lib/deadline";
 import { cn, findProjectByIdOrSlug, projectSlug } from "@/lib/utils";
+import type { NotificationPanelProps } from "./interface";
 
 const ICONS: Record<string, typeof Bell> = {
   task_assigned: CheckCircle2,
@@ -26,7 +28,7 @@ const TONES: Record<string, string> = {
   project_created: "bg-secondary text-secondary-foreground",
 };
 
-export function NotificationPanel() {
+export function NotificationPanel({ className }: NotificationPanelProps = {}) {
   const { role } = useAuth();
   const { data, isLoading, isError, error } = useNotifications();
   const projects = useProjects();
@@ -47,7 +49,7 @@ export function NotificationPanel() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", className)}>
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           {unreadIds.length} unread of {items.length}
@@ -130,3 +132,6 @@ export function NotificationPanel() {
     </div>
   );
 }
+
+export default NotificationPanel;
+export type { NotificationPanelProps } from "./interface";

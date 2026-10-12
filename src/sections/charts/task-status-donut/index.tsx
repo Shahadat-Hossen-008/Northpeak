@@ -1,35 +1,14 @@
 import * as React from "react";
 import { AlertCircle } from "lucide-react";
-
 import { cn } from "@/lib/utils";
-import { statusOf } from "@/components/badges";
-import type { Task } from "@/hooks/queries";
-
-export interface TaskStatusDonutChartProps {
-  tasks: Task[];
-  isLoading?: boolean;
-  isError?: boolean;
-  errorMessage?: string;
-  className?: string;
-}
-
-interface StatusItem {
-  key: "in_progress" | "overdue" | "completed" | "todo";
-  label: string;
-  count: number;
-  percentage: number;
-  color: string;
-  trackColor: string;
-  radius: number;
-  isArc: boolean; // 3 concentric arcs for active statuses, todo preserved in legend/total
-}
+import { statusOf } from "@/components/badges/utils";
+import type { StatusItem, TaskStatusDonutChartProps } from "./interface";
 
 // Geometric constants for the 270° open-arc gauge (gap at bottom)
 const CX = 110;
 const CY = 88;
 const START_DEG = 135; // Bottom-left
 const END_DEG = 405; // Bottom-right (45°)
-const SWEEP_DEG = 270;
 const DEG_TO_RAD = Math.PI / 180;
 
 function getArcCoords(r: number, deg: number) {
@@ -69,14 +48,15 @@ export function TaskStatusDonutChart({
 
   // Compute mutually exclusive categories to strictly prevent double-counting
   const { total, items, hasData } = React.useMemo(() => {
-    const totalCount = tasks.length;
+    const taskList = tasks ?? [];
+    const totalCount = taskList.length;
 
     let completed = 0;
     let overdue = 0;
     let inProgress = 0;
     let todo = 0;
 
-    for (const t of tasks) {
+    for (const t of taskList) {
       if (t.is_completed || t.status === "done") {
         completed++;
       } else if (t.status === "in_progress" || t.status === "in_review") {
@@ -88,11 +68,6 @@ export function TaskStatusDonutChart({
       }
     }
 
-    // 4 concentric arcs matching all task categories:
-    // Outermost = In-progress (coral/rose #f43f5e)
-    // Second = Overdue (amber #f59e0b)
-    // Third = Completed (blue #3b82f6)
-    // Innermost = To Do (slate #94a3b8)
     const rawItems = [
       {
         key: "in_progress" as const,
@@ -309,3 +284,6 @@ export function TaskStatusDonutChart({
     </div>
   );
 }
+
+export default TaskStatusDonutChart;
+export type { TaskStatusDonutChartProps, StatusItem } from "./interface";

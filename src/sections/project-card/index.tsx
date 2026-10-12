@@ -1,38 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
-
-import { PriorityBadge, StatusBadge, borderForState } from "@/components/badges";
-import { CircularProgress } from "@/components/CircularProgress";
-import type { Project, Task } from "@/hooks/queries";
-import { deadlineState, formatDate } from "@/lib/deadline";
+import { PriorityBadge } from "@/components/badges/priority-badge";
+import { StatusBadge } from "@/components/badges/status-badge";
+import { borderForState } from "@/components/badges/utils";
+import { CircularProgress } from "@/components/progress/circular-progress";
+import { formatDate } from "@/lib/deadline";
+import { projectStats } from "@/lib/project-utils";
 import { cn } from "@/lib/utils";
+import type { ProjectCardProps } from "./interface";
 
-export function projectStats(project: Project, tasks: Task[]) {
-  const projectTasks = tasks.filter((task) => task.project_id === project.id);
-  const completed = projectTasks.filter((task) => task.is_completed).length;
-  const overdue = projectTasks.filter(
-    (task) => !task.is_completed && task.deadline && new Date(task.deadline) < new Date(),
-  ).length;
-  const progress =
-    projectTasks.length === 0 ? 0 : Math.round((completed / projectTasks.length) * 100);
-  const allDone = projectTasks.length > 0 && completed === projectTasks.length;
-  const state = deadlineState({
-    deadline: project.deadline,
-    isCompleted: allDone,
-    completedAt: null,
-  });
-  return { total: projectTasks.length, completed, overdue, progress, state, allDone };
-}
-
-export function ProjectCard({
-  project,
-  tasks,
-  href,
-}: {
-  project: Project;
-  tasks: Task[];
-  href: string;
-}) {
+export function ProjectCard({ project, tasks, href }: ProjectCardProps) {
   const stats = projectStats(project, tasks);
 
   return (
@@ -43,9 +20,7 @@ export function ProjectCard({
             to={href}
             className="project-title-link text-base font-bold text-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs"
           >
-            <span className="project-title-text">
-              {project.title}
-            </span>
+            <span className="project-title-text">{project.title}</span>
             <ArrowUpRight
               className="project-redirect-icon size-4 shrink-0 text-muted-foreground"
               aria-hidden="true"
@@ -90,3 +65,6 @@ export function ProjectCard({
     </article>
   );
 }
+
+export default ProjectCard;
+export type { ProjectCardProps } from "./interface";

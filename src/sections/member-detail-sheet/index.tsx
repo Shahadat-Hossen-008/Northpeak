@@ -10,7 +10,6 @@ import {
   Timer,
 } from "lucide-react";
 import { useState } from "react";
-
 import {
   Sheet,
   SheetContent,
@@ -21,27 +20,21 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DeadlineBadge, PriorityBadge, StatusBadge, type DeadlineState } from "@/components/badges";
-import {
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  ProgressBar,
-  UserAvatar,
-} from "@/components/primitives";
-import { CircularProgress } from "@/components/CircularProgress";
-import { useMemberWorkload, type MemberWorkloadTask } from "@/hooks/queries";
+import { DeadlineBadge } from "@/components/badges/deadline-badge";
+import { PriorityBadge } from "@/components/badges/priority-badge";
+import { StatusBadge } from "@/components/badges/status-badge";
+import { CircularProgress } from "@/components/progress/circular-progress";
+import { ProgressBar } from "@/components/progress/progress-bar";
+import { EmptyState } from "@/components/feedback/empty-state";
+import { ErrorState } from "@/components/feedback/error-state";
+import { LoadingState } from "@/components/feedback/loading-state";
+import { UserAvatar } from "@/components/avatar";
+import { useMemberWorkload } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate } from "@/lib/deadline";
 import { cn } from "@/lib/utils";
-
-export interface MemberDetailSheetProps {
-  memberId: string | null;
-  projectId?: string;
-  projectName?: string;
-  fromHref?: string;
-  onClose: () => void;
-}
+import type { DeadlineState, MemberWorkloadTask } from "@/types";
+import type { MemberDetailSheetProps } from "./interface";
 
 export function MemberDetailSheet({
   memberId,
@@ -291,9 +284,7 @@ function TaskItemRow({
       <Link
         to={taskRoute}
         params={{ taskId: task.id }}
-        search={{
-          from: fromHref ?? (projectId ? `/manager/projects/${projectId}` : undefined),
-        }}
+        search={fromHref || projectId ? { from: fromHref ?? `/manager/projects/${projectId}` } : {}}
         onClick={onNavigate}
         title={`Open task: ${task.title}`}
         className="group block rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-card hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -355,3 +346,6 @@ function TaskItemRow({
     </li>
   );
 }
+
+export default MemberDetailSheet;
+export type { MemberDetailSheetProps } from "./interface";

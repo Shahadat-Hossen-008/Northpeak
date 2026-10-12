@@ -1,22 +1,14 @@
 import { Send, Trash2 } from "lucide-react";
 import { useState } from "react";
-
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { UserAvatar } from "@/components/primitives";
-import { useAddComment, useDeleteComment, useComments, useMembers } from "@/hooks/queries";
+import { UserAvatar } from "@/components/avatar";
+import { useAddComment, useComments, useDeleteComment, useMembers } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { timeAgo } from "@/lib/deadline";
+import type { CommentSectionProps } from "./interface";
 
-export function CommentSection({
-  taskId,
-  projectId,
-  actorId,
-}: {
-  taskId: string;
-  projectId: string;
-  actorId: string | null;
-}) {
+export function CommentSection({ taskId, projectId, actorId }: CommentSectionProps) {
   const { user } = useAuth();
   const { data, isLoading } = useComments(taskId);
   const { data: members } = useMembers();
@@ -64,7 +56,7 @@ export function CommentSection({
                         size="icon-sm"
                         aria-label="Delete comment"
                         title="Delete comment"
-                        className="opacity-0 transition-opacity group-hover:opacity-100 text-muted-foreground hover:text-danger hover:bg-danger-soft/40 size-7"
+                        className="opacity-0 transition-opacity group-hover:opacity-100 text-muted-foreground hover:text-danger hover:bg-danger-soft/40 size-7 cursor-pointer"
                         disabled={deleteComment.isPending}
                         onClick={() => deleteComment.mutate(comment.id)}
                       >
@@ -110,3 +102,6 @@ export function CommentSection({
     </div>
   );
 }
+
+export default CommentSection;
+export type { CommentSectionProps } from "./interface";

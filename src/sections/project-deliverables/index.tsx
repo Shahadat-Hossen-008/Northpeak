@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
   CalendarClock,
-  CheckCircle2,
   CheckSquare,
   ListTodo,
   MessageSquare,
@@ -10,11 +9,13 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-
-import { DeadlineBadge, PriorityBadge, StatusBadge, statusOf } from "@/components/badges";
-import { CircularProgress } from "@/components/CircularProgress";
-import { EmptyState, ProgressBar, UserAvatar } from "@/components/primitives";
-import { subtaskProgress } from "@/components/tasks";
+import { DeadlineBadge } from "@/components/badges/deadline-badge";
+import { PriorityBadge } from "@/components/badges/priority-badge";
+import { StatusBadge } from "@/components/badges/status-badge";
+import { statusOf } from "@/components/badges/utils";
+import { CircularProgress } from "@/components/progress/circular-progress";
+import { EmptyState } from "@/components/feedback/empty-state";
+import { UserAvatar } from "@/components/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,25 +25,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  useSetTaskCompletion,
-  type Priority,
-  type Project,
-  type Subtask,
-  type Task,
-} from "@/hooks/queries";
+import { useSetTaskCompletion } from "@/hooks/queries";
 import { deadlineState, deadlineText, formatDate } from "@/lib/deadline";
+import { subtaskProgress } from "@/lib/task-utils";
 import { cn } from "@/lib/utils";
+import type { ProjectOverviewCardProps, ProjectTasksListProps } from "./interface";
 
-export function ProjectOverviewCard({
-  project,
-  tasks,
-  subtasks,
-}: {
-  project: Project;
-  tasks: Task[];
-  subtasks: Subtask[];
-}) {
+export function ProjectOverviewCard({ project, tasks, subtasks }: ProjectOverviewCardProps) {
   const total = tasks.length;
   const completed = tasks.filter((t) => t.is_completed).length;
   const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -159,13 +148,7 @@ export function ProjectTasksList({
   commentCounts,
   hrefFor,
   renderAddTask,
-}: {
-  tasks: Task[];
-  subtasks: Subtask[];
-  commentCounts: Record<string, number>;
-  hrefFor: (task: Task) => string;
-  renderAddTask?: React.ReactNode | undefined;
-}) {
+}: ProjectTasksListProps) {
   const setCompletion = useSetTaskCompletion();
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
@@ -275,7 +258,7 @@ export function ProjectTasksList({
                     <Link
                       to={hrefFor(task)}
                       className={cn(
-                        "font-semibold text-sm hover:text-primary transition-colors block break-words",
+                        "font-semibold text-sm hover:text-primary transition-colors block wrap-break-word",
                         task.is_completed
                           ? "line-through text-muted-foreground"
                           : "text-foreground",
@@ -316,7 +299,7 @@ export function ProjectTasksList({
                   {task.assignee ? (
                     <div className="flex items-center gap-1.5" title={task.assignee.name}>
                       <UserAvatar name={task.assignee.name} size="sm" />
-                      <span className="text-xs text-muted-foreground max-w-[100px] truncate hidden md:inline">
+                      <span className="text-xs text-muted-foreground max-w-25 truncate hidden md:inline">
                         {task.assignee.name}
                       </span>
                     </div>
@@ -341,3 +324,5 @@ export function ProjectTasksList({
     </div>
   );
 }
+
+export type { ProjectOverviewCardProps, ProjectTasksListProps } from "./interface";

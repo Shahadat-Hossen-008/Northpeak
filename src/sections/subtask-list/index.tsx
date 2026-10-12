@@ -1,24 +1,14 @@
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
-
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { ProgressBar } from "@/components/primitives";
+import { ProgressBar } from "@/components/progress/progress-bar";
 import { useSubtaskMutations, useSubtasks, type Subtask } from "@/hooks/queries";
 import { cn } from "@/lib/utils";
+import type { SubtaskListProps } from "./interface";
 
-export function SubtaskList({
-  taskId,
-  projectId,
-  actorId,
-  canEdit,
-}: {
-  taskId: string;
-  projectId: string;
-  actorId: string | null;
-  canEdit: boolean;
-}) {
+export function SubtaskList({ taskId, projectId, actorId, canEdit }: SubtaskListProps) {
   const { data, isLoading } = useSubtasks(taskId);
   const mutations = useSubtaskMutations(taskId, actorId, projectId);
   const [newTitle, setNewTitle] = useState("");
@@ -121,7 +111,7 @@ export function SubtaskList({
                         variant="ghost"
                         aria-label={`Delete ${subtask.title}`}
                         title="Delete subtask"
-                        className="hover:text-danger hover:bg-danger-soft/40"
+                        className="hover:text-danger hover:bg-danger-soft/40 cursor-pointer"
                         onClick={() => mutations.remove.mutate(subtask.id)}
                       >
                         <Trash2 className="size-3.5 text-danger" />
@@ -165,3 +155,6 @@ export function SubtaskList({
     </div>
   );
 }
+
+export default SubtaskList;
+export type { SubtaskListProps } from "./interface";

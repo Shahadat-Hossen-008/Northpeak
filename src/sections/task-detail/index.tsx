@@ -1,21 +1,20 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  DeadlineBadge,
-  PriorityBadge,
-  StatusBadge,
-  borderForState,
-  statusOf,
-} from "@/components/badges";
-import { CommentSection } from "@/components/CommentSection";
-import { SubtaskList } from "@/components/SubtaskList";
-import { CircularProgress } from "@/components/CircularProgress";
-import { ErrorState, LoadingState, ProgressBar, UserAvatar } from "@/components/primitives";
-import { EditTaskDialog, DeleteTaskDialog } from "@/components/dialogs";
-import { WorkflowStatusBadge } from "@/components/tasks";
+import { DeadlineBadge } from "@/components/badges/deadline-badge";
+import { PriorityBadge } from "@/components/badges/priority-badge";
+import { StatusBadge } from "@/components/badges/status-badge";
+import { WorkflowStatusBadge } from "@/components/badges/workflow-badge";
+import { borderForState, statusOf } from "@/components/badges/utils";
+import { CommentSection } from "@/sections/comment-section";
+import { SubtaskList } from "@/sections/subtask-list";
+import { CircularProgress } from "@/components/progress/circular-progress";
+import { ErrorState } from "@/components/feedback/error-state";
+import { LoadingState } from "@/components/feedback/loading-state";
+import { UserAvatar } from "@/components/avatar";
+import { EditTaskDialog } from "@/components/dialogs/edit-task-dialog";
+import { DeleteTaskDialog } from "@/components/dialogs/delete-task-dialog";
 import {
   useActivity,
   useMembers,
@@ -27,8 +26,9 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate, timeAgo } from "@/lib/deadline";
 import { cn } from "@/lib/utils";
+import type { TaskDetailProps } from "./interface";
 
-export function TaskDetail({ taskId, backHref }: { taskId: string; backHref: string }) {
+export function TaskDetail({ taskId, backHref }: TaskDetailProps) {
   const navigate = useNavigate();
   const { profile, role } = useAuth();
   const { data: task, isLoading, isError, error } = useTask(taskId);
@@ -218,3 +218,6 @@ export function TaskDetail({ taskId, backHref }: { taskId: string; backHref: str
     </div>
   );
 }
+
+export default TaskDetail;
+export type { TaskDetailProps } from "./interface";
