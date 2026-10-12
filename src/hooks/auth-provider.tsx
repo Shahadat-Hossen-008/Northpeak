@@ -1,49 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, getAuthToken, setAuthToken } from "@/lib/api";
-
-export type AppRole = "manager" | "developer";
-
-export type Profile = {
-  id: string;
-  name: string;
-  email: string | null;
-};
-
-export type AuthUser = {
-  id: string;
-  name: string;
-  email: string;
-  role: AppRole;
-};
-
-type AuthValue = {
-  user: AuthUser | null;
-  session: { access_token: string } | null;
-  profile: Profile | null;
-  role: AppRole | null;
-  loading: boolean;
-  reload: () => Promise<void>;
-  logout: () => void;
-};
-
-const AuthContext = createContext<AuthValue>({
-  user: null,
-  session: null,
-  profile: null,
-  role: null,
-  loading: true,
-  reload: async () => {},
-  logout: () => {},
-});
+import type { AppRole, AuthUser, Profile } from "@/types";
+import { AuthContext, type AuthValue } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
@@ -125,10 +84,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
-
-export function homePathForRole(role: AppRole | null): string {
-  return role === "developer" ? "/developer/dashboard" : "/manager/dashboard";
-}
+export default AuthProvider;
