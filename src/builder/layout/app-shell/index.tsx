@@ -1,5 +1,4 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
   CheckSquare,
@@ -7,12 +6,10 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Mountain,
   Settings,
   Users,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
-
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -23,10 +20,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UserAvatar } from "@/components/primitives";
-import { useAuth, homePathForRole, type AppRole } from "@/hooks/useAuth";
+import { UserAvatar } from "@/components/avatar";
+import { useAuth, homePathForRole } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/queries";
 import { cn } from "@/lib/utils";
+import type { AppShellProps, BrandProps } from "./interface";
 
 type NavItem = { label: string; to: string; icon: typeof LayoutDashboard };
 
@@ -47,13 +45,15 @@ const DEVELOPER_NAV: NavItem[] = [
   { label: "Settings", to: "/developer/settings", icon: Settings },
 ];
 
-export function Brand({ className }: { className?: string }) {
+export function Brand({ className }: BrandProps) {
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <span className="inline-flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <Mountain className="size-4" aria-hidden />
-      </span>
-      <span className="text-base font-bold tracking-tight">Northpeak</span>
+    <div className={cn("flex items-center gap-2.5", className)}>
+      <img
+        src="/logo-mark.png"
+        alt="Northpeak"
+        className="size-7.5 rounded-md object-contain shrink-0"
+      />
+      <span className="text-base font-bold tracking-tight text-foreground">Northpeak</span>
     </div>
   );
 }
@@ -85,7 +85,7 @@ function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => 
   );
 }
 
-export function AppShell({ section, children }: { section: AppRole; children: ReactNode }) {
+export function AppShell({ section, children }: AppShellProps) {
   const { user, profile, role, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -127,7 +127,7 @@ export function AppShell({ section, children }: { section: AppRole; children: Re
         </div>
         <button
           onClick={signOut}
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground cursor-pointer"
         >
           <LogOut className="size-4" aria-hidden />
           Sign out
@@ -169,7 +169,7 @@ export function AppShell({ section, children }: { section: AppRole; children: Re
             </Link>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-secondary">
+                <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-secondary cursor-pointer">
                   <UserAvatar name={name} size="sm" />
                   <span className="hidden text-sm font-medium sm:inline">{name}</span>
                 </button>
@@ -198,3 +198,6 @@ export function AppShell({ section, children }: { section: AppRole; children: Re
     </div>
   );
 }
+
+export default AppShell;
+export type { AppShellProps, BrandProps } from "./interface";

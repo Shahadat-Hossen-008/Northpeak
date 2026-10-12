@@ -1,41 +1,18 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { AppShell } from "@/components/AppShell";
-import { NotificationPanel } from "@/components/NotificationPanel";
-import { PageHeader, SectionCard, UserAvatar } from "@/components/primitives";
+import { AppShell } from "@/builder/layout/app-shell";
+import { PageHeader } from "@/components/page-header";
+import { SectionCard } from "@/components/cards/section-card";
+import { UserAvatar } from "@/components/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
-import { useAuth, type AppRole } from "@/hooks/useAuth";
-import type { Task } from "@/hooks/queries";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { useAuth } from "@/hooks/useAuth";
+import type { SettingsPageProps } from "./interface";
 
-export function NotificationsPage({ section }: { section: AppRole }) {
-  return (
-    <AppShell section={section}>
-      <PageHeader
-        title="Notifications"
-        description="Assignments, deadlines, comments and progress updates."
-      />
-      <div className="mt-6">
-        <NotificationPanel />
-      </div>
-    </AppShell>
-  );
-}
-
-export function SettingsPage({ section }: { section: AppRole }) {
+export function SettingsPage({ section }: SettingsPageProps) {
   const { profile, user, role, reload } = useAuth();
   const [name, setName] = useState(profile?.name ?? "");
   const [saving, setSaving] = useState(false);
@@ -124,49 +101,5 @@ export function SettingsPage({ section }: { section: AppRole }) {
   );
 }
 
-export function meta(title: string, description: string) {
-  return {
-    meta: [
-      { title: `${title} — Northpeak` },
-      { name: "description", content: description },
-      { property: "og:title", content: `${title} — Northpeak` },
-      { property: "og:description", content: description },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  };
-}
-
-export function ConfirmDelete({
-  task,
-  onClose,
-  onConfirm,
-}: {
-  task: Task | null;
-  onClose: () => void;
-  onConfirm: (task: Task) => void;
-}) {
-  return (
-    <AlertDialog open={!!task} onOpenChange={(o) => !o && onClose()}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete this task?</AlertDialogTitle>
-          <AlertDialogDescription>
-            "{task?.title}" and its subtasks and comments will be permanently removed.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => {
-              if (task) onConfirm(task);
-              onClose();
-            }}
-          >
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
+export default SettingsPage;
+export type { SettingsPageProps } from "./interface";

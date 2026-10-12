@@ -1,18 +1,7 @@
-import type { ReactNode } from "react";
+import { Brand } from "@/builder/layout/app-shell";
+import type { AuthLayoutProps } from "./interface";
 
-import { Brand } from "@/components/AppShell";
-
-export function AuthLayout({
-  title,
-  subtitle,
-  children,
-  footer,
-}: {
-  title: string;
-  subtitle: string;
-  children: ReactNode;
-  footer?: ReactNode;
-}) {
+export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProps) {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="flex items-center justify-center px-4 py-12">
@@ -50,3 +39,6 @@ export function AuthLayout({
     </div>
   );
 }
+
+export default AuthLayout;
+export type { AuthLayoutProps } from "./interface";
