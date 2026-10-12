@@ -1,15 +1,6 @@
-import * as React from "react";
 import { cn } from "@/lib/utils";
-import { CircularProgress } from "@/components/CircularProgress";
-
-export interface DashboardMetricCardProps {
-  title: string;
-  value: number; // Percentage (0 - 100)
-  countSummary: string; // e.g. "Total Tasks · 24", "Completed · 6"
-  tone?: "primary" | "success" | "info" | "danger" | "warning" | "neutral";
-  strokeColor?: string;
-  className?: string;
-}
+import { CircularProgress } from "@/components/progress/circular-progress";
+import type { DashboardMetricCardProps } from "./interface";
 
 export function DashboardMetricCard({
   title,
@@ -45,3 +36,6 @@ export function DashboardMetricCard({
     </div>
   );
 }
+
+export default DashboardMetricCard;
+export type { DashboardMetricCardProps, MetricTone } from "./interface";

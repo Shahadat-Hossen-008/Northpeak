@@ -1,16 +1,7 @@
 import * as React from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export interface CircularProgressProps extends React.HTMLAttributes<HTMLDivElement> {
-  value: number | null | undefined;
-  size?: number; // Size in pixels: 28, 32, 36, 40, 44, 48, 52, 64, 72, 80...
-  strokeWidth?: number;
-  showValue?: boolean;
-  ariaLabel?: string;
-  tone?: "auto" | "primary" | "success" | "danger" | "neutral" | "info" | "warning";
-  strokeColor?: string;
-}
+import type { CircularProgressProps } from "./interface";
 
 export function CircularProgress({
   value,
@@ -35,10 +26,6 @@ export function CircularProgress({
     Math.max(0, typeof value === "number" && !isNaN(value) ? Math.round(value) : 0),
   );
 
-  // Determine stroke tone:
-  // - 0%: neutral grey (not started)
-  // - 1-99%: clear accent color (in progress)
-  // - 100%: green (completed)
   let strokeClass = "stroke-primary text-primary";
   if (tone === "neutral" || (tone === "auto" && safeVal === 0)) {
     strokeClass = "stroke-muted-foreground/35 text-muted-foreground";
@@ -59,7 +46,6 @@ export function CircularProgress({
   const targetOffset = circumference - (safeVal / 100) * circumference;
   const strokeDashoffset = isMounted ? targetOffset : circumference;
 
-  // Determine center text font size
   let textClass = "text-[10px] font-bold";
   if (size >= 64) {
     textClass = "text-base font-bold";
@@ -89,7 +75,6 @@ export function CircularProgress({
         className="transform -rotate-90"
         aria-hidden="true"
       >
-        {/* Background track circle */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -99,7 +84,6 @@ export function CircularProgress({
           strokeWidth={strokeWidth}
           className="stroke-muted/30"
         />
-        {/* Animated indicator circle */}
         {safeVal > 0 ? (
           <circle
             cx={size / 2}
@@ -119,7 +103,6 @@ export function CircularProgress({
         ) : null}
       </svg>
 
-      {/* Center label when legible (size >= 30) */}
       {showValue && size >= 30 ? (
         <span
           className={cn(
@@ -142,3 +125,6 @@ export function CircularProgress({
     </div>
   );
 }
+
+export default CircularProgress;
+export type { CircularProgressProps, CircularProgressTone } from "./interface";
