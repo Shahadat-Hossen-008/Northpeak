@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { LoadingState } from "@/components/primitives";
-import { homePathForRole, useAuth } from "@/hooks/useAuth";
+import { LoadingState } from "@/components/feedback/loading-state";
+import { useAuth } from "@/hooks/useAuth";
+import { homePathForRole } from "@/lib/auth-utils";
 
 export const Route = createFileRoute("/welcome")({
   ssr: false,

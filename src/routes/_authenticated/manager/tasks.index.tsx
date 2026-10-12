@@ -1,16 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { AppShell } from "@/components/AppShell";
-import { CreateTaskDialog } from "@/components/dialogs";
-import { ErrorState, LoadingState, PageHeader } from "@/components/primitives";
-import { meta } from "@/components/pages";
-import {
-  TaskBoard,
-  TaskFilters,
-  TaskTable,
-  TaskViewSwitcher,
-  useFilteredTasks,
-} from "@/components/tasks";
+import { AppShell } from "@/builder/layout/app-shell";
+import { CreateTaskDialog } from "@/components/dialogs/create-task-dialog";
+import { ErrorState } from "@/components/feedback/error-state";
+import { LoadingState } from "@/components/feedback/loading-state";
+import { PageHeader } from "@/components/page-header";
+import { TaskViewSwitcher } from "@/components/task-view-switcher";
+import { meta } from "@/builder/layout/meta";
+import { TaskBoard } from "@/sections/task-board";
+import { TaskFilters } from "@/sections/task-filters";
+import { TaskTable } from "@/sections/task-table";
+import { useFilteredTasks } from "@/lib/task-utils";
 import {
   useAllSubtasks,
   useCommentCounts,
@@ -22,12 +22,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { findProjectByIdOrSlug } from "@/lib/utils";
 
 type TasksSearch = {
-  project?: string;
+  project?: string | undefined;
 };
 
 export const Route = createFileRoute("/_authenticated/manager/tasks/")({
   validateSearch: (search: Record<string, unknown>): TasksSearch => ({
-    project: typeof search.project === "string" ? search.project : undefined,
+    project: typeof search["project"] === "string" ? search["project"] : undefined,
   }),
   head: () => meta("All tasks", "Search, filter and sort every task across your projects."),
   component: ManagerTasks,

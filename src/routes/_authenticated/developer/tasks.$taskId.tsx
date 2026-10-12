@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell } from "@/components/AppShell";
-import { TaskDetail } from "@/components/TaskDetail";
-import { meta } from "@/components/pages";
+import { AppShell } from "@/builder/layout/app-shell";
+import { TaskDetail } from "@/sections/task-detail";
+import { meta } from "@/builder/layout/meta";
 
 type TaskSearch = {
-  from?: string;
+  from?: string | undefined;
 };
 
 export const Route = createFileRoute("/_authenticated/developer/tasks/$taskId")({
   validateSearch: (search: Record<string, unknown>): TaskSearch => ({
-    from: typeof search.from === "string" ? search.from : undefined,
+    from: typeof search["from"] === "string" ? search["from"] : undefined,
   }),
   head: () => meta("Task details", "Your task, subtasks, comments and deadline."),
   component: Page,

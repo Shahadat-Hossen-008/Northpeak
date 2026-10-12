@@ -2,12 +2,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { AuthLayout } from "@/components/AuthLayout";
+import { AuthLayout } from "@/builder/layout/auth-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { homePathForRole, useAuth, type AppRole } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
+import { homePathForRole } from "@/lib/auth-utils";
+import type { AppRole } from "@/types";
 import { api } from "@/lib/api";
 
 export const Route = createFileRoute("/register")({
