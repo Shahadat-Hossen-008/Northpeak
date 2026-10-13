@@ -2,13 +2,20 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight, Plus, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { AppShell } from "@/components/AppShell";
-import { MemberDetailSheet } from "@/components/MemberDetailSheet";
-import { PriorityBadge, statusOf } from "@/components/badges";
-import { CreateTaskDialog, EditProjectDialog, DeleteProjectDialog } from "@/components/dialogs";
-import { ConfirmDelete, meta } from "@/components/pages";
-import { EmptyState, LoadingState, SectionCard, UserAvatar } from "@/components/primitives";
-import { ProjectOverviewCard, ProjectTasksList } from "@/components/ProjectDeliverables";
+import { AppShell } from "@/builder/layout/app-shell";
+import { MemberDetailSheet } from "@/sections/member-detail-sheet";
+import { PriorityBadge } from "@/components/badges/priority-badge";
+import { statusOf } from "@/components/badges/utils";
+import { CreateTaskDialog } from "@/components/dialogs/create-task-dialog";
+import { EditProjectDialog } from "@/components/dialogs/edit-project-dialog";
+import { DeleteProjectDialog } from "@/components/dialogs/delete-project-dialog";
+import { ConfirmDeleteDialog as ConfirmDelete } from "@/components/dialogs/confirm-delete-dialog";
+import { meta } from "@/builder/layout/meta";
+import { EmptyState } from "@/components/feedback/empty-state";
+import { LoadingState } from "@/components/feedback/loading-state";
+import { SectionCard } from "@/components/cards/section-card";
+import { UserAvatar } from "@/components/avatar";
+import { ProjectOverviewCard, ProjectTasksList } from "@/sections/project-deliverables";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {

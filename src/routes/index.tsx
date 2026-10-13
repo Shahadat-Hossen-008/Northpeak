@@ -2,9 +2,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AlertTriangle, CheckCircle2, Clock, CircleDot, ArrowRight } from "lucide-react";
 import { useEffect } from "react";
 
-import { Brand } from "@/components/AppShell";
+import { Brand } from "@/builder/layout/app-shell";
 import { Button } from "@/components/ui/button";
-import { homePathForRole, useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
+import { homePathForRole } from "@/lib/auth-utils";
 
 export const Route = createFileRoute("/")({
   head: () => ({

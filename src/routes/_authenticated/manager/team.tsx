@@ -2,17 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ArrowUpRight, Users } from "lucide-react";
 import { useState } from "react";
 
-import { AppShell } from "@/components/AppShell";
-import { MemberDetailSheet } from "@/components/MemberDetailSheet";
-import { statusOf } from "@/components/badges";
-import {
-  EmptyState,
-  LoadingState,
-  PageHeader,
-  ProgressBar,
-  UserAvatar,
-} from "@/components/primitives";
-import { meta } from "@/components/pages";
+import { AppShell } from "@/builder/layout/app-shell";
+import { MemberDetailSheet } from "@/sections/member-detail-sheet";
+import { statusOf } from "@/components/badges/utils";
+import { EmptyState } from "@/components/feedback/empty-state";
+import { LoadingState } from "@/components/feedback/loading-state";
+import { PageHeader } from "@/components/page-header";
+import { ProgressBar } from "@/components/progress/progress-bar";
+import { UserAvatar } from "@/components/avatar";
+import { meta } from "@/builder/layout/meta";
 import { useMembers, useTasks } from "@/hooks/queries";
 
 export const Route = createFileRoute("/_authenticated/manager/team")({

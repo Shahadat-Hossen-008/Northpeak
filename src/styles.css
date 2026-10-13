@@ -232,7 +232,9 @@
   }
 
   & .project-redirect-icon {
-    transition: transform 200ms ease, color 200ms ease;
+    transition:
+      transform 200ms ease,
+      color 200ms ease;
   }
 
   &:hover .project-redirect-icon {

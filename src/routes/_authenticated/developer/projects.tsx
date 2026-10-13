@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { AppShell } from "@/components/AppShell";
-import { ProjectCard } from "@/components/ProjectCard";
-import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/primitives";
-import { meta } from "@/components/pages";
+import { AppShell } from "@/builder/layout/app-shell";
+import { ProjectCard } from "@/sections/project-card";
+import { EmptyState } from "@/components/feedback/empty-state";
+import { ErrorState } from "@/components/feedback/error-state";
+import { LoadingState } from "@/components/feedback/loading-state";
+import { PageHeader } from "@/components/page-header";
+import { meta } from "@/builder/layout/meta";
 import { useProjects, useTasks } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { projectSlug } from "@/lib/utils";
