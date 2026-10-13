@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { toast } from "sonner";
 import { AppShell } from "@/builder/layout/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { LoadingState } from "@/components/feedback/loading-state";
@@ -42,9 +44,19 @@ export function DeveloperDashboardPage(_props: DeveloperDashboardPageProps) {
   });
 
   const subs = subtasks.data ?? [];
-  const loading = tasks.isLoading || projects.isLoading;
-  const isError = tasks.isError || projects.isError;
+  const loading = (tasks.isLoading && !tasks.data) || (projects.isLoading && !projects.data);
+  const isError = (!tasks.data && tasks.isError) || (!projects.data && projects.isError);
   const errorMessage = ((tasks.error || projects.error) as Error)?.message;
+
+  const isBackgroundRefetchError =
+    (Boolean(tasks.data) && tasks.isError) || (Boolean(projects.data) && projects.isError);
+
+  useEffect(() => {
+    if (isBackgroundRefetchError) {
+      const msg = errorMessage || "Failed to refresh dashboard data";
+      toast.error(msg, { id: "developer-dashboard-refetch-error" });
+    }
+  }, [isBackgroundRefetchError, errorMessage]);
 
   return (
     <AppShell section="developer">
@@ -99,16 +111,18 @@ export function DeveloperDashboardPage(_props: DeveloperDashboardPageProps) {
               props={{
                 projects: myProjects,
                 tasks: mine,
-                isLoading: false,
-                isError: false,
+                isLoading: projects.isLoading || tasks.isLoading,
+                isError: (!projects.data && projects.isError) || (!tasks.data && tasks.isError),
+                errorMessage,
               }}
             />
             <SectionRenderer
               type="task-status-donut"
               props={{
                 tasks: mine,
-                isLoading: false,
-                isError: false,
+                isLoading: tasks.isLoading,
+                isError: !tasks.data && tasks.isError,
+                errorMessage: (tasks.error as Error)?.message,
               }}
             />
           </div>

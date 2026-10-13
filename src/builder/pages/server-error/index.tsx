@@ -1,14 +1,39 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
+import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { homePathForRole } from "@/lib/auth-utils";
 import { cn } from "@/lib/utils";
 import type { ServerErrorPageProps } from "./interface";
 
-export function ServerErrorPage({ error, className }: ServerErrorPageProps) {
+export function ServerErrorPage({ error, reset, className }: ServerErrorPageProps) {
+  let router: ReturnType<typeof useRouter> | null = null;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    router = useRouter();
+  } catch {
+    router = null;
+  }
+
+  const [isRetrying, setIsRetrying] = useState(false);
   const { role, user } = useAuth();
   const targetHref = user && role ? homePathForRole(role) : "/";
   const buttonLabel = user && role ? "Back to Dashboard" : "Back to Home";
+
+  const handleRetry = useCallback(async () => {
+    if (isRetrying) return;
+    setIsRetrying(true);
+    try {
+      if (reset) {
+        reset();
+      }
+      if (router?.invalidate) {
+        await router.invalidate();
+      }
+    } finally {
+      setIsRetrying(false);
+    }
+  }, [isRetrying, reset, router]);
 
   return (
     <div
@@ -35,7 +60,7 @@ export function ServerErrorPage({ error, className }: ServerErrorPageProps) {
       <main className="flex-1 grid place-items-center px-4 py-8">
         <section
           aria-labelledby="server-error-heading"
-          className="w-full max-w-[500px] rounded-2xl border border-border/80 bg-card p-8 sm:p-10 text-center shadow-lg dark:shadow-none"
+          className="w-full max-w-125 rounded-2xl border border-border/80 bg-card p-8 sm:p-10 text-center shadow-lg dark:shadow-none"
         >
           {/* Badge */}
           <span className="inline-flex items-center gap-2 rounded-full bg-[#FFECEF] dark:bg-danger/15 px-3 py-1.5 text-xs font-semibold text-[#C81E43] dark:text-danger">
@@ -55,7 +80,7 @@ export function ServerErrorPage({ error, className }: ServerErrorPageProps) {
           {/* 500 Large Code */}
           <div
             aria-hidden="true"
-            className="mt-2 text-7xl sm:text-8xl font-extrabold tracking-tight select-none bg-gradient-to-br from-[#F43F5E] to-[#F59E0B] bg-clip-text text-transparent"
+            className="mt-2 text-7xl sm:text-8xl font-extrabold tracking-tight select-none bg-linear-to-br from-[#F43F5E] to-[#F59E0B] bg-clip-text text-transparent"
           >
             500
           </div>
@@ -78,9 +103,18 @@ export function ServerErrorPage({ error, className }: ServerErrorPageProps) {
             </p>
           ) : null}
 
-          {/* Single Simple Action Button */}
-          <div className="mt-6 flex justify-center">
-            <Button asChild size="lg" className="min-w-44 shadow-sm">
+          {/* Action Buttons: Try Again & Back to Dashboard/Home */}
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button
+              type="button"
+              size="lg"
+              onClick={handleRetry}
+              disabled={isRetrying}
+              className="min-w-36 shadow-sm cursor-pointer"
+            >
+              {isRetrying ? "Retrying…" : "Try again"}
+            </Button>
+            <Button asChild variant="outline" size="lg" className="min-w-36 shadow-sm">
               <Link to={targetHref}>{buttonLabel}</Link>
             </Button>
           </div>

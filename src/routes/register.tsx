@@ -49,7 +49,7 @@ function RegisterPage() {
     const next: Errors = {};
     if (form.name.trim().length < 2) next.name = "Enter your full name.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) next.email = "Enter a valid email address.";
-    if (form.password.length < 6) next.password = "Use at least 6 characters.";
+    if (form.password.length < 6) next.password = "Password must be at least 6 characters.";
     if (form.password !== form.confirm) next.confirm = "Passwords do not match.";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -120,6 +120,7 @@ function RegisterPage() {
               type="password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
+              placeholder="At least 6 characters"
             />
             {errors.password ? <p className="text-xs text-danger">{errors.password}</p> : null}
           </div>
@@ -130,6 +131,7 @@ function RegisterPage() {
               type="password"
               value={form.confirm}
               onChange={(e) => setForm({ ...form, confirm: e.target.value })}
+              placeholder="Confirm password"
             />
             {errors.confirm ? <p className="text-xs text-danger">{errors.confirm}</p> : null}
           </div>

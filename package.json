@@ -12,6 +12,7 @@
     "server:build": "npm --prefix server run build",
     "server:seed": "npm --prefix server run seed",
     "lint": "eslint .",
+    "test": "./server/node_modules/.bin/tsx --test tests/**/*.test.ts",
     "format": "prettier --write ."
   },
   "overrides": {

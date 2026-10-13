@@ -30,7 +30,7 @@ function ResetPasswordPage() {
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (password.length < 6) {
-      toast.error("Use at least 6 characters.");
+      toast.error("Password must be at least 6 characters.");
       return;
     }
     if (password !== confirm) {
@@ -68,6 +68,7 @@ function ResetPasswordPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            placeholder="At least 6 characters"
           />
         </div>
         <div className="space-y-1.5">
@@ -77,6 +78,7 @@ function ResetPasswordPage() {
             type="password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
+            placeholder="Confirm password"
           />
         </div>
         <Button type="submit" className="w-full" disabled={submitting}>

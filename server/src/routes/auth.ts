@@ -147,7 +147,11 @@ authRouter.patch("/profile", authenticate, async (req: AuthRequest, res) => {
       user.name = name.trim();
     }
 
-    if (password && password.length >= 6) {
+    if (password !== undefined) {
+      if (typeof password !== "string" || password.length < 6) {
+        res.status(400).json({ message: "Password must be at least 6 characters" });
+        return;
+      }
       const salt = await bcrypt.genSalt(10);
       user.passwordHash = await bcrypt.hash(password, salt);
     }

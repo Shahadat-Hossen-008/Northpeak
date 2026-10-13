@@ -1,7 +1,7 @@
 import * as React from "react";
 import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { statusOf } from "@/components/badges/utils";
+import { getTaskCategory } from "@/lib/task-utils";
 import type { StatusItem, TaskStatusDonutChartProps } from "./interface";
 
 // Geometric constants for the 270° open-arc gauge (gap at bottom)
@@ -57,12 +57,13 @@ export function TaskStatusDonutChart({
     let todo = 0;
 
     for (const t of taskList) {
-      if (t.is_completed || t.status === "done") {
+      const cat = getTaskCategory(t);
+      if (cat === "completed") {
         completed++;
-      } else if (t.status === "in_progress" || t.status === "in_review") {
-        inProgress++;
-      } else if (statusOf(t) === "overdue") {
+      } else if (cat === "overdue") {
         overdue++;
+      } else if (cat === "in_progress") {
+        inProgress++;
       } else {
         todo++;
       }
@@ -248,37 +249,55 @@ export function TaskStatusDonutChart({
             </svg>
           </div>
 
-          {/* Legend Below the Gauge: Colored indicator, status label, exact count & percentage */}
-          <div className="flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-5 gap-y-2 mt-3 pt-1 w-full">
+          {/* Accessible summary for screen reader users */}
+          <p className="sr-only">
+            Total tasks: {total}. Status breakdown:{" "}
+            {items.map((item) => `${item.label}: ${item.count} (${item.percentage}%)`).join(", ")}
+          </p>
+
+          {/* Legend Below the Gauge: Semantic list with keyboard navigation */}
+          <ul
+            className="flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-5 gap-y-2 mt-3 pt-1 w-full list-none p-0 m-0"
+            aria-label="Task status breakdown"
+          >
             {items.map((item) => {
               const isHovered = hoveredKey === item.key;
               return (
-                <div
-                  key={item.key}
-                  onMouseEnter={() => setHoveredKey(item.key)}
-                  onMouseLeave={() => setHoveredKey(null)}
-                  className={cn(
-                    "flex items-center gap-1.5 text-xs transition-all cursor-pointer px-2 py-1 rounded-md select-none",
-                    isHovered ? "bg-muted/70 ring-1 ring-border" : "hover:bg-muted/30",
-                    item.count === 0 ? "opacity-60" : "opacity-100",
-                  )}
-                  title={`${item.label}: ${item.count} tasks (${item.percentage}%)`}
-                >
-                  <span
-                    className="size-2.5 rounded-full shrink-0 shadow-2xs"
-                    style={{ backgroundColor: item.color }}
-                    aria-hidden="true"
-                  />
-                  <span className="font-medium text-foreground">{item.label}</span>
-                  <span className="text-muted-foreground">-</span>
-                  <span className="font-semibold tabular text-foreground">{item.count}</span>
-                  <span className="text-[11px] text-muted-foreground tabular">
-                    ({item.percentage}%)
-                  </span>
-                </div>
+                <li key={item.key}>
+                  <button
+                    type="button"
+                    onMouseEnter={() => setHoveredKey(item.key)}
+                    onMouseLeave={() => setHoveredKey(null)}
+                    onFocus={() => setHoveredKey(item.key)}
+                    onBlur={() => setHoveredKey(null)}
+                    onClick={() => setHoveredKey((prev) => (prev === item.key ? null : item.key))}
+                    className={cn(
+                      "flex items-center gap-1.5 text-xs transition-all cursor-pointer px-2 py-1 rounded-md select-none",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                      isHovered ? "bg-muted/70 ring-1 ring-border" : "hover:bg-muted/30",
+                      item.count === 0 ? "opacity-60" : "opacity-100",
+                    )}
+                    aria-label={`${item.label}: ${item.count} tasks (${item.percentage}%)`}
+                    title={`${item.label}: ${item.count} tasks (${item.percentage}%)`}
+                  >
+                    <span
+                      className="size-2.5 rounded-full shrink-0 shadow-2xs"
+                      style={{ backgroundColor: item.color }}
+                      aria-hidden="true"
+                    />
+                    <span className="font-medium text-foreground">{item.label}</span>
+                    <span className="text-muted-foreground" aria-hidden="true">
+                      -
+                    </span>
+                    <span className="font-semibold tabular text-foreground">{item.count}</span>
+                    <span className="text-[11px] text-muted-foreground tabular" aria-hidden="true">
+                      ({item.percentage}%)
+                    </span>
+                  </button>
+                </li>
               );
             })}
-          </div>
+          </ul>
         </div>
       )}
     </div>

@@ -9,8 +9,44 @@ export function subtaskProgress(taskId: string, subtasks?: Subtask[] | null) {
   return { done, total: mine.length };
 }
 
+export function isTaskCompleted(task: { is_completed: boolean; status?: string | null }): boolean {
+  return Boolean(task.is_completed || task.status === "done");
+}
+
+export function isTaskOverdue(
+  task: {
+    deadline: string | null;
+    is_completed: boolean;
+    completed_at: string | null;
+    status?: string | null;
+  },
+  now: Date = new Date(),
+): boolean {
+  if (isTaskCompleted(task)) return false;
+  const currentDate = now instanceof Date ? now : new Date();
+  return statusOf(task, currentDate) === "overdue";
+}
+
+export type TaskCategory = "completed" | "overdue" | "in_progress" | "todo";
+
+export function getTaskCategory(
+  task: {
+    deadline: string | null;
+    is_completed: boolean;
+    completed_at: string | null;
+    status?: string | null;
+  },
+  now: Date = new Date(),
+): TaskCategory {
+  const currentDate = now instanceof Date ? now : new Date();
+  if (isTaskCompleted(task)) return "completed";
+  if (isTaskOverdue(task, currentDate)) return "overdue";
+  if (task.status === "in_progress" || task.status === "in_review") return "in_progress";
+  return "todo";
+}
+
 export function taskProgress(task: Task, subtasks?: Subtask[] | null): number {
-  if (task.is_completed) return 100;
+  if (isTaskCompleted(task)) return 100;
   const { done, total } = subtaskProgress(task.id, subtasks);
   if (total === 0) return 0;
   return Math.round((done / total) * 100);

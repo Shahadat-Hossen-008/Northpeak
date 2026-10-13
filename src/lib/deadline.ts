@@ -15,13 +15,14 @@ export function deadlineState(
   { deadline, isCompleted, completedAt }: DeadlineInput,
   now: Date = new Date(),
 ): DeadlineState {
+  const currentDate = now instanceof Date ? now : new Date();
   if (isCompleted) {
     if (!deadline) return "completed_on_time";
-    const done = completedAt ? new Date(completedAt) : now;
+    const done = completedAt ? new Date(completedAt) : currentDate;
     return done.getTime() > new Date(deadline).getTime() ? "completed_late" : "completed_on_time";
   }
   if (!deadline) return "no_deadline";
-  const diff = new Date(deadline).getTime() - now.getTime();
+  const diff = new Date(deadline).getTime() - currentDate.getTime();
   if (diff < 0) return "overdue";
   if (diff <= DUE_SOON_DAYS * DAY_MS) return "due_soon";
   return "on_track";

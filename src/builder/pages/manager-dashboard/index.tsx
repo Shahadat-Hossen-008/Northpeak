@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Activity as ActivityIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { AppShell } from "@/builder/layout/app-shell";
 import { PageHeader } from "@/components/page-header";
@@ -34,8 +35,19 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
   const members = useMembers();
   const activity = useActivity({ limit: 8 });
 
-  const loading = projects.isLoading || tasks.isLoading;
-  const failed = projects.isError || tasks.isError;
+  const loading = (projects.isLoading && !projects.data) || (tasks.isLoading && !tasks.data);
+  const failed = (!projects.data && projects.isError) || (!tasks.data && tasks.isError);
+  const errorMessage = ((projects.error || tasks.error) as Error)?.message;
+
+  const isBackgroundRefetchError =
+    (Boolean(projects.data) && projects.isError) || (Boolean(tasks.data) && tasks.isError);
+
+  useEffect(() => {
+    if (isBackgroundRefetchError) {
+      const msg = errorMessage || "Failed to refresh dashboard data";
+      toast.error(msg, { id: "manager-dashboard-refetch-error" });
+    }
+  }, [isBackgroundRefetchError, errorMessage]);
 
   const {
     allTasks,
@@ -69,7 +81,7 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
         <LoadingState />
       ) : failed ? (
         <div className="mt-6">
-          <ErrorState message={(projects.error as Error)?.message} />
+          <ErrorState message={errorMessage} />
         </div>
       ) : (
         <div className="mt-6 space-y-6">
@@ -112,16 +124,18 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
               props={{
                 projects: allProjects,
                 tasks: allTasks,
-                isLoading: false,
-                isError: false,
+                isLoading: projects.isLoading || tasks.isLoading,
+                isError: (!projects.data && projects.isError) || (!tasks.data && tasks.isError),
+                errorMessage,
               }}
             />
             <SectionRenderer
               type="task-status-donut"
               props={{
                 tasks: allTasks,
-                isLoading: false,
-                isError: false,
+                isLoading: tasks.isLoading,
+                isError: !tasks.data && tasks.isError,
+                errorMessage: (tasks.error as Error)?.message,
               }}
             />
           </div>
@@ -167,11 +181,11 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
 
           <div className="grid gap-6 lg:grid-cols-2">
             <SectionCard title="Overdue tasks">
-              {allOverdueTasks.length === 0 ? (
+              {overdueTasks.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nothing is overdue. Nice work.</p>
               ) : (
                 <ul className="space-y-3">
-                  {allOverdueTasks.slice(0, 6).map((task) => (
+                  {overdueTasks.slice(0, 6).map((task) => (
                     <li key={task.id} className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <Link

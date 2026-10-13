@@ -40,7 +40,7 @@ export function SettingsPage({ section }: SettingsPageProps) {
   async function savePassword(e: React.FormEvent) {
     e.preventDefault();
     if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+      toast.error("Password must be at least 6 characters.");
       return;
     }
     try {
@@ -88,7 +88,7 @@ export function SettingsPage({ section }: SettingsPageProps) {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters"
+                placeholder="At least 6 characters"
               />
             </div>
             <Button type="submit" variant="outline" disabled={!password}>

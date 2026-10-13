@@ -1,4 +1,4 @@
-import { statusOf } from "@/components/badges/utils";
+import { isTaskCompleted, isTaskOverdue } from "@/lib/task-utils";
 import type { Member, Project, Task } from "@/types";
 
 export interface DeveloperWorkloadMetric {
@@ -34,34 +34,24 @@ export function selectManagerDashboardMetrics(params: {
   const allProjects = params.projects ?? [];
   const developers = (params.members ?? []).filter((m) => m.role === "developer");
 
-  const completedTasks = allTasks.filter((t) => t.is_completed || t.status === "done").length;
+  const completedTasks = allTasks.filter(isTaskCompleted).length;
+  const overdueTasks = allTasks.filter((t) => isTaskOverdue(t));
   const inProgressTasks = allTasks.filter(
     (t) =>
-      !t.is_completed &&
-      t.status !== "done" &&
+      !isTaskCompleted(t) &&
+      !isTaskOverdue(t) &&
       (t.status === "in_progress" || t.status === "in_review"),
   ).length;
 
-  const overdueTasks = allTasks.filter(
-    (t) =>
-      !t.is_completed &&
-      t.status !== "done" &&
-      t.status !== "in_progress" &&
-      t.status !== "in_review" &&
-      statusOf(t) === "overdue",
-  );
-
-  const allOverdueTasks = allTasks.filter(
-    (t) => !t.is_completed && t.status !== "done" && statusOf(t) === "overdue",
-  );
+  const allOverdueTasks = overdueTasks;
 
   const activeProjects = allProjects.filter((project) => {
     const projectTasks = allTasks.filter((t) => t.project_id === project.id);
-    return projectTasks.length === 0 || projectTasks.some((t) => !t.is_completed);
+    return projectTasks.length === 0 || projectTasks.some((t) => !isTaskCompleted(t));
   });
 
   const upcomingTasks = allTasks
-    .filter((t) => !t.is_completed && t.deadline && new Date(t.deadline) >= new Date())
+    .filter((t) => !isTaskCompleted(t) && t.deadline && new Date(t.deadline) >= new Date())
     .slice(0, 6);
 
   const total = allTasks.length;
@@ -72,8 +62,8 @@ export function selectManagerDashboardMetrics(params: {
 
   const developerWorkloads: DeveloperWorkloadMetric[] = developers.map((member) => {
     const mine = allTasks.filter((t) => t.assigned_developer_id === member.id);
-    const activeCount = mine.filter((t) => !t.is_completed).length;
-    const overdueCount = mine.filter((t) => statusOf(t) === "overdue").length;
+    const activeCount = mine.filter((t) => !isTaskCompleted(t)).length;
+    const overdueCount = mine.filter((t) => isTaskOverdue(t)).length;
     const loadPercentage = Math.min(100, activeCount * 20);
     return {
       member,
@@ -130,21 +120,13 @@ export function selectDeveloperDashboardMetrics(params: {
     return isTeam || hasTasks;
   });
 
-  const completedCount = mine.filter((t) => t.is_completed || t.status === "done").length;
+  const completedCount = mine.filter(isTaskCompleted).length;
+  const overdueCount = mine.filter((t) => isTaskOverdue(t)).length;
   const inProgressCount = mine.filter(
     (t) =>
-      !t.is_completed &&
-      t.status !== "done" &&
+      !isTaskCompleted(t) &&
+      !isTaskOverdue(t) &&
       (t.status === "in_progress" || t.status === "in_review"),
-  ).length;
-
-  const overdueCount = mine.filter(
-    (t) =>
-      !t.is_completed &&
-      t.status !== "done" &&
-      t.status !== "in_progress" &&
-      t.status !== "in_review" &&
-      statusOf(t) === "overdue",
   ).length;
 
   const total = mine.length;

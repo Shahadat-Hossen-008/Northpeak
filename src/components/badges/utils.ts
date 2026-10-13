@@ -20,16 +20,24 @@ export const STATE_ICON: Record<DeadlineState, typeof Clock> = {
   no_deadline: CalendarClock,
 };
 
-export function statusOf(task: {
-  deadline: string | null;
-  is_completed: boolean;
-  completed_at: string | null;
-}): DeadlineState {
-  return deadlineState({
-    deadline: task.deadline,
-    isCompleted: task.is_completed,
-    completedAt: task.completed_at,
-  });
+export function statusOf(
+  task: {
+    deadline: string | null;
+    is_completed: boolean;
+    completed_at: string | null;
+    status?: string | null;
+  },
+  now: Date = new Date(),
+): DeadlineState {
+  const currentDate = now instanceof Date ? now : new Date();
+  return deadlineState(
+    {
+      deadline: task.deadline,
+      isCompleted: Boolean(task.is_completed || task.status === "done"),
+      completedAt: task.completed_at,
+    },
+    currentDate,
+  );
 }
 
 export const PRIORITY_STYLES: Record<Priority, string> = {
