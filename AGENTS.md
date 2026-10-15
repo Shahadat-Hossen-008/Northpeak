@@ -5,9 +5,10 @@ Northpeak is a deadline-aware project management platform built for software eng
 ## Overview & Architecture
 
 - **Frontend**: React 19, TypeScript, TanStack Router (file-based), TanStack Query, Tailwind CSS v4, Radix UI.
-- **Backend**: Express.js, TypeScript, MongoDB with Mongoose ODM.
-- **Authentication**: JWT (JSON Web Tokens) with bcrypt password hashing stored in `localStorage` (`northpeak_token`).
+- **Backend**: Express.js, TypeScript, MongoDB with Mongoose ODM, layered `routes → services → serializers` architecture.
+- **Authentication & Security**: JWT (JSON Web Tokens) with bcrypt password hashing stored in `localStorage` (`northpeak_token`), attribute-based access control (ABAC), zero-dependency security headers, request ID correlation, and sliding-window rate limiting.
 - **Data Engine**: Automatic deadline health calculations (`on_track`, `due_soon`, `overdue`, `completed_on_time`, `completed_late`).
+- **CI / Quality Assurance**: GitHub Actions workflow (`Backend CI`) enforcing TypeScript build check, server unit/integration tests, regression suites, and ESLint.
 
 ## Workspaces & Roles
 
@@ -104,17 +105,64 @@ export const Route = createFileRoute("/_authenticated/manager/dashboard")({
 - **Brand Assets**: Authentic brand marks (`public/logo-mark.png`, `public/logo.png`, `public/logo-on-dark.png`) and `public/favicon.ico` (multi-resolution icon resource generated directly from `logo-mark.png`) are configured in root metadata (`rel="icon"`, `og:image`, `twitter:image`, `apple-touch-icon`). The `<Brand />` primitive in `src/builder/layout/app-shell/` renders the official logo mark.
 - **Error Handling Architecture**: Standalone React builder pages (`src/builder/pages/not-found/` and `src/builder/pages/server-error/`) serve as the TanStack Router `notFoundComponent` and `errorComponent` handlers in `src/routes/__root.tsx`. They present a focused, high-clarity error card with a single action button ("Back to Dashboard" or "Back to Home") that dynamically resolves to the user's role workspace. Static error files have been removed from `public/` in favor of application page builders.
 
+## Hardened Backend Architecture & Security Engine
+
+The backend follows a layered, hardened architecture designed for security, observability, and testability without unapproved third-party dependencies:
+
+- **Layered Decomposition (`routes → services → serializers`)**:
+  - **Routes (`server/src/routes/`)**: Lean HTTP controllers responsible solely for request parsing, query parameter validation, delegating to domain services, and returning serialized payloads.
+  - **Services (`server/src/services/`)**: Pure business logic containing entity manipulation, authorization boundaries, side-effect recording (activity audit logs and user notifications), and atomic state updates.
+  - **Serializers (`server/src/serializers/`)**: Deterministic response mapping layer transforming Mongoose database documents into standardized frontend contracts with strict property whitelisting and date formatting.
+- **Subtask ABAC Authorization Boundaries**:
+  - Every subtask mutation (`createSubtask`, `updateSubtask`, `deleteSubtask`) resolves the parent task and owning project.
+  - Mutations are strictly limited to the authorized **project manager** owning the project or the **developer assigned** to the parent task.
+  - Unassigned developers and unrelated project managers are rejected with `403 Forbidden`.
+  - Unauthenticated requests are rejected with `401 Unauthorized`.
+  - Missing parent tasks or subtasks return clean `404 Not Found` responses.
+- **Application Bootstrap & Lifecycle (`app.ts`, `server.ts`, `shutdown.ts`)**:
+  - Express application setup is isolated in `server/src/app.ts` allowing Supertest integration tests to mount the HTTP pipeline without binding network sockets.
+  - Server startup and network listening are isolated in `server/src/server.ts`.
+  - Graceful shutdown handles `SIGINT` and `SIGTERM` signals, completing active in-flight requests, closing HTTP listeners, and cleanly terminating Mongoose connections.
+- **Infrastructure & Security Middleware**:
+  - **Security Headers (`server/src/middleware/security.ts`)**: Built-in headers (`Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `X-XSS-Protection: 0`) and suppression of `X-Powered-By`.
+  - **Payload Guarding**: Express JSON body parser strictly enforces a 100kb payload ceiling, rejecting oversized bodies with `413 Payload Too Large`.
+  - **Sliding-Window Rate Limiting (`server/src/middleware/rateLimit.ts`)**: In-memory rate limiter throttling abusive traffic with `429 Too Many Requests` and standard `Retry-After` headers.
+  - **Request Correlation & Structured Logging (`server/src/middleware/logger.ts`)**: Unique `x-request-id` attached to every request with automatic redacting of authorization tokens and passwords in request bodies and headers.
+  - **Centralized Error Handling (`server/src/middleware/error.ts`)**: Custom `AppError` with HTTP status codes and operational flags. In production, unhandled internal errors redact database details and stack traces, returning a safe error payload with the request ID.
+- **Environment Validation & Fail-Fast Boot (`server/src/config/env.ts`)**:
+  - Strictly validates `NODE_ENV`, `PORT`, `MONGODB_URI`, and `JWT_SECRET` at boot time.
+  - Enforces minimum 32-character `JWT_SECRET` in production; prevents boot if secrets are missing or weak.
+- **Test-Barrier Isolation**:
+  - Test-only barrier and state manipulation routes (`server/src/routes/testBarriers.ts`) are conditionally mounted only when `NODE_ENV === 'test'`.
+  - In production and development, calls to `/api/test/barriers/*` resolve to `404 Not Found`.
+- **Database Indexing Strategy**:
+  - Compound and single-field indexes added across high-query paths:
+    - `Task`: `{ project: 1, status: 1 }`, `{ assignedDeveloper: 1, status: 1 }`, `{ deadline: 1 }`
+    - `Project`: `{ manager: 1 }`, `{ team: 1 }`, `{ status: 1 }`
+    - `Notification`: `{ recipient: 1, isRead: 1, createdAt: -1 }`
+    - `Activity`: `{ project: 1, createdAt: -1 }`, `{ task: 1, createdAt: -1 }`
+
 ## Project Structure
 
 ```
+├── .github/
+│   └── workflows/
+│       └── backend-ci.yml     # Automated CI (TypeScript build, server tests, root tests, lint)
 ├── server/                    # Express.js + TypeScript + MongoDB backend
 │   ├── src/
-│   │   ├── config/            # Database connection (Mongoose)
+│   │   ├── config/            # Database connection (db.ts) & environment validation (env.ts)
+│   │   ├── lib/               # Server utility helpers (regex escaping, ID helpers)
+│   │   ├── middleware/        # JWT auth, error handler, request logger, rate limiter, security headers
 │   │   ├── models/            # Typed Mongoose schemas (User, Project, Task, Subtask, Comment, Notification, Activity)
-│   │   ├── middleware/        # JWT auth, role authorization, and request validation
-│   │   ├── routes/            # REST API endpoints (/auth, /projects, /tasks, /subtasks, /comments, /notifications, /activity, /members)
+│   │   ├── routes/            # Thin REST API controllers delegating to domain services
+│   │   ├── serializers/       # Response formatters whitelist and standardize outgoing data
+│   │   ├── services/          # Pure domain business logic, ABAC authorization, and state mutations
 │   │   ├── seed/              # Database demo data seeder
-│   │   └── index.ts           # Express server entry point (port 5000)
+│   │   ├── app.ts             # Express app declaration & middleware pipeline (export for tests)
+│   │   ├── server.ts          # Server listener initialization & shutdown lifecycle binding
+│   │   └── index.ts           # Backend entry point
+│   ├── test/                  # Test suites (characterization, authorization, concurrency, infrastructure)
+│   ├── .env.example           # Example server environment configuration
 │   ├── package.json
 │   └── tsconfig.json
 ├── src/                       # Frontend application (Modular Architecture)
@@ -242,3 +290,11 @@ All seed accounts use the default password: `password123`
 - **Seed Data**: Run database seeder (`npm run server:seed`).
 - **Backend**: Run Express server (`npm run server` or `cd server && npm run dev`) on port 5000.
 - **Frontend**: Run Vite frontend (`npm run dev`) on port 8080 (proxies `/api` &rarr; `http://localhost:5000`).
+
+### Running Tests & Quality Checks
+
+- **Server Test Suite**: `npm --prefix server test` (Runs characterization, subtask authorization, concurrency, and infrastructure tests using in-memory MongoDB replica set).
+- **Backend Build Check**: `npm --prefix server run build` (TypeScript compiler validation via `tsc`).
+- **Root Regression Tests**: `npm test` (Runs frontend logic and metric selector regressions).
+- **Linter**: `npm run lint` (ESLint checks across entire workspace).
+- **CI Pipeline**: Automated on PR and push to `main` via `.github/workflows/backend-ci.yml`.
