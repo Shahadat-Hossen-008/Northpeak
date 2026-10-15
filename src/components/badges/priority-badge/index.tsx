@@ -10,7 +10,7 @@ export function PriorityBadge({ priority, className }: PriorityBadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase",
+        "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs sm:text-[13px] font-semibold tracking-wide uppercase",
         style,
         className,
       )}

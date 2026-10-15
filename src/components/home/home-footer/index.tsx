@@ -11,13 +11,13 @@ export function HomeFooter({ className }: HomeFooterProps) {
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2">
             <Brand />
-            <p className="text-xs text-muted-foreground max-w-md">
+            <p className="text-sm sm:text-base text-muted-foreground max-w-md">
               Deadline-aware project management purpose-built for software engineering teams.
               Automated status calculations without manual check-in meetings.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-6 text-sm sm:text-base text-muted-foreground">
             <Link to="/features" className="hover:text-foreground transition-colors">
               Features
             </Link>
@@ -33,9 +33,9 @@ export function HomeFooter({ className }: HomeFooterProps) {
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+        <div className="mt-8 pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm text-muted-foreground">
           <span>&copy; {new Date().getFullYear()} Northpeak. All rights reserved.</span>
-          <div className="flex items-center gap-4 font-mono text-[11px]">
+          <div className="flex items-center gap-4 font-mono text-xs">
             <span className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-success" />
               Engine Online

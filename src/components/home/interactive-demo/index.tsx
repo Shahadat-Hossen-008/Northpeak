@@ -92,17 +92,17 @@ export function InteractiveDemo({
             <div className="size-3 rounded-full bg-success/70" />
           </div>
           <div className="h-4 w-px bg-border" />
-          <span className="text-xs font-mono font-medium text-muted-foreground">
+          <span className="text-xs sm:text-sm font-mono font-medium text-muted-foreground">
             cluster-alpha // sprint-34: Helios Ingestion Engine
           </span>
-          <span className="hidden sm:inline-block rounded border border-border bg-card px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+          <span className="hidden sm:inline-block rounded border border-border bg-card px-2 py-0.5 text-xs font-mono text-muted-foreground">
             Illustrative Simulation
           </span>
         </div>
 
         {/* Perspective Switcher */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-muted-foreground hidden sm:inline">
+          <span className="text-xs sm:text-sm font-semibold text-muted-foreground hidden sm:inline">
             Perspective:
           </span>
           <div
@@ -116,13 +116,13 @@ export function InteractiveDemo({
               aria-checked={activePerspective === "manager"}
               onClick={() => setActivePerspective("manager")}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 activePerspective === "manager"
-                  ? "bg-primary text-primary-foreground shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-xs font-bold"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <Users className="size-3.5" />
+              <Users className="size-4" />
               Engineering Manager
             </button>
             <button
@@ -131,13 +131,13 @@ export function InteractiveDemo({
               aria-checked={activePerspective === "developer"}
               onClick={() => setActivePerspective("developer")}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 activePerspective === "developer"
-                  ? "bg-primary text-primary-foreground shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-xs font-bold"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <Layers className="size-3.5" />
+              <Layers className="size-4" />
               Senior Developer
             </button>
           </div>
@@ -146,9 +146,9 @@ export function InteractiveDemo({
             type="button"
             onClick={handleResetSimulation}
             title="Reset simulation defaults"
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+            className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
           >
-            <RotateCcw className="size-3.5" />
+            <RotateCcw className="size-4" />
           </button>
         </div>
       </div>
@@ -158,15 +158,17 @@ export function InteractiveDemo({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <div>
             <div className="flex items-center gap-2">
-              <Calendar className="size-4 text-primary" />
-              <h3 className="text-sm font-bold text-foreground">Sprint Timeline Simulator</h3>
+              <Calendar className="size-4.5 text-primary" />
+              <h3 className="text-sm sm:text-base font-bold text-foreground">
+                Sprint Timeline Simulator
+              </h3>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Advance time across the 14-day sprint to watch Northpeak recalculate deadline health
               across tasks in real-time.
             </p>
           </div>
-          <div className="flex items-center gap-2 font-mono text-xs">
+          <div className="flex items-center gap-2 font-mono text-xs sm:text-sm">
             <span className="text-muted-foreground">Simulated Day:</span>
             <span className="rounded-md border border-primary/30 bg-primary-soft px-2.5 py-1 font-bold text-primary tabular">
               Day {sprintDay} of 14
@@ -203,10 +205,8 @@ export function InteractiveDemo({
                       : "border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/50 hover:text-foreground",
                   )}
                 >
-                  <span className="text-[11px] font-mono tabular">{cp.label}</span>
-                  <span className="text-[10px] hidden sm:inline text-muted-foreground">
-                    {cp.phase}
-                  </span>
+                  <span className="text-xs sm:text-[13px] font-mono tabular">{cp.label}</span>
+                  <span className="text-xs hidden sm:inline text-muted-foreground">{cp.phase}</span>
                 </button>
               );
             })}
@@ -221,52 +221,68 @@ export function InteractiveDemo({
           <div className="space-y-6">
             {/* Metric Overview Strip */}
             <div className="grid gap-3 sm:grid-cols-4">
-              <div className="surface-card p-4">
-                <span className="text-xs font-medium text-muted-foreground">Sprint Completion</span>
+              <div className="surface-card p-4 sm:p-4.5">
+                <span className="text-xs sm:text-sm font-medium text-muted-foreground">
+                  Sprint Completion
+                </span>
                 <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold tabular">{metrics.overallProgress}%</span>
-                  <span className="text-xs text-muted-foreground font-mono">
+                  <span className="text-2xl sm:text-3xl font-bold tabular">
+                    {metrics.overallProgress}%
+                  </span>
+                  <span className="text-xs sm:text-sm text-muted-foreground font-mono">
                     {metrics.completed}/{metrics.total} shipped
                   </span>
                 </div>
                 <ProgressBar value={metrics.overallProgress} className="mt-2.5 h-1.5" />
               </div>
 
-              <div className="surface-card p-4">
-                <span className="text-xs font-medium text-muted-foreground">On Track</span>
+              <div className="surface-card p-4 sm:p-4.5">
+                <span className="text-xs sm:text-sm font-medium text-muted-foreground">
+                  On Track
+                </span>
                 <div className="mt-1 flex items-center justify-between">
-                  <span className="text-2xl font-bold text-info tabular">{metrics.onTrack}</span>
-                  <span className="rounded-full bg-info-soft px-2 py-0.5 text-[11px] font-semibold text-info">
+                  <span className="text-2xl sm:text-3xl font-bold text-info tabular">
+                    {metrics.onTrack}
+                  </span>
+                  <span className="rounded-full bg-info-soft px-2.5 py-0.5 text-xs font-semibold text-info">
                     Safe buffer
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">Deadline &gt; 3 days away</p>
+                <p className="mt-1 text-xs sm:text-[13px] text-muted-foreground">
+                  Deadline &gt; 3 days away
+                </p>
               </div>
 
-              <div className="surface-card p-4">
-                <span className="text-xs font-medium text-muted-foreground">Due Soon</span>
+              <div className="surface-card p-4 sm:p-4.5">
+                <span className="text-xs sm:text-sm font-medium text-muted-foreground">
+                  Due Soon
+                </span>
                 <div className="mt-1 flex items-center justify-between">
-                  <span className="text-2xl font-bold text-warning-foreground tabular">
+                  <span className="text-2xl sm:text-3xl font-bold text-warning-foreground tabular">
                     {metrics.dueSoon}
                   </span>
-                  <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-semibold text-warning-foreground">
+                  <span className="rounded-full bg-warning-soft px-2.5 py-0.5 text-xs font-semibold text-warning-foreground">
                     Urgent
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">
+                <p className="mt-1 text-xs sm:text-[13px] text-muted-foreground">
                   ≤ 3 days left before cutoff
                 </p>
               </div>
 
-              <div className="surface-card p-4">
-                <span className="text-xs font-medium text-muted-foreground">Overdue</span>
+              <div className="surface-card p-4 sm:p-4.5">
+                <span className="text-xs sm:text-sm font-medium text-muted-foreground">
+                  Overdue
+                </span>
                 <div className="mt-1 flex items-center justify-between">
-                  <span className="text-2xl font-bold text-danger tabular">{metrics.overdue}</span>
-                  <span className="rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-semibold text-danger">
+                  <span className="text-2xl sm:text-3xl font-bold text-danger tabular">
+                    {metrics.overdue}
+                  </span>
+                  <span className="rounded-full bg-danger-soft px-2.5 py-0.5 text-xs font-semibold text-danger">
                     Breached
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">
+                <p className="mt-1 text-xs sm:text-[13px] text-muted-foreground">
                   Target missed; triage required
                 </p>
               </div>
@@ -276,7 +292,7 @@ export function InteractiveDemo({
             {metrics.overdue > 0 && (
               <div className="flex items-center gap-3 rounded-xl border border-danger/30 bg-danger-soft p-3.5 text-danger">
                 <ShieldAlert className="size-5 shrink-0" />
-                <div className="text-xs">
+                <div className="text-xs sm:text-sm">
                   <span className="font-bold">Automated Deadline Warning:</span> {metrics.overdue}{" "}
                   task(s) currently overdue on Day {sprintDay}. Immediate workload reallocation
                   recommended.
@@ -288,14 +304,14 @@ export function InteractiveDemo({
             <div className="surface-card overflow-hidden">
               <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground">
                     Deliverables & Automatic Health Radar
                   </h4>
-                  <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-mono font-medium">
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-mono font-medium">
                     {displayedTasks.length} {variant === "compact" ? "preview tasks" : "tasks"}
                   </span>
                 </div>
-                <span className="text-xs text-muted-foreground hidden sm:inline">
+                <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">
                   Click checkbox to test completion
                 </span>
               </div>
@@ -331,7 +347,7 @@ export function InteractiveDemo({
                           <div className="flex flex-wrap items-center gap-2">
                             <span
                               className={cn(
-                                "text-sm font-semibold text-foreground truncate",
+                                "text-sm sm:text-base font-semibold text-foreground truncate",
                                 task.workflowState === "done" &&
                                   "line-through text-muted-foreground",
                               )}
@@ -340,7 +356,7 @@ export function InteractiveDemo({
                             </span>
                             <PriorityBadge priority={task.priority} />
                           </div>
-                          <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                          <div className="mt-1 flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
                             <span className="flex items-center gap-1.5">
                               <UserAvatar name={task.assignee.name} size="sm" />
                               <span>{task.assignee.name}</span>
@@ -388,17 +404,17 @@ export function InteractiveDemo({
                 <UserAvatar name="Sarah Chen" size="lg" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="text-base font-bold text-foreground">Sarah Chen</h4>
-                    <span className="rounded-md border border-primary/30 bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+                    <h4 className="text-base sm:text-lg font-bold text-foreground">Sarah Chen</h4>
+                    <span className="rounded-md border border-primary/30 bg-primary-soft px-2 py-0.5 text-xs sm:text-[13px] font-semibold text-primary">
                       Assigned Developer
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Senior Backend Engineer • Sprint Focus: Payment Security & Webhook Engine
                   </p>
                 </div>
               </div>
-              <div className="text-xs text-muted-foreground font-mono">
+              <div className="text-xs sm:text-sm text-muted-foreground font-mono">
                 <span>Live Task Status: </span>
                 <strong className="text-foreground">
                   {computedTasks[0]?.deadlineState.replace("_", " ")}
@@ -411,10 +427,10 @@ export function InteractiveDemo({
               {/* To Do Column */}
               <div className="surface-card flex flex-col rounded-xl p-3.5 bg-secondary/30">
                 <div className="flex items-center justify-between pb-3 border-b border-border">
-                  <span className="text-xs font-bold uppercase text-muted-foreground">To Do</span>
-                  <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-mono">
-                    1
+                  <span className="text-xs sm:text-sm font-bold uppercase text-muted-foreground">
+                    To Do
                   </span>
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-mono">1</span>
                 </div>
                 <div className="mt-3 space-y-3">
                   <div className="surface-card p-3 shadow-xs">
@@ -422,10 +438,10 @@ export function InteractiveDemo({
                       <PriorityBadge priority={computedTasks[2]?.priority ?? "medium"} />
                       <StatusBadge state={computedTasks[2]?.deadlineState ?? "on_track"} />
                     </div>
-                    <h5 className="mt-2 text-xs font-semibold text-foreground line-clamp-2">
+                    <h5 className="mt-2 text-xs sm:text-sm font-semibold text-foreground line-clamp-2">
                       {computedTasks[2]?.title}
                     </h5>
-                    <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <div className="mt-3 flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
                       <span className="font-mono">Due Day 12</span>
                       <UserAvatar name={computedTasks[2]?.assignee.name ?? "John"} size="sm" />
                     </div>
@@ -436,10 +452,10 @@ export function InteractiveDemo({
               {/* In Progress Column (Interactive Card Focus) */}
               <div className="surface-card flex flex-col rounded-xl p-3.5 bg-primary-soft/20 border-primary/40 ring-1 ring-primary/20">
                 <div className="flex items-center justify-between pb-3 border-b border-primary/20">
-                  <span className="text-xs font-bold uppercase text-primary">
+                  <span className="text-xs sm:text-sm font-bold uppercase text-primary">
                     In Progress (Interactive)
                   </span>
-                  <span className="rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-[11px] font-mono font-bold">
+                  <span className="rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-xs font-mono font-bold">
                     Active
                   </span>
                 </div>
@@ -451,17 +467,17 @@ export function InteractiveDemo({
                     <StatusBadge state={computedTasks[0]?.deadlineState ?? "due_soon"} />
                   </div>
 
-                  <h5 className="mt-2 text-sm font-bold text-foreground">
+                  <h5 className="mt-2 text-sm sm:text-base font-bold text-foreground">
                     {computedTasks[0]?.title}
                   </h5>
 
-                  <div className="mt-2 text-xs text-muted-foreground">
+                  <div className="mt-2 text-xs sm:text-sm text-muted-foreground">
                     Target deadline: Sprint Day {computedTasks[0]?.dueDay}
                   </div>
 
                   {/* Interactive Subtask Checklist */}
                   <div className="mt-3 space-y-2 rounded-lg border border-border/80 bg-secondary/30 p-2.5">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground">
+                    <div className="flex items-center justify-between text-xs sm:text-sm font-bold text-muted-foreground">
                       <span>Interactive Subtasks</span>
                       <span className="font-mono tabular">
                         {computedTasks[0]?.completedSubtasks}/{computedTasks[0]?.subtasks.length} (
@@ -476,7 +492,7 @@ export function InteractiveDemo({
                           key={st.id}
                           type="button"
                           onClick={() => handleToggleSubtask("task-1", st.id)}
-                          className="flex w-full items-center gap-2 text-left text-xs transition-colors hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded"
+                          className="flex w-full items-center gap-2 text-left text-xs sm:text-sm transition-colors hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded"
                         >
                           <span
                             className={cn(
@@ -509,7 +525,7 @@ export function InteractiveDemo({
                       size="sm"
                       variant={computedTasks[0]?.workflowState === "done" ? "outline" : "default"}
                       onClick={() => handleToggleTaskStatus("task-1")}
-                      className="w-full text-xs font-semibold"
+                      className="w-full text-xs sm:text-sm font-semibold"
                     >
                       {computedTasks[0]?.workflowState === "done"
                         ? "Mark In Progress"
@@ -522,8 +538,10 @@ export function InteractiveDemo({
               {/* Completed Column */}
               <div className="surface-card flex flex-col rounded-xl p-3.5 bg-secondary/30">
                 <div className="flex items-center justify-between pb-3 border-b border-border">
-                  <span className="text-xs font-bold uppercase text-muted-foreground">Done</span>
-                  <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-mono">
+                  <span className="text-xs sm:text-sm font-bold uppercase text-muted-foreground">
+                    Done
+                  </span>
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-mono">
                     {computedTasks.filter((t) => t.workflowState === "done").length}
                   </span>
                 </div>
@@ -536,10 +554,10 @@ export function InteractiveDemo({
                           <WorkflowStatusBadge status="done" />
                           <StatusBadge state={task.deadlineState} />
                         </div>
-                        <h5 className="mt-2 text-xs font-semibold text-foreground line-clamp-2 line-through text-muted-foreground">
+                        <h5 className="mt-2 text-xs sm:text-sm font-semibold text-foreground line-clamp-2 line-through text-muted-foreground">
                           {task.title}
                         </h5>
-                        <div className="mt-2 text-[10px] text-muted-foreground font-mono">
+                        <div className="mt-2 text-xs text-muted-foreground font-mono">
                           Shipped on Day {task.completedAtDay ?? task.dueDay}
                         </div>
                       </div>
@@ -553,7 +571,7 @@ export function InteractiveDemo({
 
       {/* Compact Variant Footer Navigation Link */}
       {variant === "compact" && (
-        <div className="border-t border-border bg-card px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div className="border-t border-border bg-card px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm">
           <span className="text-muted-foreground">
             Want to test custom deadline filters, detailed calculations, and full board states?
           </span>

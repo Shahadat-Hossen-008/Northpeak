@@ -80,8 +80,8 @@ export function MemberDetailSheet({
                 <div className="flex items-center gap-3">
                   <UserAvatar name={member.name} size="lg" />
                   <div>
-                    <SheetTitle className="text-xl font-bold">{member.name}</SheetTitle>
-                    <SheetDescription className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                    <SheetTitle className="text-xl sm:text-2xl font-bold">{member.name}</SheetTitle>
+                    <SheetDescription className="flex items-center gap-2 mt-0.5 text-xs sm:text-sm text-muted-foreground">
                       <Mail className="size-3.5" />
                       <span>{member.email || "No email available"}</span>
                     </SheetDescription>
@@ -89,15 +89,15 @@ export function MemberDetailSheet({
                 </div>
                 <Badge
                   variant={member.role === "manager" ? "default" : "secondary"}
-                  className="capitalize"
+                  className="capitalize text-xs sm:text-sm px-2.5 py-0.5"
                 >
                   {member.role || "Developer"}
                 </Badge>
               </div>
 
               {member.created_at ? (
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Calendar className="size-3" />
+                <p className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                  <Calendar className="size-3.5" />
                   Joined {formatDate(member.created_at)}
                 </p>
               ) : null}
@@ -109,13 +109,13 @@ export function MemberDetailSheet({
           <div className="mt-5 space-y-6">
             {/* Project Filter Toggle (if in project context) */}
             {projectId && projectName ? (
-              <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/40 p-2 text-xs">
+              <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/40 p-2.5 text-xs sm:text-sm">
                 <span className="font-medium text-muted-foreground">Filter context:</span>
-                <div className="flex gap-1">
+                <div className="flex gap-1.5">
                   <Button
                     size="sm"
                     variant={filterMode === "project" ? "default" : "ghost"}
-                    className="h-7 text-xs px-2.5"
+                    className="h-8 text-xs sm:text-sm px-3"
                     onClick={() => setFilterMode("project")}
                   >
                     {projectName}
@@ -123,10 +123,10 @@ export function MemberDetailSheet({
                   <Button
                     size="sm"
                     variant={filterMode === "all" ? "default" : "ghost"}
-                    className="h-7 text-xs px-2.5"
+                    className="h-8 text-xs sm:text-sm px-3"
                     onClick={() => setFilterMode("all")}
                   >
-                    All Projects
+                    All projects
                   </Button>
                 </div>
               </div>
@@ -134,30 +134,34 @@ export function MemberDetailSheet({
 
             {/* Quick Metrics */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-xl border border-border bg-card p-3 text-center">
-                <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                  <ListTodo className="size-3.5 text-primary" />
+              <div className="rounded-xl border border-border bg-card p-3.5 text-center">
+                <div className="flex items-center justify-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                  <ListTodo className="size-4 text-primary" />
                   <span>Active</span>
                 </div>
-                <p className="mt-1 text-2xl font-bold tabular text-foreground">{stats.active}</p>
+                <p className="mt-1 text-2xl sm:text-3xl font-bold tabular text-foreground">
+                  {stats.active}
+                </p>
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-3 text-center">
-                <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                  <CheckCircle2 className="size-3.5 text-success" />
+              <div className="rounded-xl border border-border bg-card p-3.5 text-center">
+                <div className="flex items-center justify-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                  <CheckCircle2 className="size-4 text-success" />
                   <span>Done</span>
                 </div>
-                <p className="mt-1 text-2xl font-bold tabular text-success">{stats.completed}</p>
+                <p className="mt-1 text-2xl sm:text-3xl font-bold tabular text-success">
+                  {stats.completed}
+                </p>
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-3 text-center">
-                <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                  <AlertTriangle className="size-3.5 text-danger" />
+              <div className="rounded-xl border border-border bg-card p-3.5 text-center">
+                <div className="flex items-center justify-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                  <AlertTriangle className="size-4 text-danger" />
                   <span>Overdue</span>
                 </div>
                 <p
                   className={cn(
-                    "mt-1 text-2xl font-bold tabular",
+                    "mt-1 text-2xl sm:text-3xl font-bold tabular",
                     stats.overdue > 0 ? "text-danger" : "text-muted-foreground",
                   )}
                 >
@@ -165,20 +169,20 @@ export function MemberDetailSheet({
                 </p>
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-3 text-center">
-                <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                  <Timer className="size-3.5 text-warning-foreground" />
+              <div className="rounded-xl border border-border bg-card p-3.5 text-center">
+                <div className="flex items-center justify-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                  <Timer className="size-4 text-warning-foreground" />
                   <span>Capacity</span>
                 </div>
-                <p className="mt-1 text-2xl font-bold tabular text-foreground">
+                <p className="mt-1 text-2xl sm:text-3xl font-bold tabular text-foreground">
                   {stats.workload_percentage}%
                 </p>
               </div>
             </div>
 
             {/* Workload Progress Bar */}
-            <div className="rounded-xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+            <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
+              <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-2">
                 <span className="font-semibold text-foreground">Workload capacity</span>
                 <span className="tabular font-medium">
                   {stats.active} active {stats.active === 1 ? "task" : "tasks"} (
@@ -195,7 +199,7 @@ export function MemberDetailSheet({
                       : "primary"
                 }
               />
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
                 {stats.workload_percentage >= 80
                   ? "High capacity load. Consider balancing or reassigning upcoming work."
                   : stats.workload_percentage >= 40

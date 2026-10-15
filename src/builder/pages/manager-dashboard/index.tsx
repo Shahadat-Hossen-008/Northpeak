@@ -144,7 +144,7 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
             <div className="mb-3 flex items-center justify-between">
               <Link
                 to="/manager/projects"
-                className="project-title-link text-sm font-semibold tracking-wide text-foreground uppercase hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs"
+                className="project-title-link text-sm sm:text-base font-semibold tracking-wide text-foreground uppercase hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs"
               >
                 <span className="project-title-text">Projects overview</span>
                 <ArrowUpRight
@@ -154,7 +154,7 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
               </Link>
               <Link
                 to="/manager/projects"
-                className="text-sm font-medium text-primary hover:underline"
+                className="text-sm sm:text-base font-medium text-primary hover:underline"
               >
                 View all
               </Link>
@@ -182,7 +182,9 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
           <div className="grid gap-6 lg:grid-cols-2">
             <SectionCard title="Overdue tasks">
               {overdueTasks.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nothing is overdue. Nice work.</p>
+                <p className="text-sm sm:text-base text-muted-foreground">
+                  Nothing is overdue. Nice work.
+                </p>
               ) : (
                 <ul className="space-y-3">
                   {overdueTasks.slice(0, 6).map((task) => (
@@ -192,11 +194,11 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
                           to="/manager/tasks/$taskId"
                           params={{ taskId: task.id }}
                           search={{ from: "/manager/dashboard" }}
-                          className="text-sm font-semibold text-foreground hover:text-primary transition-colors"
+                          className="text-sm sm:text-base font-semibold text-foreground hover:text-primary transition-colors"
                         >
                           {task.title}
                         </Link>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           {task.project?.title} · {task.assignee?.name ?? "Unassigned"}
                         </p>
                       </div>
@@ -209,7 +211,7 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
 
             <SectionCard title="Upcoming deadlines">
               {upcomingTasks.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No upcoming deadlines.</p>
+                <p className="text-sm sm:text-base text-muted-foreground">No upcoming deadlines.</p>
               ) : (
                 <ul className="space-y-3">
                   {upcomingTasks.map((task) => (
@@ -219,11 +221,11 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
                           to="/manager/tasks/$taskId"
                           params={{ taskId: task.id }}
                           search={{ from: "/manager/dashboard" }}
-                          className="text-sm font-semibold text-foreground hover:text-primary transition-colors"
+                          className="text-sm sm:text-base font-semibold text-foreground hover:text-primary transition-colors"
                         >
                           {task.title}
                         </Link>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           {task.project?.title} · {formatDate(task.deadline)}
                         </p>
                       </div>
@@ -236,7 +238,7 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
 
             <SectionCard title="Developer workload">
               {developers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No developers yet.</p>
+                <p className="text-sm sm:text-base text-muted-foreground">No developers yet.</p>
               ) : (
                 <ul className="space-y-2">
                   {developerWorkloads.map(
@@ -255,12 +257,12 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
                           className="group cursor-pointer rounded-lg p-2.5 -mx-2 transition-all hover:bg-secondary/60 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
                           <div className="flex items-center justify-between gap-3">
-                            <span className="flex items-center gap-2 text-sm font-medium group-hover:text-primary transition-colors">
+                            <span className="flex items-center gap-2 text-sm sm:text-base font-medium group-hover:text-primary transition-colors">
                               <UserAvatar name={dev.name} size="sm" />
                               {dev.name}
                             </span>
                             <div className="flex items-center gap-2">
-                              <span className="tabular text-xs text-muted-foreground">
+                              <span className="tabular text-xs sm:text-sm text-muted-foreground">
                                 {activeCount} active · {overdueCount} overdue
                               </span>
                               <ArrowUpRight className="size-3.5 text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
@@ -298,11 +300,13 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
                     <li key={item.id} className="flex gap-3">
                       <UserAvatar name={item.actor?.name ?? "System"} size="sm" />
                       <div>
-                        <p className="text-sm">
+                        <p className="text-sm sm:text-base">
                           <span className="font-semibold">{item.actor?.name ?? "System"}</span>{" "}
                           {item.message}
                         </p>
-                        <p className="text-xs text-muted-foreground">{timeAgo(item.created_at)}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          {timeAgo(item.created_at)}
+                        </p>
                       </div>
                     </li>
                   ))}

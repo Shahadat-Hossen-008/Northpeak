@@ -62,8 +62,8 @@ export function SettingsPage({ section }: SettingsPageProps) {
             <div className="flex items-center gap-3">
               <UserAvatar name={name || "User"} />
               <div>
-                <p className="text-sm font-semibold">{profile?.name}</p>
-                <p className="text-xs text-muted-foreground capitalize">{role}</p>
+                <p className="text-sm sm:text-base font-semibold">{profile?.name}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground capitalize">{role}</p>
               </div>
             </div>
             <div className="space-y-1.5">

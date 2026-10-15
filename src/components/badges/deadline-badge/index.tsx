@@ -11,8 +11,14 @@ export function DeadlineBadge({ deadline, state, className }: DeadlineBadgeProps
         ? "text-warning-foreground"
         : "text-muted-foreground";
   return (
-    <span className={cn("inline-flex items-center gap-1.5 text-xs font-medium", tone, className)}>
-      <CalendarClock className="size-3.5" aria-hidden />
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium",
+        tone,
+        className,
+      )}
+    >
+      <CalendarClock className="size-3.5 sm:size-4 shrink-0" aria-hidden />
       {deadline ? deadlineText(deadline) : "No deadline"}
     </span>
   );

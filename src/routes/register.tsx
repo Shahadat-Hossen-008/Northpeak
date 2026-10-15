@@ -99,7 +99,7 @@ function RegisterPage() {
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="Sarah Khan"
           />
-          {errors.name ? <p className="text-xs text-danger">{errors.name}</p> : null}
+          {errors.name ? <p className="text-xs sm:text-sm text-danger">{errors.name}</p> : null}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
@@ -110,7 +110,7 @@ function RegisterPage() {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             placeholder="you@company.com"
           />
-          {errors.email ? <p className="text-xs text-danger">{errors.email}</p> : null}
+          {errors.email ? <p className="text-xs sm:text-sm text-danger">{errors.email}</p> : null}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
@@ -122,7 +122,9 @@ function RegisterPage() {
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               placeholder="At least 6 characters"
             />
-            {errors.password ? <p className="text-xs text-danger">{errors.password}</p> : null}
+            {errors.password ? (
+              <p className="text-xs sm:text-sm text-danger">{errors.password}</p>
+            ) : null}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="confirm">Confirm password</Label>
@@ -133,7 +135,9 @@ function RegisterPage() {
               onChange={(e) => setForm({ ...form, confirm: e.target.value })}
               placeholder="Confirm password"
             />
-            {errors.confirm ? <p className="text-xs text-danger">{errors.confirm}</p> : null}
+            {errors.confirm ? (
+              <p className="text-xs sm:text-sm text-danger">{errors.confirm}</p>
+            ) : null}
           </div>
         </div>
 
@@ -168,15 +172,17 @@ function RegisterPage() {
               >
                 <RadioGroupItem value={option.value} className="mt-0.5" />
                 <span>
-                  <span className="block text-sm font-semibold">{option.label}</span>
-                  <span className="block text-xs text-muted-foreground">{option.hint}</span>
+                  <span className="block text-sm sm:text-base font-semibold">{option.label}</span>
+                  <span className="block text-xs sm:text-sm text-muted-foreground">
+                    {option.hint}
+                  </span>
                 </span>
               </label>
             ))}
           </RadioGroup>
         </div>
 
-        <Button type="submit" className="w-full" disabled={submitting}>
+        <Button type="submit" size="lg" className="w-full" disabled={submitting}>
           {submitting ? "Creating account…" : "Create account"}
         </Button>
       </form>

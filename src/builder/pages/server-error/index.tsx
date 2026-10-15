@@ -88,17 +88,17 @@ export function ServerErrorPage({ error, reset, className }: ServerErrorPageProp
           {/* Title & Description */}
           <h1
             id="server-error-heading"
-            className="mt-3 text-2xl font-bold tracking-tight text-foreground"
+            className="mt-3 text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
           >
             Something went wrong
           </h1>
-          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+          <p className="mx-auto mt-2 max-w-sm text-sm sm:text-base leading-relaxed text-muted-foreground">
             We hit an unexpected problem while loading this page. Please try again or head back to
             your dashboard.
           </p>
 
           {error?.message ? (
-            <p className="mx-auto mt-3 max-w-md rounded-md bg-muted/60 p-2 font-mono text-xs text-muted-foreground truncate">
+            <p className="mx-auto mt-3 max-w-md rounded-md bg-muted/60 p-2 font-mono text-xs sm:text-sm text-muted-foreground truncate">
               {error.message}
             </p>
           ) : null}
@@ -122,7 +122,7 @@ export function ServerErrorPage({ error, reset, className }: ServerErrorPageProp
       </main>
 
       {/* Footer */}
-      <footer className="text-center text-xs text-muted-foreground/80 py-6">
+      <footer className="text-center text-xs sm:text-sm text-muted-foreground/80 py-6">
         Northpeak · Build better, together
       </footer>
     </div>

@@ -15,11 +15,11 @@ export function DeadlineEngineShowcase({
 }: DeadlineEngineShowcaseProps) {
   return (
     <section className={cn("space-y-8", className)}>
-      <div className="text-left sm:text-center max-w-2xl sm:mx-auto">
-        <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+      <div className="text-left sm:text-center max-w-3xl sm:mx-auto">
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground">
           Automatic deadline calculations, explained.
         </h2>
-        <p className="mt-3 text-base text-muted-foreground">
+        <p className="mt-3.5 text-base sm:text-lg text-muted-foreground leading-relaxed">
           Every status badge in Northpeak is calculated from timestamps and completion records.
           {variant === "full" ? " Click any state below to inspect its behavior." : ""}
         </p>
@@ -37,7 +37,7 @@ export function DeadlineEngineShowcase({
                 isInteractive ? () => onSelectState(isSelected ? null : item.state) : undefined
               }
               className={cn(
-                "surface-card flex flex-col p-4 text-left transition-all rounded-xl border",
+                "surface-card flex flex-col p-4 sm:p-5 text-left transition-all rounded-xl border",
                 isInteractive && "cursor-pointer hover:border-primary/40 hover:bg-card/80",
                 isSelected ? "ring-2 ring-primary border-primary bg-primary-soft/20 shadow-md" : "",
               )}
@@ -57,14 +57,14 @@ export function DeadlineEngineShowcase({
               <div className="flex items-center justify-between gap-2">
                 <StatusBadge state={item.state} />
               </div>
-              <span className="mt-3 text-xs font-bold font-mono text-muted-foreground">
+              <span className="mt-3.5 text-xs sm:text-sm font-bold font-mono text-muted-foreground">
                 {item.rule}
               </span>
-              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+              <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
                 {item.description}
               </p>
               {isInteractive && (
-                <span className="mt-auto pt-3 text-[11px] font-semibold text-primary">
+                <span className="mt-auto pt-3 text-xs sm:text-[13px] font-semibold text-primary">
                   {isSelected ? "Filter active (tap to clear)" : "Click to highlight"}
                 </span>
               )}

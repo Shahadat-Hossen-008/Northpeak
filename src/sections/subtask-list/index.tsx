@@ -21,9 +21,9 @@ export function SubtaskList({ taskId, projectId, actorId, canEdit }: SubtaskList
   return (
     <div className="space-y-4">
       <div>
-        <div className="mb-2 flex items-center justify-between text-sm">
+        <div className="mb-2.5 flex items-center justify-between text-sm sm:text-base">
           <span className="font-semibold">Subtasks</span>
-          <span className="tabular text-muted-foreground">
+          <span className="tabular text-xs sm:text-sm text-muted-foreground font-medium">
             {done} / {subtasks.length} completed
           </span>
         </div>
@@ -31,17 +31,17 @@ export function SubtaskList({ taskId, projectId, actorId, canEdit }: SubtaskList
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading subtasks…</p>
+        <p className="text-sm sm:text-base text-muted-foreground">Loading subtasks…</p>
       ) : subtasks.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+        <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm sm:text-base text-muted-foreground">
           No subtasks yet. Break this task into smaller steps.
         </p>
       ) : (
-        <ul className="space-y-1">
+        <ul className="space-y-1.5">
           {subtasks.map((subtask) => (
             <li
               key={subtask.id}
-              className="group flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-secondary"
+              className="group flex items-center gap-3 rounded-lg px-2.5 py-2.5 hover:bg-secondary transition-colors"
             >
               <Checkbox
                 checked={subtask.is_completed}
@@ -72,7 +72,7 @@ export function SubtaskList({ taskId, projectId, actorId, canEdit }: SubtaskList
                     aria-label="Save subtask"
                     title="Save"
                   >
-                    <Check className="size-3.5 text-success" />
+                    <Check className="size-4 text-success" />
                   </Button>
                   <Button
                     type="button"
@@ -82,14 +82,14 @@ export function SubtaskList({ taskId, projectId, actorId, canEdit }: SubtaskList
                     title="Cancel"
                     onClick={() => setEditing(null)}
                   >
-                    <X className="size-3.5" />
+                    <X className="size-4" />
                   </Button>
                 </form>
               ) : (
                 <>
                   <span
                     className={cn(
-                      "flex-1 text-sm",
+                      "flex-1 text-sm sm:text-base",
                       subtask.is_completed && "text-muted-foreground line-through",
                     )}
                   >

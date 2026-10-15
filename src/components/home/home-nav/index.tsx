@@ -39,7 +39,7 @@ export function HomeNav({ currentPath = "/", className }: HomeNavProps) {
 
         {/* Right: Desktop Navigation & Auth Actions */}
         <div className="hidden md:flex items-center gap-7">
-          <nav className="flex items-center gap-6 text-sm font-medium">
+          <nav className="flex items-center gap-6 text-sm sm:text-base font-medium">
             {navLinks.map((link) => {
               const isActive = currentPath === link.to;
               return (
@@ -61,22 +61,22 @@ export function HomeNav({ currentPath = "/", className }: HomeNavProps) {
 
           <div className="flex items-center gap-2.5">
             {user ? (
-              <Button asChild size="sm">
+              <Button asChild size="default">
                 <Link to={dashboardPath}>
-                  <LayoutDashboard className="size-3.5" />
+                  <LayoutDashboard className="size-4" />
                   Dashboard
-                  <ArrowRight className="size-3.5" />
+                  <ArrowRight className="size-4" />
                 </Link>
               </Button>
             ) : (
               <>
-                <Button asChild variant="ghost" size="sm">
+                <Button asChild variant="ghost" size="default">
                   <Link to="/login">Sign in</Link>
                 </Button>
-                <Button asChild size="sm">
+                <Button asChild size="default">
                   <Link to="/register">
                     Get started
-                    <ArrowRight className="size-3.5" />
+                    <ArrowRight className="size-4" />
                   </Link>
                 </Button>
               </>
@@ -87,7 +87,7 @@ export function HomeNav({ currentPath = "/", className }: HomeNavProps) {
         {/* Mobile Navigation Trigger */}
         <div className="flex md:hidden items-center gap-2">
           {user && (
-            <Button asChild size="sm" variant="outline" className="text-xs h-8 px-2.5">
+            <Button asChild size="sm" variant="outline" className="text-xs sm:text-sm h-8.5 px-3">
               <Link to={dashboardPath}>Dashboard</Link>
             </Button>
           )}
@@ -103,7 +103,7 @@ export function HomeNav({ currentPath = "/", className }: HomeNavProps) {
                 <SheetTitle className="text-left font-bold text-lg mb-6 flex items-center gap-2">
                   <Brand />
                 </SheetTitle>
-                <nav className="flex flex-col gap-4 text-sm font-medium">
+                <nav className="flex flex-col gap-3 text-base font-medium">
                   <Link
                     to="/"
                     onClick={() => setMobileOpen(false)}

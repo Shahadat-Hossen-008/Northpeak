@@ -63,11 +63,11 @@ export function NotFoundPage({ className }: NotFoundPageProps) {
           {/* Title & Description */}
           <h1
             id="not-found-heading"
-            className="mt-3 text-2xl font-bold tracking-tight text-foreground"
+            className="mt-3 text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
           >
             This page isn’t on the map
           </h1>
-          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+          <p className="mx-auto mt-2 max-w-sm text-sm sm:text-base leading-relaxed text-muted-foreground">
             The page you’re looking for doesn’t exist or has been moved.
           </p>
 
@@ -81,7 +81,7 @@ export function NotFoundPage({ className }: NotFoundPageProps) {
       </main>
 
       {/* Footer */}
-      <footer className="text-center text-xs text-muted-foreground/80 py-6">
+      <footer className="text-center text-xs sm:text-sm text-muted-foreground/80 py-6">
         Northpeak · Build better, together
       </footer>
     </div>

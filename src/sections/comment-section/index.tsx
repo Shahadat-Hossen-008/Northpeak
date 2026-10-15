@@ -39,13 +39,13 @@ export function CommentSection({ taskId, projectId, actorId }: CommentSectionPro
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-2">
                     <div className="flex flex-wrap items-baseline gap-x-2">
-                      <span className="text-sm font-semibold">
+                      <span className="text-sm sm:text-base font-semibold">
                         {comment.author?.name ?? "Unknown"}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs sm:text-sm text-muted-foreground">
                         {roleFor(comment.author?.id)}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs sm:text-sm text-muted-foreground">
                         · {timeAgo(comment.created_at)}
                       </span>
                     </div>
@@ -60,11 +60,13 @@ export function CommentSection({ taskId, projectId, actorId }: CommentSectionPro
                         disabled={deleteComment.isPending}
                         onClick={() => deleteComment.mutate(comment.id)}
                       >
-                        <Trash2 className="size-3.5" />
+                        <Trash2 className="size-4" />
                       </Button>
                     ) : null}
                   </div>
-                  <p className="mt-1 text-sm whitespace-pre-line text-foreground">{comment.body}</p>
+                  <p className="mt-1.5 text-sm sm:text-base leading-relaxed whitespace-pre-line text-foreground">
+                    {comment.body}
+                  </p>
                 </div>
               </li>
             );

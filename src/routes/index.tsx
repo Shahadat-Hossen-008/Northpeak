@@ -35,14 +35,19 @@ function HomePage() {
           <section className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
               <div>
-                <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
                   Interactive Deadline Intelligence Canvas
                 </h2>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm sm:text-base text-muted-foreground mt-1">
                   Preview how Northpeak calculates real-time task urgency across sprints.
                 </p>
               </div>
-              <Button asChild variant="ghost" size="sm" className="self-start sm:self-auto text-xs">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="self-start sm:self-auto text-xs sm:text-sm"
+              >
                 <Link to="/features">
                   View full interactive canvas
                   <ArrowRight className="size-3.5" />
@@ -62,10 +67,10 @@ function HomePage() {
           {/* Closing CTA */}
           <section className="surface-card overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-card to-secondary/30 p-8 sm:p-12 text-center">
             <div className="mx-auto max-w-2xl">
-              <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground">
                 Ship software on time with total deadline clarity.
               </h2>
-              <p className="mt-4 text-base text-muted-foreground">
+              <p className="mt-4 text-base sm:text-lg text-muted-foreground">
                 Get started today and experience automated sprint status updates with zero meetings.
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
