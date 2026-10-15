@@ -20,4 +20,8 @@ const activitySchema = new Schema<IActivity>(
   },
 );
 
+activitySchema.index({ project: 1, createdAt: -1 });
+activitySchema.index({ task: 1, createdAt: -1 });
+activitySchema.index({ createdAt: -1 });
+
 export const Activity = mongoose.model<IActivity>("Activity", activitySchema);

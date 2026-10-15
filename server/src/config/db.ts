@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
+import { config } from "./env.js";
 
-export async function connectDB(): Promise<void> {
-  const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/northpeak";
+export async function connectDB(overrideUri?: string): Promise<void> {
+  const uri = overrideUri || config.MONGODB_URI;
 
   try {
     const conn = await mongoose.connect(uri);
