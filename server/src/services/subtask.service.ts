@@ -1,6 +1,7 @@
 import { isValidObjectId } from "mongoose";
-import { Subtask } from "../models/Subtask.js";
+import { Subtask, type ISubtask } from "../models/Subtask.js";
 import { Task } from "../models/Task.js";
+import { Project } from "../models/Project.js";
 import { Activity } from "../models/Activity.js";
 import { Notification } from "../models/Notification.js";
 import { AppError } from "../middleware/error.js";
@@ -50,6 +51,19 @@ export class SubtaskService {
       throw new AppError("Task not found", 404);
     }
 
+    const project = await Project.findById(task.project);
+    if (!project) {
+      throw new AppError("Project not found", 404);
+    }
+
+    // Authorization: only the authorized project manager or the assigned developer
+    const isProjectManager = user.role === "manager" && project.manager.toString() === user.id;
+    const isAssignee = task.assignedDeveloper?.toString() === user.id;
+
+    if (!isProjectManager && !isAssignee) {
+      throw new AppError("Not authorized to add subtasks to this task", 403);
+    }
+
     const subtask = await Subtask.create({
       task: task._id,
       title: title.trim(),
@@ -67,7 +81,7 @@ export class SubtaskService {
 
   async updateSubtask(
     subtaskId: string,
-    _user: AuthUserPayload,
+    user: AuthUserPayload,
     input: UpdateSubtaskInput,
   ): Promise<SerializedSubtask> {
     if (!isValidObjectId(subtaskId)) {
@@ -80,6 +94,23 @@ export class SubtaskService {
     }
 
     const task = await Task.findById(subtask.task);
+    if (!task) {
+      throw new AppError("Task not found", 404);
+    }
+
+    const project = await Project.findById(task.project);
+    if (!project) {
+      throw new AppError("Project not found", 404);
+    }
+
+    // Authorization: only the authorized project manager or the assigned developer
+    const isProjectManager = user.role === "manager" && project.manager.toString() === user.id;
+    const isAssignee = task.assignedDeveloper?.toString() === user.id;
+
+    if (!isProjectManager && !isAssignee) {
+      throw new AppError("Not authorized to modify this subtask", 403);
+    }
+
     const { title, is_completed } = input;
 
     if (title !== undefined) {
@@ -92,7 +123,7 @@ export class SubtaskService {
       subtask.completedAt = nowDone ? new Date() : null;
 
       // Notify manager if completed
-      if (nowDone && task) {
+      if (nowDone) {
         await Notification.create({
           audience: "manager",
           kind: "subtask_completed",
@@ -110,7 +141,7 @@ export class SubtaskService {
 
   async deleteSubtask(
     subtaskId: string,
-    _user: AuthUserPayload,
+    user: AuthUserPayload,
   ): Promise<{ success: boolean; message: string }> {
     if (!isValidObjectId(subtaskId)) {
       throw new AppError("Subtask not found", 404);
@@ -119,6 +150,24 @@ export class SubtaskService {
     const subtask = await Subtask.findById(subtaskId);
     if (!subtask) {
       throw new AppError("Subtask not found", 404);
+    }
+
+    const task = await Task.findById(subtask.task);
+    if (!task) {
+      throw new AppError("Task not found", 404);
+    }
+
+    const project = await Project.findById(task.project);
+    if (!project) {
+      throw new AppError("Project not found", 404);
+    }
+
+    // Authorization: only the authorized project manager or the assigned developer
+    const isProjectManager = user.role === "manager" && project.manager.toString() === user.id;
+    const isAssignee = task.assignedDeveloper?.toString() === user.id;
+
+    if (!isProjectManager && !isAssignee) {
+      throw new AppError("Not authorized to delete this subtask", 403);
     }
 
     await subtask.deleteOne();
