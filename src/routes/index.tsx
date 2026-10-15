@@ -1,165 +1,92 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { AlertTriangle, CheckCircle2, Clock, CircleDot, ArrowRight } from "lucide-react";
-import { useEffect } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRight } from "lucide-react";
 
-import { Brand } from "@/builder/layout/app-shell";
+import { meta } from "@/builder/layout/meta";
+import {
+  DeadlineEngineShowcase,
+  HomeFooter,
+  HomeHero,
+  HomeNav,
+  InteractiveDemo,
+  RoleComparison,
+} from "@/components/home";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
-import { homePathForRole } from "@/lib/auth-utils";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Northpeak — Deadline-aware project management" },
-      {
-        name: "description",
-        content:
-          "Northpeak gives software teams automatic deadline status on every task: on track, due soon, overdue, or completed late.",
-      },
-      { property: "og:title", content: "Northpeak — Deadline-aware project management" },
-      {
-        property: "og:description",
-        content:
-          "Managers plan and assign. Developers deliver. Every task shows its live deadline status.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: Landing,
+  head: () =>
+    meta(
+      "Northpeak — Deadline-aware project management",
+      "Northpeak gives software teams automatic deadline status on every task: on track, due soon, overdue, or completed late.",
+    ),
+  component: HomePage,
 });
 
-const STATES = [
-  {
-    icon: CircleDot,
-    label: "On track",
-    tone: "bg-info-soft text-info",
-    copy: "Deadline is comfortably ahead",
-  },
-  {
-    icon: Clock,
-    label: "Due soon",
-    tone: "bg-warning-soft text-warning-foreground",
-    copy: "Three days or less remaining",
-  },
-  {
-    icon: AlertTriangle,
-    label: "Overdue",
-    tone: "bg-danger-soft text-danger",
-    copy: "Deadline has already passed",
-  },
-  {
-    icon: CheckCircle2,
-    label: "Completed",
-    tone: "bg-success-soft text-success",
-    copy: "On time, or flagged as late",
-  },
-];
-
-function Landing() {
-  const { user, role, loading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (loading || !user) return;
-    void navigate({ to: role ? homePathForRole(role) : "/welcome", replace: true });
-  }, [loading, user, role, navigate]);
-
+function HomePage() {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
-        <Brand />
-        <div className="flex items-center gap-2">
-          <Button asChild variant="ghost">
-            <Link to="/login">Sign in</Link>
-          </Button>
-          <Button asChild>
-            <Link to="/register">Get started</Link>
-          </Button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary flex flex-col justify-between">
+      <div>
+        <HomeNav currentPath="/" />
 
-      <main className="mx-auto max-w-6xl px-4 pt-12 pb-24 sm:px-6">
-        <section className="max-w-3xl">
-          <span className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-muted-foreground">
-            Built for software delivery teams
-          </span>
-          <h1 className="mt-6 text-4xl leading-tight font-extrabold text-foreground sm:text-5xl">
-            Every task tells you exactly how its deadline is doing.
-          </h1>
-          <p className="mt-5 text-lg text-muted-foreground">
-            Managers create projects, break them into tasks and assign developers. Developers work
-            through subtasks and comment as they go. Deadline status updates itself — no manual
-            status meetings required.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg">
-              <Link to="/register">
-                Create your workspace
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link to="/login">Sign in</Link>
-            </Button>
-          </div>
-        </section>
+        <main className="mx-auto max-w-6xl px-4 pt-10 pb-24 sm:px-6 space-y-24">
+          {/* Left-Aligned Hero */}
+          <HomeHero />
 
-        <section className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {STATES.map((state) => (
-            <div key={state.label} className="surface-card p-5">
-              <span
-                className={`inline-flex size-10 items-center justify-center rounded-lg ${state.tone}`}
-              >
-                <state.icon className="size-5" aria-hidden />
-              </span>
-              <h2 className="mt-4 text-base font-semibold text-foreground">{state.label}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{state.copy}</p>
+          {/* Compact Interactive Canvas Preview */}
+          <section className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                  Interactive Deadline Intelligence Canvas
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Preview how Northpeak calculates real-time task urgency across sprints.
+                </p>
+              </div>
+              <Button asChild variant="ghost" size="sm" className="self-start sm:self-auto text-xs">
+                <Link to="/features">
+                  View full interactive canvas
+                  <ArrowRight className="size-3.5" />
+                </Link>
+              </Button>
             </div>
-          ))}
-        </section>
 
-        <section className="mt-16 grid gap-6 lg:grid-cols-2">
-          <div className="surface-card p-6">
-            <h2 className="text-lg font-bold text-foreground">For project managers</h2>
-            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              {[
-                "Create projects with start dates, deadlines and priority",
-                "Split work into tasks and assign them to developers",
-                "Track progress, overdue work and developer workload",
-                "Comment on tasks and follow every change in the activity feed",
-              ].map((item) => (
-                <li key={item} className="flex gap-2">
-                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="surface-card p-6">
-            <h2 className="text-lg font-bold text-foreground">For developers</h2>
-            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              {[
-                "See assigned tasks on a To do / In progress / Completed board",
-                "Break a task into subtasks and tick them off",
-                "Mark tasks complete and keep deadlines visible",
-                "Collaborate with comments on every task",
-              ].map((item) => (
-                <li key={item} className="flex gap-2">
-                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      </main>
+            <InteractiveDemo variant="compact" initialPerspective="manager" initialDay={6} />
+          </section>
 
-      <footer className="border-t border-border py-8">
-        <div className="mx-auto max-w-6xl px-4 text-sm text-muted-foreground sm:px-6">
-          Northpeak — project management for software teams.
-        </div>
-      </footer>
+          {/* 5 Deadline States Overview */}
+          <DeadlineEngineShowcase variant="compact" />
+
+          {/* Manager vs Developer Workflows Teaser */}
+          <RoleComparison variant="teaser" />
+
+          {/* Closing CTA */}
+          <section className="surface-card overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-card to-secondary/30 p-8 sm:p-12 text-center">
+            <div className="mx-auto max-w-2xl">
+              <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+                Ship software on time with total deadline clarity.
+              </h2>
+              <p className="mt-4 text-base text-muted-foreground">
+                Get started today and experience automated sprint status updates with zero meetings.
+              </p>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                <Button asChild size="lg" className="h-11 px-6">
+                  <Link to="/register">
+                    Create your workspace
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline" className="h-11 px-6">
+                  <Link to="/login">Sign in</Link>
+                </Button>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <HomeFooter />
     </div>
   );
 }
+
+export default HomePage;
