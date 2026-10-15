@@ -7,7 +7,7 @@ import { Comment } from "../models/Comment.js";
 import { Activity } from "../models/Activity.js";
 import { Notification } from "../models/Notification.js";
 import { AppError } from "../middleware/error.js";
-import { escapeRegex } from "../lib/utils.js";
+import { escapeRegex, slugify } from "../lib/utils.js";
 import { getProjectEligibleDevelopers, concurrencyTestBarriers } from "./team.js";
 import {
   serializeProject,
@@ -60,6 +60,27 @@ export class ProjectService {
     return { valid: true, devIds: devUsers.map((u) => u._id) };
   }
 
+  private async syncRemovedTeamTaskAssignments(
+    projectId: mongoose.Types.ObjectId | string,
+    removedDevIds: string[],
+    session?: mongoose.ClientSession,
+  ): Promise<number> {
+    if (removedDevIds.length === 0) return 0;
+    if (concurrencyTestBarriers.simulateRemovalFailure) {
+      throw new Error("Simulated database failure during bulk task unassignment");
+    }
+    const updateResult = await Task.updateMany(
+      {
+        project: projectId,
+        assignedDeveloper: { $in: removedDevIds },
+        isCompleted: false,
+      },
+      { $set: { assignedDeveloper: null } },
+      session ? { session } : undefined,
+    );
+    return updateResult.modifiedCount || 0;
+  }
+
   async getProjects(query: { search?: any; priority?: any }): Promise<SerializedProject[]> {
     const { search, priority } = query;
     const filter: Record<string, any> = {};
@@ -93,12 +114,7 @@ export class ProjectService {
       // Lean projection scan to prevent memory exhaustion / DoS
       const allProjects = await Project.find({}, "_id title");
       const match = allProjects.find((p) => {
-        const slug = p.title
-          .toLowerCase()
-          .trim()
-          .replace(/[^\w\s-]/g, "")
-          .replace(/[\s_-]+/g, "-")
-          .replace(/^-+|-+$/g, "");
+        const slug = slugify(p.title);
         return slug === target || p.title.toLowerCase() === target;
       });
 
@@ -227,34 +243,38 @@ export class ProjectService {
         }
 
         if (removedDevIds.length > 0) {
-          if (concurrencyTestBarriers.simulateRemovalFailure) {
-            throw new Error("Simulated database failure during bulk task unassignment");
-          }
-          const updateResult = await Task.updateMany(
-            {
-              project: project._id,
-              assignedDeveloper: { $in: removedDevIds },
-              isCompleted: false,
-            },
-            { $set: { assignedDeveloper: null } },
-            { session },
+          unassignedTasksCount = await this.syncRemovedTeamTaskAssignments(
+            project._id,
+            removedDevIds,
+            session,
           );
-          unassignedTasksCount = updateResult.modifiedCount || 0;
         }
 
         await session.commitTransaction();
 
         // Post-commit sweep: ensures tasks created concurrently during snapshot are unassigned
         if (removedDevIds.length > 0) {
-          const postSweep = await Task.updateMany(
-            {
-              project: project._id,
-              assignedDeveloper: { $in: removedDevIds },
-              isCompleted: false,
-            },
-            { $set: { assignedDeveloper: null } },
-          );
-          unassignedTasksCount += postSweep.modifiedCount || 0;
+          try {
+            const postSweep = await Task.updateMany(
+              {
+                project: project._id,
+                assignedDeveloper: { $in: removedDevIds },
+                isCompleted: false,
+              },
+              { $set: { assignedDeveloper: null } },
+            );
+            unassignedTasksCount += postSweep.modifiedCount || 0;
+          } catch (sweepErr: any) {
+            console.error(
+              JSON.stringify({
+                level: "error",
+                message: "Post-commit sweep failed during team removal unassignment",
+                projectId: project._id.toString(),
+                removedDevIds,
+                error: sweepErr?.message || String(sweepErr),
+              }),
+            );
+          }
         }
       } catch (err: any) {
         if (session && session.inTransaction()) {
@@ -270,18 +290,10 @@ export class ProjectService {
 
           if (removedDevIds.length > 0) {
             try {
-              if (concurrencyTestBarriers.simulateRemovalFailure) {
-                throw new Error("Simulated database failure during bulk task unassignment");
-              }
-              const updateResult = await Task.updateMany(
-                {
-                  project: project._id,
-                  assignedDeveloper: { $in: removedDevIds },
-                  isCompleted: false,
-                },
-                { $set: { assignedDeveloper: null } },
+              unassignedTasksCount = await this.syncRemovedTeamTaskAssignments(
+                project._id,
+                removedDevIds,
               );
-              unassignedTasksCount = updateResult.modifiedCount || 0;
             } catch (updateErr) {
               project.team = oldTeamIds.map((id) => new mongoose.Types.ObjectId(id));
               await project.save();

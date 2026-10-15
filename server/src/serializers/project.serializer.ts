@@ -25,20 +25,10 @@ export function serializeProject(p: any): SerializedProject {
   };
 }
 
-export interface SerializedProjectMember {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  created_at: string;
-}
+import {
+  serializeMember as serializeProjectMember,
+  type SerializedMember as SerializedProjectMember,
+} from "./member.serializer.js";
 
-export function serializeProjectMember(u: any): SerializedProjectMember {
-  return {
-    id: u._id ? u._id.toString() : u.id ? u.id.toString() : "",
-    name: u.name,
-    email: u.email,
-    role: u.role,
-    created_at: u.createdAt instanceof Date ? u.createdAt.toISOString() : new Date(u.createdAt).toISOString(),
-  };
-}
+export { serializeProjectMember, type SerializedProjectMember };
+

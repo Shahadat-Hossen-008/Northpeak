@@ -1,6 +1,7 @@
 import { isValidObjectId } from "mongoose";
 import { Comment, type IComment } from "../models/Comment.js";
 import { Task } from "../models/Task.js";
+import { Project } from "../models/Project.js";
 import { Activity } from "../models/Activity.js";
 import { Notification } from "../models/Notification.js";
 import { AppError } from "../middleware/error.js";
@@ -117,10 +118,20 @@ export class CommentService {
     }
 
     const isAuthor = comment.author.toString() === user.id;
-    const isManager = user.role === "manager";
+    if (!isAuthor) {
+      if (user.role !== "manager") {
+        throw new AppError("Not authorized to delete this comment", 403);
+      }
 
-    if (!isAuthor && !isManager) {
-      throw new AppError("Not authorized to delete this comment", 403);
+      const task = await Task.findById(comment.task);
+      if (!task) {
+        throw new AppError("Task not found", 404);
+      }
+
+      const project = await Project.findById(task.project);
+      if (!project || project.manager.toString() !== user.id) {
+        throw new AppError("Not authorized to delete this comment", 403);
+      }
     }
 
     await comment.deleteOne();

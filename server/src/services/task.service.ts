@@ -32,7 +32,96 @@ export interface UpdateTaskInput {
   is_completed?: any;
 }
 
+export interface AssigneeResolution {
+  isDefined: boolean;
+  user: any | null;
+  id: string | null;
+}
+
 export class TaskService {
+  private async fetchPopulatedTask(taskId: any): Promise<SerializedTask> {
+    const populated = await Task.findById(taskId)
+      .populate("project", "title")
+      .populate("assignedDeveloper", "name email");
+    return serializeTask(populated);
+  }
+
+  private async validateAndResolveAssignee(
+    projectId: any,
+    assignedDevId?: string | null,
+  ): Promise<AssigneeResolution> {
+    if (assignedDevId === undefined) {
+      return { isDefined: false, user: null, id: null };
+    }
+
+    if (!assignedDevId || assignedDevId === "unassigned") {
+      return { isDefined: true, user: null, id: null };
+    }
+
+    if (!isValidObjectId(assignedDevId)) {
+      throw new AppError("Invalid developer ID", 400);
+    }
+
+    const devUser = await User.findById(assignedDevId);
+    if (!devUser) {
+      throw new AppError("Developer not found", 404);
+    }
+
+    if (devUser.role !== "developer") {
+      throw new AppError("Assigned user must have developer role", 400);
+    }
+
+    // Atomic project-team membership check coordinated with the project document
+    const projectWithMember = await Project.findOneAndUpdate(
+      {
+        _id: projectId,
+        team: devUser._id,
+      },
+      { $set: { updatedAt: new Date() } },
+      { new: true },
+    );
+
+    if (!projectWithMember) {
+      throw new AppError(
+        "Developer does not belong to the selected project's engineering team",
+        400,
+      );
+    }
+
+    return {
+      isDefined: true,
+      user: devUser,
+      id: devUser._id.toString(),
+    };
+  }
+
+  private applyTaskWorkflowState(
+    task: { status?: any; isCompleted?: any; completedAt?: any },
+    status?: string,
+    isCompletedInput?: any,
+  ): void {
+    if (status !== undefined && ["todo", "in_progress", "in_review", "done"].includes(status)) {
+      task.status = status as TaskWorkflowStatus;
+      if (status === "done") {
+        task.isCompleted = true;
+        if (!task.completedAt) task.completedAt = new Date();
+      } else {
+        task.isCompleted = false;
+        task.completedAt = null;
+      }
+    } else if (isCompletedInput !== undefined) {
+      const isCompleted = Boolean(isCompletedInput);
+      task.isCompleted = isCompleted;
+      if (isCompleted) {
+        if (!task.completedAt) task.completedAt = new Date();
+        task.status = "done";
+      } else {
+        task.completedAt = null;
+        task.status = "todo";
+      }
+    }
+  }
+
   async getTasks(query: any): Promise<SerializedTask[]> {
     const {
       project_id,
@@ -117,53 +206,24 @@ export class TaskService {
       throw new AppError("Not authorized to create tasks for this project", 403);
     }
 
-    let assignedDevId: string | null = null;
-    if (assigned_developer_id && assigned_developer_id !== "unassigned") {
-      if (!isValidObjectId(assigned_developer_id)) {
-        throw new AppError("Invalid developer ID", 400);
-      }
+    const assignee = await this.validateAndResolveAssignee(project._id, assigned_developer_id);
+    const assignedDevId = assignee.id;
 
-      const devUser = await User.findById(assigned_developer_id);
-      if (!devUser) {
-        throw new AppError("Developer not found", 404);
-      }
-
-      if (devUser.role !== "developer") {
-        throw new AppError("Assigned user must have developer role", 400);
-      }
-
-      // Atomic project-team membership check coordinated with the project document
-      const projectWithMember = await Project.findOneAndUpdate(
-        {
-          _id: project._id,
-          team: devUser._id,
-        },
-        { $set: { updatedAt: new Date() } },
-        { new: true },
-      );
-
-      if (!projectWithMember) {
-        throw new AppError(
-          "Developer does not belong to the selected project's engineering team",
-          400,
-        );
-      }
-
-      assignedDevId = devUser._id.toString();
-    }
-
-    const task = await Task.create({
+    const task = new Task({
       project: project._id,
       title: title.trim(),
       description: (description || "").trim(),
       assignedDeveloper: assignedDevId,
       deadline: deadline ? new Date(deadline) : null,
       priority: priority || "medium",
-      status:
-        status && ["todo", "in_progress", "in_review", "done"].includes(status) ? status : "todo",
-      isCompleted: status === "done",
-      completedAt: status === "done" ? new Date() : null,
+      status: "todo",
+      isCompleted: false,
+      completedAt: null,
     });
+    if (status) {
+      this.applyTaskWorkflowState(task, status);
+    }
+    await task.save();
 
     if (concurrencyTestBarriers.afterTaskCreateSave) {
       await concurrencyTestBarriers.afterTaskCreateSave();
@@ -206,11 +266,7 @@ export class TaskService {
       });
     }
 
-    const populated = await Task.findById(task._id)
-      .populate("project", "title")
-      .populate("assignedDeveloper", "name email");
-
-    return serializeTask(populated);
+    return this.fetchPopulatedTask(task._id);
   }
 
   async updateTask(
@@ -257,42 +313,9 @@ export class TaskService {
         throw new AppError("Not authorized to reassign this task", 403);
       }
 
-      if (!assigned_developer_id || assigned_developer_id === "unassigned") {
-        task.assignedDeveloper = null;
-      } else {
-        if (!isValidObjectId(assigned_developer_id)) {
-          throw new AppError("Invalid developer ID", 400);
-        }
-
-        const devUser = await User.findById(assigned_developer_id);
-        if (!devUser) {
-          throw new AppError("Developer not found", 404);
-        }
-
-        if (devUser.role !== "developer") {
-          throw new AppError("Assigned user must have developer role", 400);
-        }
-
-        // Atomic project-team membership check coordinated with the project document
-        const projectWithMember = await Project.findOneAndUpdate(
-          {
-            _id: task.project,
-            team: devUser._id,
-          },
-          { $set: { updatedAt: new Date() } },
-          { new: true },
-        );
-
-        if (!projectWithMember) {
-          throw new AppError(
-            "Developer does not belong to the selected project's engineering team",
-            400,
-          );
-        }
-
-        task.assignedDeveloper = devUser._id;
-        assignedDevUser = devUser;
-      }
+      const assignee = await this.validateAndResolveAssignee(task.project, assigned_developer_id);
+      task.assignedDeveloper = assignee.user ? assignee.user._id : null;
+      assignedDevUser = assignee.user;
     }
 
     // Managers can update all other task fields
@@ -304,20 +327,7 @@ export class TaskService {
     }
 
     // Both manager and assignee can update workflow status
-    if (status !== undefined && ["todo", "in_progress", "in_review", "done"].includes(status)) {
-      task.status = status as TaskWorkflowStatus;
-      if (status === "done") {
-        task.isCompleted = true;
-        if (!task.completedAt) task.completedAt = new Date();
-      } else {
-        task.isCompleted = false;
-        task.completedAt = null;
-      }
-    } else if (is_completed !== undefined) {
-      task.isCompleted = Boolean(is_completed);
-      task.completedAt = task.isCompleted ? new Date() : null;
-      task.status = task.isCompleted ? "done" : "todo";
-    }
+    this.applyTaskWorkflowState(task, status, is_completed);
 
     await task.save();
 
@@ -374,11 +384,7 @@ export class TaskService {
       });
     }
 
-    const populated = await Task.findById(task._id)
-      .populate("project", "title")
-      .populate("assignedDeveloper", "name email");
-
-    return serializeTask(populated);
+    return this.fetchPopulatedTask(task._id);
   }
 
   async toggleComplete(
@@ -408,11 +414,8 @@ export class TaskService {
       throw new AppError("Not authorized to update this task", 403);
     }
 
-    const isCompleted = Boolean(completed);
-
-    task.isCompleted = isCompleted;
-    task.completedAt = isCompleted ? new Date() : null;
-    task.status = isCompleted ? "done" : "todo";
+    this.applyTaskWorkflowState(task, undefined, completed);
+    const isCompleted = task.isCompleted;
     await task.save();
 
     await Activity.create({
@@ -422,11 +425,7 @@ export class TaskService {
       message: `${isCompleted ? "completed" : "reopened"} ${task.title}`,
     });
 
-    const populated = await Task.findById(task._id)
-      .populate("project", "title")
-      .populate("assignedDeveloper", "name email");
-
-    return serializeTask(populated);
+    return this.fetchPopulatedTask(task._id);
   }
 
   async deleteTask(

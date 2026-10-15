@@ -315,6 +315,20 @@ test("CHAR-PROJECTS: GET, POST, PATCH, DELETE /api/projects success, 401, 403, 4
     .set("Authorization", `Bearer ${devToken}`);
   assert.equal(single.status, 200);
 
+  // Slug lookup (case-insensitive & hyphenated title)
+  const slugRes = await request(app)
+    .get("/api/projects/e-commerce")
+    .set("Authorization", `Bearer ${devToken}`);
+  assert.equal(slugRes.status, 200);
+  assert.equal(slugRes.body.id, project._id.toString());
+  assert.equal(slugRes.body.title, "E-Commerce");
+
+  // Non-existent slug returns 404
+  const unknownSlugRes = await request(app)
+    .get("/api/projects/non-existent-project-slug")
+    .set("Authorization", `Bearer ${devToken}`);
+  assert.equal(unknownSlugRes.status, 404);
+
   // GET /api/projects/:id/members
   const membersRes = await request(app)
     .get(`/api/projects/${project._id}/members`)
@@ -365,7 +379,7 @@ test("CHAR-PROJECTS: GET, POST, PATCH, DELETE /api/projects success, 401, 403, 4
 // 14-19: Tasks Endpoints
 // ---------------------------------------------------------------------------
 test("CHAR-TASKS: GET, POST, PATCH, PATCH /complete, DELETE /api/tasks", async () => {
-  const { managerToken, devToken, otherDevToken, project, task, dev, manager } =
+  const { managerToken, devToken, otherDevToken, project, task, dev, otherDev, manager } =
     await createFixtures();
 
   // 401 without token
@@ -412,6 +426,31 @@ test("CHAR-TASKS: GET, POST, PATCH, PATCH /complete, DELETE /api/tasks", async (
     .send({ status: "done" });
   assert.equal(unauthPatch.status, 403);
 
+  // 403 Assigned developer cannot reassign developer
+  const devReassign = await request(app)
+    .patch(`/api/tasks/${task._id}`)
+    .set("Authorization", `Bearer ${devToken}`)
+    .send({ assigned_developer_id: otherDev._id.toString() });
+  assert.equal(devReassign.status, 403);
+  assert.equal(devReassign.body.message, "Not authorized to reassign this task");
+
+  // 200 Manager unassigns task with 'unassigned' on separate task
+  const tempTask = await Task.create({
+    project: project._id,
+    title: "Temp Assignee Task",
+    assignedDeveloper: dev._id,
+    priority: "low",
+    status: "todo",
+  });
+  const unassignPatch = await request(app)
+    .patch(`/api/tasks/${tempTask._id}`)
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({ assigned_developer_id: "unassigned" });
+  assert.equal(unassignPatch.status, 200);
+  assert.equal(unassignPatch.body.assigned_developer_id, null);
+  assert.equal(unassignPatch.body.assignee, null);
+  await Task.findByIdAndDelete(tempTask._id);
+
   // 200 Assignee updates status
   const assigneePatch = await request(app)
     .patch(`/api/tasks/${task._id}`)
@@ -422,18 +461,104 @@ test("CHAR-TASKS: GET, POST, PATCH, PATCH /complete, DELETE /api/tasks", async (
   const statusAct = await Activity.findOne({ task: task._id, message: /moved .* to in review/ });
   assert.ok(statusAct, "Status change must record move activity");
 
-  // 200 Complete toggle
+  // 200 Complete toggle (completed: true)
   const completeToggle = await request(app)
     .patch(`/api/tasks/${task._id}/complete`)
     .set("Authorization", `Bearer ${devToken}`)
     .send({ completed: true });
   assert.equal(completeToggle.status, 200);
   assert.equal(completeToggle.body.is_completed, true);
+  assert.equal(completeToggle.body.status, "done");
+  assert.ok(completeToggle.body.completed_at);
   const completeAct = await Activity.findOne({
     task: task._id,
     message: `completed ${task.title}`,
   });
   assert.ok(completeAct, "Completion must record activity");
+
+  // 200 Reopen toggle (completed: false)
+  const reopenToggle = await request(app)
+    .patch(`/api/tasks/${task._id}/complete`)
+    .set("Authorization", `Bearer ${devToken}`)
+    .send({ completed: false });
+  assert.equal(reopenToggle.status, 200);
+  assert.equal(reopenToggle.body.is_completed, false);
+  assert.equal(reopenToggle.body.status, "todo");
+  assert.equal(reopenToggle.body.completed_at, null);
+  const reopenAct = await Activity.findOne({
+    task: task._id,
+    message: `reopened ${task.title}`,
+  });
+  assert.ok(reopenAct, "Reopening must record activity");
+
+  // 200 Setting status directly to 'done' sets is_completed and completed_at
+  const donePatch = await request(app)
+    .patch(`/api/tasks/${task._id}`)
+    .set("Authorization", `Bearer ${devToken}`)
+    .send({ status: "done" });
+  assert.equal(donePatch.status, 200);
+  assert.equal(donePatch.body.status, "done");
+  assert.equal(donePatch.body.is_completed, true);
+  assert.ok(donePatch.body.completed_at);
+
+  // 200 Setting status back to 'in_progress' clears is_completed and completed_at
+  const reopenStatusPatch = await request(app)
+    .patch(`/api/tasks/${task._id}`)
+    .set("Authorization", `Bearer ${devToken}`)
+    .send({ status: "in_progress" });
+  assert.equal(reopenStatusPatch.status, 200);
+  assert.equal(reopenStatusPatch.body.status, "in_progress");
+  assert.equal(reopenStatusPatch.body.is_completed, false);
+  assert.equal(reopenStatusPatch.body.completed_at, null);
+
+  // 200 Setting is_completed boolean via task update
+  const boolPatch = await request(app)
+    .patch(`/api/tasks/${task._id}`)
+    .set("Authorization", `Bearer ${devToken}`)
+    .send({ is_completed: true });
+  assert.equal(boolPatch.status, 200);
+  assert.equal(boolPatch.body.is_completed, true);
+  assert.equal(boolPatch.body.status, "done");
+  const originalCompletedAt = boolPatch.body.completed_at;
+  assert.ok(originalCompletedAt);
+
+  // 200 Re-applying status 'done' preserves original completed_at timestamp
+  const doneRepeat = await request(app)
+    .patch(`/api/tasks/${task._id}`)
+    .set("Authorization", `Bearer ${devToken}`)
+    .send({ status: "done" });
+  assert.equal(doneRepeat.status, 200);
+  assert.equal(
+    doneRepeat.body.completed_at,
+    originalCompletedAt,
+    "Re-applying status done must preserve existing completion timestamp",
+  );
+
+  // 200 Re-applying completed: true via /complete preserves original completed_at timestamp
+  const completeRepeat = await request(app)
+    .patch(`/api/tasks/${task._id}/complete`)
+    .set("Authorization", `Bearer ${devToken}`)
+    .send({ completed: true });
+  assert.equal(completeRepeat.status, 200);
+  assert.equal(
+    completeRepeat.body.completed_at,
+    originalCompletedAt,
+    "Duplicate complete toggle must preserve existing completion timestamp",
+  );
+
+  // 200 Moving status to 'in_review' clears completion timestamp
+  const inReviewPatch = await request(app)
+    .patch(`/api/tasks/${task._id}`)
+    .set("Authorization", `Bearer ${devToken}`)
+    .send({ status: "in_review" });
+  assert.equal(inReviewPatch.status, 200);
+  assert.equal(inReviewPatch.body.status, "in_review");
+  assert.equal(inReviewPatch.body.is_completed, false);
+  assert.equal(
+    inReviewPatch.body.completed_at,
+    null,
+    "Transitioning away from done must clear completed_at",
+  );
 
   // 200 Manager delete task
   const del = await request(app)
@@ -507,7 +632,7 @@ test("CHAR-SUBTASKS: GET, POST, PATCH, DELETE /api/subtasks", async () => {
 // 25-28: Comments Endpoints
 // ---------------------------------------------------------------------------
 test("CHAR-COMMENTS: GET counts, GET /task, POST, DELETE /api/comments", async () => {
-  const { devToken, task, comment } = await createFixtures();
+  const { devToken, managerToken, otherDevToken, task, comment } = await createFixtures();
 
   // 401 without token
   assert.equal((await request(app).get("/api/comments/counts")).status, 401);
@@ -542,13 +667,45 @@ test("CHAR-COMMENTS: GET counts, GET /task, POST, DELETE /api/comments", async (
   });
   assert.ok(commentNotif, "Comment creation must record notification");
 
-  // 200 Delete comment
-  const del = await request(app)
+  // 403 Non-author developer cannot delete comment
+  const unauthDevDel = await request(app)
     .delete(`/api/comments/${create.body.id}`)
+    .set("Authorization", `Bearer ${otherDevToken}`);
+  assert.equal(unauthDevDel.status, 403);
+  assert.equal(unauthDevDel.body.message, "Not authorized to delete this comment");
+
+  // 403 Other manager cannot delete comment on this project's task
+  const otherManager = await User.create({
+    name: "Other Manager",
+    email: "othermgr@northpeak.dev",
+    passwordHash: "hash",
+    role: "manager",
+  });
+  const otherManagerToken = generateToken({
+    id: otherManager._id.toString(),
+    email: otherManager.email,
+    role: "manager",
+    name: otherManager.name,
+  });
+  const crossManagerDel = await request(app)
+    .delete(`/api/comments/${create.body.id}`)
+    .set("Authorization", `Bearer ${otherManagerToken}`);
+  assert.equal(crossManagerDel.status, 403);
+  assert.equal(crossManagerDel.body.message, "Not authorized to delete this comment");
+
+  // 200 Project manager owning the project CAN delete developer's comment
+  const managerDel = await request(app)
+    .delete(`/api/comments/${create.body.id}`)
+    .set("Authorization", `Bearer ${managerToken}`);
+  assert.equal(managerDel.status, 200);
+  assert.equal(await Comment.findById(create.body.id), null, "Project manager must be able to delete comment");
+
+  // 200 Comment author CAN delete their own comment
+  const authorDel = await request(app)
+    .delete(`/api/comments/${comment._id}`)
     .set("Authorization", `Bearer ${devToken}`);
-  assert.equal(del.status, 200);
-  const deletedComment = await Comment.findById(create.body.id);
-  assert.equal(deletedComment, null, "Comment must be deleted");
+  assert.equal(authorDel.status, 200);
+  assert.equal(await Comment.findById(comment._id), null, "Comment author must be able to delete comment");
 });
 
 // ---------------------------------------------------------------------------
