@@ -16,11 +16,11 @@ export function WorkflowStatusBadge({ status, onSelect, disabled }: WorkflowStat
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium",
+          "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs sm:text-sm font-medium",
           current.badgeStyle,
         )}
       >
-        <span className={cn("size-1.5 rounded-full", current.dotColor)} />
+        <span className={cn("size-2 rounded-full", current.dotColor)} />
         {current.title}
       </span>
     );
@@ -31,16 +31,16 @@ export function WorkflowStatusBadge({ status, onSelect, disabled }: WorkflowStat
       <DropdownMenuTrigger
         disabled={disabled}
         className={cn(
-          "group/status inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary",
+          "group/status inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs sm:text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary",
           current.badgeStyle,
           disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:opacity-85",
         )}
       >
-        <span className={cn("size-1.5 rounded-full shrink-0", current.dotColor)} />
+        <span className={cn("size-2 rounded-full shrink-0", current.dotColor)} />
         <span>{current.title}</span>
-        <ChevronDown className="size-3 opacity-60 transition-transform group-hover/status:opacity-100" />
+        <ChevronDown className="size-3.5 opacity-60 transition-transform group-hover/status:opacity-100" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-36 p-1">
+      <DropdownMenuContent align="start" className="w-40 p-1">
         {WORKFLOW_COLUMNS.map((col) => {
           const isSelected = col.key === status;
           return (
@@ -48,7 +48,7 @@ export function WorkflowStatusBadge({ status, onSelect, disabled }: WorkflowStat
               key={col.key}
               onClick={() => onSelect(col.key)}
               className={cn(
-                "flex items-center justify-between text-xs font-medium cursor-pointer py-1.5 px-2",
+                "flex items-center justify-between text-xs sm:text-sm font-medium cursor-pointer py-2 px-2.5",
                 isSelected ? "bg-accent text-accent-foreground font-semibold" : "",
               )}
             >

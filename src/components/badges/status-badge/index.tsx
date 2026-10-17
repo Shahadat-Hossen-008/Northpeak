@@ -11,12 +11,12 @@ export function StatusBadge({ state, className }: StatusBadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 sm:px-3 py-1 text-xs sm:text-sm font-semibold whitespace-nowrap",
         style,
         className,
       )}
     >
-      <Icon className="size-3.5" aria-hidden />
+      <Icon className="size-3.5 sm:size-4 shrink-0" aria-hidden />
       {label}
     </span>
   );

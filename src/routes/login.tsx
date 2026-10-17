@@ -86,7 +86,7 @@ function LoginPage() {
             placeholder="you@company.com"
             aria-invalid={Boolean(errors.email)}
           />
-          {errors.email ? <p className="text-xs text-danger">{errors.email}</p> : null}
+          {errors.email ? <p className="text-xs sm:text-sm text-danger">{errors.email}</p> : null}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="password">Password</Label>
@@ -99,15 +99,17 @@ function LoginPage() {
             placeholder="••••••••"
             aria-invalid={Boolean(errors.password)}
           />
-          {errors.password ? <p className="text-xs text-danger">{errors.password}</p> : null}
+          {errors.password ? (
+            <p className="text-xs sm:text-sm text-danger">{errors.password}</p>
+          ) : null}
         </div>
         <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <label className="flex items-center gap-2 text-sm sm:text-base text-muted-foreground">
             <Checkbox checked={remember} onCheckedChange={(v) => setRemember(Boolean(v))} />
             Remember me
           </label>
         </div>
-        <Button type="submit" className="w-full" disabled={submitting}>
+        <Button type="submit" size="lg" className="w-full" disabled={submitting}>
           {submitting ? "Signing in…" : "Sign in"}
         </Button>
       </form>

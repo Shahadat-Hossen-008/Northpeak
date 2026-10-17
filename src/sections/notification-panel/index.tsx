@@ -51,7 +51,7 @@ export function NotificationPanel({ className }: NotificationPanelProps = {}) {
   return (
     <div className={cn("space-y-4", className)}>
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm sm:text-base text-muted-foreground">
           {unreadIds.length} unread of {items.length}
         </p>
         <Button
@@ -63,7 +63,7 @@ export function NotificationPanel({ className }: NotificationPanelProps = {}) {
           Mark all as read
         </Button>
       </div>
-      <ul className="space-y-2">
+      <ul className="space-y-2.5">
         {items.map((item) => {
           const Icon = ICONS[item.kind] ?? Bell;
           const notifProject = item.project_id
@@ -82,7 +82,7 @@ export function NotificationPanel({ className }: NotificationPanelProps = {}) {
             <li
               key={item.id}
               className={cn(
-                "flex items-start gap-3 rounded-xl border px-4 py-3 transition-colors",
+                "flex items-start gap-3.5 rounded-xl border px-4 py-3.5 transition-colors",
                 item.is_read
                   ? "border-border bg-card"
                   : "border-primary/30 bg-primary-soft/50 shadow-card",
@@ -90,23 +90,25 @@ export function NotificationPanel({ className }: NotificationPanelProps = {}) {
             >
               <span
                 className={cn(
-                  "mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg",
+                  "mt-0.5 inline-flex size-9.5 shrink-0 items-center justify-center rounded-lg",
                   TONES[item.kind] ?? "bg-secondary text-secondary-foreground",
                 )}
               >
-                <Icon className="size-4" aria-hidden />
+                <Icon className="size-4.5" aria-hidden />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   {targetHref ? (
                     <Link
                       to={targetHref}
-                      className="text-sm font-semibold text-foreground hover:text-primary transition-colors underline-offset-2 hover:underline"
+                      className="text-sm sm:text-base font-semibold text-foreground hover:text-primary transition-colors underline-offset-2 hover:underline"
                     >
                       {item.title}
                     </Link>
                   ) : (
-                    <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                    <p className="text-sm sm:text-base font-semibold text-foreground">
+                      {item.title}
+                    </p>
                   )}
                   {!item.is_read ? (
                     <span
@@ -116,9 +118,13 @@ export function NotificationPanel({ className }: NotificationPanelProps = {}) {
                   ) : null}
                 </div>
                 {item.body ? (
-                  <p className="mt-0.5 text-sm text-muted-foreground">{item.body}</p>
+                  <p className="mt-1 text-sm sm:text-base text-muted-foreground leading-relaxed">
+                    {item.body}
+                  </p>
                 ) : null}
-                <p className="mt-1 text-xs text-muted-foreground">{timeAgo(item.created_at)}</p>
+                <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+                  {timeAgo(item.created_at)}
+                </p>
               </div>
               {!item.is_read ? (
                 <Button variant="ghost" size="sm" onClick={() => mark.mutate([item.id])}>

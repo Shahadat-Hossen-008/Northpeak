@@ -79,9 +79,13 @@ export function TaskDetail({ taskId, backHref }: TaskDetailProps) {
       <div className={cn("surface-card border p-6", borderForState(state))}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <p className="text-sm font-medium text-muted-foreground">{task.project?.title}</p>
-            <h1 className="mt-1 text-2xl font-bold text-foreground">{task.title}</h1>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            <p className="text-sm sm:text-base font-medium text-muted-foreground">
+              {task.project?.title}
+            </p>
+            <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              {task.title}
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm sm:text-base text-muted-foreground leading-relaxed">
               {task.description || "No description provided."}
             </p>
           </div>
@@ -128,8 +132,8 @@ export function TaskDetail({ taskId, backHref }: TaskDetailProps) {
 
         <dl className="mt-6 grid gap-4 border-t border-border pt-5 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <dt className="text-xs text-muted-foreground">Developer</dt>
-            <dd className="mt-1 flex items-center gap-2 text-sm font-medium">
+            <dt className="text-xs sm:text-sm text-muted-foreground">Developer</dt>
+            <dd className="mt-1 flex items-center gap-2 text-sm sm:text-base font-medium">
               {task.assignee ? (
                 <>
                   <UserAvatar name={task.assignee.name} size="sm" />
@@ -141,30 +145,32 @@ export function TaskDetail({ taskId, backHref }: TaskDetailProps) {
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">Priority</dt>
+            <dt className="text-xs sm:text-sm text-muted-foreground">Priority</dt>
             <dd className="mt-1">
               <PriorityBadge priority={task.priority} />
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">Deadline</dt>
-            <dd className="tabular mt-1 text-sm font-medium">{formatDate(task.deadline)}</dd>
+            <dt className="text-xs sm:text-sm text-muted-foreground">Deadline</dt>
+            <dd className="tabular mt-1 text-sm sm:text-base font-medium">
+              {formatDate(task.deadline)}
+            </dd>
             <DeadlineBadge deadline={task.deadline} state={state} />
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">Progress</dt>
+            <dt className="text-xs sm:text-sm text-muted-foreground">Progress</dt>
             <dd className="mt-2 flex items-center gap-2.5">
               <CircularProgress
                 value={progress}
-                size={36}
-                strokeWidth={3.5}
+                size={38}
+                strokeWidth={4}
                 ariaLabel={`Task progress: ${progress}%`}
               />
               <div className="min-w-0">
-                <span className="tabular text-xs font-semibold text-foreground block">
+                <span className="tabular text-xs sm:text-sm font-semibold text-foreground block">
                   {progress}%
                 </span>
-                <span className="text-[11px] text-muted-foreground block">
+                <span className="text-xs sm:text-[13px] text-muted-foreground block">
                   {task.is_completed ? "Completed" : progress > 0 ? "In progress" : "Not started"}
                 </span>
               </div>

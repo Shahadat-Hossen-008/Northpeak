@@ -99,7 +99,7 @@ export function TaskBoard({
                 setDraggedTaskId(null);
               }}
               className={cn(
-                "flex flex-col w-75 sm:w-[320px] md:w-85 shrink-0 rounded-xl border border-border/80 p-3.5 transition-all min-h-125",
+                "flex flex-col w-75 sm:w-[330px] md:w-[350px] shrink-0 rounded-xl border border-border/80 p-3.5 sm:p-4 transition-all min-h-125",
                 column.columnBg,
                 isDragOver ? "ring-2 ring-primary border-primary/50 bg-primary/8" : "",
               )}
@@ -108,11 +108,11 @@ export function TaskBoard({
               <header className="flex items-center justify-between px-1 pb-3 mb-2 border-b border-border/60">
                 <div className="flex items-center gap-2">
                   <span className={cn("size-2.5 rounded-full shrink-0", column.dotColor)} />
-                  <h3 className="text-xs font-bold tracking-wider text-foreground uppercase">
+                  <h3 className="text-xs sm:text-sm font-bold tracking-wider text-foreground uppercase">
                     {column.title}
                   </h3>
                 </div>
-                <span className="tabular rounded-full bg-card border border-border/60 px-2 py-0.5 text-xs font-semibold text-muted-foreground shadow-xs">
+                <span className="tabular rounded-full bg-card border border-border/60 px-2.5 py-0.5 text-xs sm:text-sm font-semibold text-muted-foreground shadow-xs">
                   {column.tasks.length}
                 </span>
               </header>
@@ -126,10 +126,10 @@ export function TaskBoard({
                       isDragOver ? "border-primary bg-primary/10" : "bg-card/40",
                     )}
                   >
-                    <p className="text-xs font-medium text-muted-foreground">
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">
                       {isDragOver ? "Release to drop task here" : "No tasks in this column"}
                     </p>
-                    <p className="mt-1 text-[11px] text-muted-foreground/70">
+                    <p className="mt-1 text-xs sm:text-[13px] text-muted-foreground/75">
                       Drag tasks here or use status menu
                     </p>
                   </div>
@@ -160,9 +160,9 @@ export function TaskBoard({
                 <button
                   type="button"
                   onClick={() => onAddTask(column.key)}
-                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border/70 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-card hover:text-foreground cursor-pointer"
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border/70 py-2.5 text-xs sm:text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-card hover:text-foreground cursor-pointer"
                 >
-                  <Plus className="size-3.5" />
+                  <Plus className="size-4" />
                   Add task
                 </button>
               ) : null}

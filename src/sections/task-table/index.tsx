@@ -28,16 +28,16 @@ export function TaskTable({ tasks, subtasks, hrefFor, onDelete }: TaskTableProps
     <>
       {/* Desktop table */}
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm sm:text-base">
           <thead>
-            <tr className="border-b border-border text-left text-xs tracking-wide text-muted-foreground uppercase">
-              <th className="px-3 py-3 font-semibold">Task</th>
-              <th className="px-3 py-3 font-semibold">Developer</th>
-              <th className="px-3 py-3 font-semibold">Priority</th>
-              <th className="px-3 py-3 font-semibold">Deadline</th>
-              <th className="px-3 py-3 font-semibold">Progress</th>
-              <th className="px-3 py-3 font-semibold">Status</th>
-              <th className="px-3 py-3 text-right font-semibold">Actions</th>
+            <tr className="border-b border-border text-left text-xs sm:text-sm tracking-wider text-muted-foreground uppercase">
+              <th className="px-3.5 py-3.5 font-semibold">Task</th>
+              <th className="px-3.5 py-3.5 font-semibold">Developer</th>
+              <th className="px-3.5 py-3.5 font-semibold">Priority</th>
+              <th className="px-3.5 py-3.5 font-semibold">Deadline</th>
+              <th className="px-3.5 py-3.5 font-semibold">Progress</th>
+              <th className="px-3.5 py-3.5 font-semibold">Status</th>
+              <th className="px-3.5 py-3.5 text-right font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -50,49 +50,53 @@ export function TaskTable({ tasks, subtasks, hrefFor, onDelete }: TaskTableProps
                   key={task.id}
                   className="border-b border-border/70 last:border-0 hover:bg-secondary/60"
                 >
-                  <td className="px-3 py-3">
+                  <td className="px-3.5 py-3.5">
                     <Link
                       to={hrefFor(task)}
-                      className="font-semibold text-foreground hover:text-primary transition-colors"
+                      className="font-semibold text-foreground hover:text-primary transition-colors text-sm sm:text-base"
                     >
                       {task.title}
                     </Link>
-                    <p className="text-xs text-muted-foreground">{task.project?.title}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      {task.project?.title}
+                    </p>
                   </td>
-                  <td className="px-3 py-3">
+                  <td className="px-3.5 py-3.5">
                     {task.assignee ? (
                       <span className="flex items-center gap-2">
                         <UserAvatar name={task.assignee.name} size="sm" />
-                        <span className="text-sm">{task.assignee.name}</span>
+                        <span className="text-sm sm:text-base">{task.assignee.name}</span>
                       </span>
                     ) : (
-                      <span className="text-sm text-muted-foreground">Unassigned</span>
+                      <span className="text-sm sm:text-base text-muted-foreground">Unassigned</span>
                     )}
                   </td>
-                  <td className="px-3 py-3">
+                  <td className="px-3.5 py-3.5">
                     <PriorityBadge priority={task.priority} />
                   </td>
-                  <td className="px-3 py-3">
-                    <span className="tabular block text-sm">{formatDate(task.deadline)}</span>
+                  <td className="px-3.5 py-3.5">
+                    <span className="tabular block text-sm sm:text-base">
+                      {formatDate(task.deadline)}
+                    </span>
                     <DeadlineBadge deadline={task.deadline} state={state} />
                   </td>
-                  <td className="px-3 py-3">
+                  <td className="px-3.5 py-3.5">
                     <div className="flex items-center gap-2.5">
                       <CircularProgress
                         value={progress}
-                        size={34}
-                        strokeWidth={3.5}
+                        size={36}
+                        strokeWidth={4}
                         ariaLabel={`Progress: ${progress}%`}
                       />
                       <div className="min-w-0">
-                        <span className="tabular text-xs font-semibold text-foreground block">
+                        <span className="tabular text-xs sm:text-sm font-semibold text-foreground block">
                           {task.is_completed
                             ? "100% complete"
                             : total > 0
                               ? `${done}/${total} subtasks`
                               : `${progress}%`}
                         </span>
-                        <span className="text-[11px] text-muted-foreground block">
+                        <span className="text-xs sm:text-[13px] text-muted-foreground block">
                           {task.is_completed
                             ? "Completed"
                             : progress > 0

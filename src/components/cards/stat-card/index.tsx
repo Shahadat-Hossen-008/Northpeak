@@ -11,17 +11,20 @@ export function StatCard({ label, value, icon: Icon, tone = "neutral", hint }: S
   }[tone];
 
   return (
-    <div className="surface-card p-5">
+    <div className="surface-card p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <p className="tabular mt-2 text-3xl font-bold text-foreground">{value}</p>
-          {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
+          <p className="text-sm sm:text-base font-medium text-muted-foreground">{label}</p>
+          <p className="tabular mt-2 text-3xl sm:text-4xl font-bold text-foreground">{value}</p>
+          {hint ? <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground">{hint}</p> : null}
         </div>
         <span
-          className={cn("inline-flex size-10 items-center justify-center rounded-lg", toneClass)}
+          className={cn(
+            "inline-flex size-11 items-center justify-center rounded-xl shrink-0",
+            toneClass,
+          )}
         >
-          <Icon className="size-5" aria-hidden />
+          <Icon className="size-5 sm:size-5.5" aria-hidden />
         </span>
       </div>
     </div>

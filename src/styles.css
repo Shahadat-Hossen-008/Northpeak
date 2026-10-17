@@ -178,18 +178,25 @@
     border-color: var(--color-border);
   }
 
+  html {
+    /* Fluid responsive root scale: 15px at 375px mobile, scaling smoothly to 16px at 1024px laptop and 17px on 1440px-1920px+ monitors */
+    font-size: clamp(15px, 0.925rem + 0.22vw, 17px);
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    line-height: 1.5;
   }
 
   h1,
   h2,
   h3,
   h4 {
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
   }
 }
 

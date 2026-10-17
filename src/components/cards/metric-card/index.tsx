@@ -13,24 +13,24 @@ export function DashboardMetricCard({
   return (
     <div
       className={cn(
-        "surface-card p-5 flex flex-col items-center justify-between text-center transition-all min-h-[175px]",
+        "surface-card p-5 sm:p-6 flex flex-col items-center justify-between text-center transition-all min-h-[185px]",
         className,
       )}
     >
-      <h4 className="text-sm font-semibold text-foreground tracking-tight">{title}</h4>
+      <h4 className="text-sm sm:text-base font-semibold text-foreground tracking-tight">{title}</h4>
 
-      <div className="my-2.5 flex items-center justify-center">
+      <div className="my-3 flex items-center justify-center">
         <CircularProgress
           value={value}
-          size={74}
-          strokeWidth={6}
+          size={78}
+          strokeWidth={6.5}
           tone={tone}
           strokeColor={strokeColor}
           ariaLabel={`${title}: ${value}%`}
         />
       </div>
 
-      <p className="text-xs font-medium text-muted-foreground tabular tracking-tight">
+      <p className="text-xs sm:text-sm font-medium text-muted-foreground tabular tracking-tight">
         {countSummary}
       </p>
     </div>

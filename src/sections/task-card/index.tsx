@@ -45,7 +45,7 @@ export function TaskCard({
         onDragEnd?.(e);
       }}
       className={cn(
-        "surface-card group rounded-xl border p-3.5 transition-all duration-150 select-none shadow-xs",
+        "surface-card group rounded-xl border p-4 sm:p-4.5 transition-all duration-150 select-none shadow-xs",
         borderForState(state),
         isDraggable
           ? "cursor-grab active:cursor-grabbing hover:shadow-card hover:-translate-y-0.5 hover:border-primary/40"
@@ -54,11 +54,11 @@ export function TaskCard({
       )}
     >
       {/* Top Header: Grip Handle, Workflow Status Badge, and Toggle Checkbox */}
-      <div className="flex items-center justify-between gap-2 mb-2">
+      <div className="flex items-center justify-between gap-2 mb-2.5">
         <div className="flex items-center gap-1.5 min-w-0">
           {isDraggable ? (
             <span className="text-muted-foreground/40 group-hover:text-muted-foreground transition-colors cursor-grab shrink-0">
-              <GripVertical className="size-3.5" />
+              <GripVertical className="size-4" />
             </span>
           ) : null}
           <WorkflowStatusBadge status={currentWorkflowStatus} onSelect={onMoveStatus} />
@@ -75,43 +75,43 @@ export function TaskCard({
       </div>
 
       {/* Title & Content: Natural vertical expansion */}
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <Link
           to={href}
-          className="block font-semibold text-foreground hover:text-primary transition-colors text-sm leading-snug wrap-break-word"
+          className="block font-semibold text-foreground hover:text-primary transition-colors text-sm sm:text-base leading-snug wrap-break-word"
         >
           {task.title}
         </Link>
         {task.description ? (
-          <p className="text-xs text-muted-foreground/80 line-clamp-2 leading-relaxed wrap-break-word">
+          <p className="text-xs sm:text-sm text-muted-foreground/85 line-clamp-2 leading-relaxed wrap-break-word">
             {task.description}
           </p>
         ) : null}
         {task.project?.title ? (
-          <div className="pt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <FolderKanban className="size-3 text-muted-foreground/60 shrink-0" />
+          <div className="pt-0.5 flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+            <FolderKanban className="size-3.5 text-muted-foreground/60 shrink-0" />
             <span className="truncate font-medium">{task.project.title}</span>
           </div>
         ) : null}
       </div>
 
       {/* Badges: Priority + Deadline Status */}
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+      <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
         <PriorityBadge priority={task.priority} />
         <StatusBadge state={state} />
       </div>
 
       {/* Progress & Subtasks */}
-      <div className="mt-3 flex items-center justify-between gap-2">
+      <div className="mt-3.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <CircularProgress
             value={progress}
-            size={26}
-            strokeWidth={3}
+            size={28}
+            strokeWidth={3.5}
             showValue={false}
             ariaLabel={`Progress: ${progress}%`}
           />
-          <span className="tabular text-xs font-medium text-muted-foreground truncate">
+          <span className="tabular text-xs sm:text-sm font-medium text-muted-foreground truncate">
             {total > 0 ? `${done}/${total} subtasks` : `${progress}%`}
           </span>
         </div>
@@ -119,16 +119,16 @@ export function TaskCard({
       </div>
 
       {/* Footer: Assignee & Comments */}
-      <div className="mt-3 flex items-center justify-between border-t border-border/70 pt-2.5">
+      <div className="mt-3.5 flex items-center justify-between border-t border-border/70 pt-2.5">
         {task.assignee ? (
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+          <span className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground min-w-0">
             <UserAvatar name={task.assignee.name} size="sm" />
             <span className="truncate">{task.assignee.name}</span>
           </span>
         ) : (
-          <span className="text-xs text-muted-foreground">Unassigned</span>
+          <span className="text-xs sm:text-sm text-muted-foreground">Unassigned</span>
         )}
-        <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+        <span className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground shrink-0">
           <MessageSquare className="size-3.5" aria-hidden />
           {commentCount}
         </span>
