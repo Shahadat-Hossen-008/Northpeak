@@ -29,8 +29,15 @@ export interface UpdateTaskInput {
   deadline?: string | null;
   priority?: any;
   status?: string;
-  is_completed?: any;
+  is_completed?: unknown;
 }
+
+const TASK_WORKFLOW_STATUSES: TaskWorkflowStatus[] = [
+  "todo",
+  "in_progress",
+  "in_review",
+  "done",
+];
 
 export interface AssigneeResolution {
   isDefined: boolean;
@@ -96,12 +103,12 @@ export class TaskService {
   }
 
   private applyTaskWorkflowState(
-    task: { status?: any; isCompleted?: any; completedAt?: any },
-    status?: string,
-    isCompletedInput?: any,
+    task: Pick<ITask, "status" | "isCompleted" | "completedAt">,
+    status?: TaskWorkflowStatus,
+    isCompletedInput?: boolean,
   ): void {
-    if (status !== undefined && ["todo", "in_progress", "in_review", "done"].includes(status)) {
-      task.status = status as TaskWorkflowStatus;
+    if (status !== undefined) {
+      task.status = status;
       if (status === "done") {
         task.isCompleted = true;
         if (!task.completedAt) task.completedAt = new Date();
@@ -110,9 +117,8 @@ export class TaskService {
         task.completedAt = null;
       }
     } else if (isCompletedInput !== undefined) {
-      const isCompleted = Boolean(isCompletedInput);
-      task.isCompleted = isCompleted;
-      if (isCompleted) {
+      task.isCompleted = isCompletedInput;
+      if (isCompletedInput) {
         if (!task.completedAt) task.completedAt = new Date();
         task.status = "done";
       } else {
@@ -120,6 +126,37 @@ export class TaskService {
         task.status = "todo";
       }
     }
+  }
+
+  private parseWorkflowStatus(status: string): TaskWorkflowStatus {
+    if (!TASK_WORKFLOW_STATUSES.includes(status as TaskWorkflowStatus)) {
+      throw new AppError(
+        `Invalid task status. Expected one of: ${TASK_WORKFLOW_STATUSES.join(", ")}`,
+        400,
+      );
+    }
+
+    return status as TaskWorkflowStatus;
+  }
+
+  private parseOptionalBoolean(value: unknown, fieldName: string): boolean | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    if (typeof value !== "boolean") {
+      throw new AppError(`${fieldName} must be a boolean`, 400);
+    }
+
+    return value;
+  }
+
+  private parseRequiredBoolean(value: unknown, fieldName: string): boolean {
+    if (typeof value !== "boolean") {
+      throw new AppError(`${fieldName} must be a boolean`, 400);
+    }
+
+    return value;
   }
 
   async getTasks(query: any): Promise<SerializedTask[]> {
@@ -206,6 +243,7 @@ export class TaskService {
       throw new AppError("Not authorized to create tasks for this project", 403);
     }
 
+    const parsedStatus = status === undefined ? undefined : this.parseWorkflowStatus(status);
     const assignee = await this.validateAndResolveAssignee(project._id, assigned_developer_id);
     const assignedDevId = assignee.id;
 
@@ -220,8 +258,8 @@ export class TaskService {
       isCompleted: false,
       completedAt: null,
     });
-    if (status) {
-      this.applyTaskWorkflowState(task, status);
+    if (parsedStatus !== undefined) {
+      this.applyTaskWorkflowState(task, parsedStatus);
     }
     await task.save();
 
@@ -305,6 +343,8 @@ export class TaskService {
 
     const previousAssignee = task.assignedDeveloper?.toString();
     const previousStatus = task.status;
+    const parsedCompleted = this.parseOptionalBoolean(is_completed, "is_completed");
+    const parsedStatus = status === undefined ? undefined : this.parseWorkflowStatus(status);
 
     let assignedDevUser: any = null;
     // Check developer reassignment authorization & project team membership
@@ -327,7 +367,7 @@ export class TaskService {
     }
 
     // Both manager and assignee can update workflow status
-    this.applyTaskWorkflowState(task, status, is_completed);
+    this.applyTaskWorkflowState(task, parsedStatus, parsedCompleted);
 
     await task.save();
 
@@ -390,7 +430,7 @@ export class TaskService {
   async toggleComplete(
     taskId: string,
     user: AuthUserPayload,
-    completed: any,
+    completed: unknown,
   ): Promise<SerializedTask> {
     if (!isValidObjectId(taskId)) {
       throw new AppError("Task not found", 404);
@@ -414,7 +454,8 @@ export class TaskService {
       throw new AppError("Not authorized to update this task", 403);
     }
 
-    this.applyTaskWorkflowState(task, undefined, completed);
+    const parsedCompleted = this.parseRequiredBoolean(completed, "completed");
+    this.applyTaskWorkflowState(task, undefined, parsedCompleted);
     const isCompleted = task.isCompleted;
     await task.save();
 

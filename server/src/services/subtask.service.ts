@@ -14,7 +14,7 @@ export interface CreateSubtaskInput {
 
 export interface UpdateSubtaskInput {
   title?: string;
-  is_completed?: any;
+  is_completed?: unknown;
 }
 
 export class SubtaskService {
@@ -118,7 +118,11 @@ export class SubtaskService {
     }
 
     if (is_completed !== undefined) {
-      const nowDone = Boolean(is_completed);
+      if (typeof is_completed !== "boolean") {
+        throw new AppError("is_completed must be a boolean", 400);
+      }
+
+      const nowDone = is_completed;
       subtask.isCompleted = nowDone;
       subtask.completedAt = nowDone ? new Date() : null;
 

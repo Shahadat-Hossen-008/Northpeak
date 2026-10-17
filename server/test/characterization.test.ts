@@ -560,6 +560,85 @@ test("CHAR-TASKS: GET, POST, PATCH, PATCH /complete, DELETE /api/tasks", async (
     "Transitioning away from done must clear completed_at",
   );
 
+  // 400 Invalid completion values must not change task state
+  const invalidStringCompletion = await request(app)
+    .patch(`/api/tasks/${task._id}`)
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({ is_completed: "false" });
+  assert.equal(invalidStringCompletion.status, 400);
+  assert.equal(invalidStringCompletion.body.message, "is_completed must be a boolean");
+
+  const invalidEmptyCompletion = await request(app)
+    .patch(`/api/tasks/${task._id}`)
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({ is_completed: "" });
+  assert.equal(invalidEmptyCompletion.status, 400);
+  assert.equal(invalidEmptyCompletion.body.message, "is_completed must be a boolean");
+
+  const invalidCompleteToggle = await request(app)
+    .patch(`/api/tasks/${task._id}/complete`)
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({ completed: "true" });
+  assert.equal(invalidCompleteToggle.status, 400);
+  assert.equal(invalidCompleteToggle.body.message, "completed must be a boolean");
+
+  const missingCompleteToggle = await request(app)
+    .patch(`/api/tasks/${task._id}/complete`)
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({});
+  assert.equal(missingCompleteToggle.status, 400);
+  assert.equal(missingCompleteToggle.body.message, "completed must be a boolean");
+
+  const invalidStatus = await request(app)
+    .patch(`/api/tasks/${task._id}`)
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({ status: "completed" });
+  assert.equal(invalidStatus.status, 400);
+  assert.match(invalidStatus.body.message, /Invalid task status/);
+
+  const unchangedAfterInvalidInput = await Task.findById(task._id);
+  assert.ok(unchangedAfterInvalidInput);
+  assert.equal(unchangedAfterInvalidInput.isCompleted, false);
+  assert.equal(unchangedAfterInvalidInput.status, "in_review");
+  assert.equal(unchangedAfterInvalidInput.completedAt, null);
+
+  // Rejected workflow input must not touch the project or task through assignee resolution
+  const projectBeforeInvalidCreate = await Project.findById(project._id).lean();
+  assert.ok(projectBeforeInvalidCreate);
+  const taskCountBeforeInvalidCreate = await Task.countDocuments({ project: project._id });
+  const invalidCreate = await request(app)
+    .post("/api/tasks")
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({
+      project_id: project._id.toString(),
+      title: "Rejected Task",
+      assigned_developer_id: dev._id.toString(),
+      status: "completed",
+    });
+  assert.equal(invalidCreate.status, 400);
+  assert.match(invalidCreate.body.message, /Invalid task status/);
+  const projectAfterInvalidCreate = await Project.findById(project._id).lean();
+  assert.deepEqual(projectAfterInvalidCreate, projectBeforeInvalidCreate);
+  assert.equal(await Task.countDocuments({ project: project._id }), taskCountBeforeInvalidCreate);
+
+  const taskBeforeInvalidUpdate = await Task.findById(task._id).lean();
+  const projectBeforeInvalidUpdate = await Project.findById(project._id).lean();
+  assert.ok(taskBeforeInvalidUpdate);
+  assert.ok(projectBeforeInvalidUpdate);
+  const invalidUpdate = await request(app)
+    .patch(`/api/tasks/${task._id}`)
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({
+      assigned_developer_id: dev._id.toString(),
+      is_completed: "false",
+    });
+  assert.equal(invalidUpdate.status, 400);
+  assert.equal(invalidUpdate.body.message, "is_completed must be a boolean");
+  const taskAfterInvalidUpdate = await Task.findById(task._id).lean();
+  const projectAfterInvalidUpdate = await Project.findById(project._id).lean();
+  assert.deepEqual(taskAfterInvalidUpdate, taskBeforeInvalidUpdate);
+  assert.deepEqual(projectAfterInvalidUpdate, projectBeforeInvalidUpdate);
+
   // 200 Manager delete task
   const del = await request(app)
     .delete(`/api/tasks/${create.body.id}`)
@@ -620,6 +699,18 @@ test("CHAR-SUBTASKS: GET, POST, PATCH, DELETE /api/subtasks", async () => {
     kind: "subtask_completed",
   });
   assert.ok(patchSubNotif, "Subtask completion must record manager notification");
+
+  // Invalid completion input must not change the persisted subtask
+  const subtaskBeforeInvalidPatch = await Subtask.findById(subtask._id).lean();
+  assert.ok(subtaskBeforeInvalidPatch);
+  const invalidSubtaskPatch = await request(app)
+    .patch(`/api/subtasks/${subtask._id}`)
+    .set("Authorization", `Bearer ${devToken}`)
+    .send({ is_completed: "false" });
+  assert.equal(invalidSubtaskPatch.status, 400);
+  assert.equal(invalidSubtaskPatch.body.message, "is_completed must be a boolean");
+  const subtaskAfterInvalidPatch = await Subtask.findById(subtask._id).lean();
+  assert.deepEqual(subtaskAfterInvalidPatch, subtaskBeforeInvalidPatch);
 
   // 200 Delete subtask
   const del = await request(app)
