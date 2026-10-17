@@ -54,7 +54,7 @@ import { SectionRenderer } from "@/sections/registry";
 ```
 
 Available registered sections:
-- `task-filters`, `task-card`, `task-table`, `task-board`, `task-detail`
+- `task-filters`, `task-card`, `task-board`, `task-detail`
 - `project-card`, `project-overview`, `project-tasks-list`, `member-detail-sheet`
 - `comment-section`, `subtask-list`, `notification-panel`
 - `project-status-donut`, `task-status-donut`
@@ -189,7 +189,6 @@ The backend follows a layered, hardened architecture designed for security, obse
 │   │   ├── feedback/          # EmptyState, LoadingState, ErrorState
 │   │   ├── page-header/       # PageHeader with title, description, and actions
 │   │   ├── progress/          # ProgressBar & CircularProgress
-│   │   ├── task-view-switcher/# Table / Kanban switcher toggle
 │   │   ├── ui/                # Radix UI primitives
 │   │   └── index.ts           # Central components barrel
 │   ├── hooks/                 # Modular Query hooks, useAuth, and AuthProvider
@@ -232,7 +231,6 @@ The backend follows a layered, hardened architecture designed for security, obse
 │   │   ├── task-card/         # Draggable / viewable task card (null-safe)
 │   │   ├── task-detail/       # Full task details sheet
 │   │   ├── task-filters/      # Global filter bar for tasks
-│   │   ├── task-table/        # Data table view for tasks
 │   │   └── index.ts           # Barrel export for all sections
 │   ├── styles.css             # Tailwind v4 theme and styling
 │   └── types/                 # Universal type definitions

@@ -1,18 +1,22 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { AuthLayout } from "@/builder/layout/auth-layout";
+import { PasswordInput } from "@/components/password-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/hooks/useAuth";
 import { homePathForRole } from "@/lib/auth-utils";
 import type { AppRole } from "@/types";
 import { api } from "@/lib/api";
 
 export const Route = createFileRoute("/register")({
+  validateSearch: z.object({
+    role: z.enum(["manager", "developer"]).optional().catch(undefined),
+  }),
   head: () => ({
     meta: [
       { title: "Create account — Northpeak" },
@@ -34,9 +38,10 @@ type Errors = Partial<Record<"name" | "email" | "password" | "confirm", string>>
 
 function RegisterPage() {
   const navigate = useNavigate();
+  const { role: roleFromSearch } = Route.useSearch();
   const { user, role, loading, reload } = useAuth();
   const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
-  const [selectedRole, setSelectedRole] = useState<AppRole>("manager");
+  const [selectedRole, setSelectedRole] = useState<AppRole>(roleFromSearch ?? "developer");
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -80,7 +85,21 @@ function RegisterPage() {
   return (
     <AuthLayout
       title="Create your account"
-      subtitle="Set up your workspace in under a minute."
+      subtitle={
+        selectedRole === "manager"
+          ? "Set up your Northpeak account, then bring your team’s work into focus."
+          : "Set up your Northpeak account and turn your next sprint into clear, actionable work."
+      }
+      asideTitle={
+        selectedRole === "manager"
+          ? "Lead with the whole sprint in view."
+          : "Stay close to the work that ships."
+      }
+      asideBody={
+        selectedRole === "manager"
+          ? "Northpeak keeps capacity, risk, and overdue work visible so your team can move with confidence."
+          : "Northpeak keeps your tasks, subtasks, and deadline health together so focus is easy to protect."
+      }
       footer={
         <>
           Already have an account?{" "}
@@ -115,9 +134,9 @@ function RegisterPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="password">Password</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
+              autoComplete="new-password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               placeholder="At least 6 characters"
@@ -128,9 +147,9 @@ function RegisterPage() {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="confirm">Confirm password</Label>
-            <Input
+            <PasswordInput
               id="confirm"
-              type="password"
+              autoComplete="new-password"
               value={form.confirm}
               onChange={(e) => setForm({ ...form, confirm: e.target.value })}
               placeholder="Confirm password"
@@ -139,47 +158,6 @@ function RegisterPage() {
               <p className="text-xs sm:text-sm text-danger">{errors.confirm}</p>
             ) : null}
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label>I am a…</Label>
-          <RadioGroup
-            value={selectedRole}
-            onValueChange={(value) => setSelectedRole(value as AppRole)}
-            className="grid gap-3 sm:grid-cols-2"
-          >
-            {(
-              [
-                {
-                  value: "manager",
-                  label: "Project manager",
-                  hint: "Create projects and assign work",
-                },
-                {
-                  value: "developer",
-                  label: "Developer",
-                  hint: "Deliver tasks and subtasks",
-                },
-              ] as const
-            ).map((option) => (
-              <label
-                key={option.value}
-                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors ${
-                  selectedRole === option.value
-                    ? "border-primary bg-primary-soft"
-                    : "border-border hover:bg-secondary"
-                }`}
-              >
-                <RadioGroupItem value={option.value} className="mt-0.5" />
-                <span>
-                  <span className="block text-sm sm:text-base font-semibold">{option.label}</span>
-                  <span className="block text-xs sm:text-sm text-muted-foreground">
-                    {option.hint}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </RadioGroup>
         </div>
 
         <Button type="submit" size="lg" className="w-full" disabled={submitting}>

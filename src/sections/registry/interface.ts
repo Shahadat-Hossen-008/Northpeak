@@ -1,6 +1,5 @@
 import type { TaskFiltersProps } from "../task-filters";
 import type { TaskCardProps } from "../task-card";
-import type { TaskTableProps } from "../task-table";
 import type { TaskBoardProps } from "../task-board";
 import type { TaskDetailProps } from "../task-detail";
 import type { ProjectCardProps } from "../project-card";
@@ -15,7 +14,6 @@ import type { TaskStatusDonutChartProps } from "../charts/task-status-donut";
 export interface SectionPropsMap {
   "task-filters": TaskFiltersProps;
   "task-card": TaskCardProps;
-  "task-table": TaskTableProps;
   "task-board": TaskBoardProps;
   "task-detail": TaskDetailProps;
   "project-card": ProjectCardProps;

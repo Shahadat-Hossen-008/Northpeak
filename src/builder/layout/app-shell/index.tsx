@@ -3,6 +3,7 @@ import {
   Bell,
   CheckSquare,
   FolderKanban,
+  Home,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -87,7 +88,25 @@ function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => 
   );
 }
 
-export function AppShell({ section, children }: AppShellProps) {
+function HomeLink({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <Link
+      to="/"
+      onClick={onNavigate}
+      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm lg:text-base font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+    >
+      <Home className="size-4.5 shrink-0" aria-hidden />
+      Visit homepage
+    </Link>
+  );
+}
+
+export function AppShell({
+  section,
+  children,
+  contentClassName,
+  constrainToViewport = false,
+}: AppShellProps) {
   const { user, profile, role, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -120,12 +139,21 @@ export function AppShell({ section, children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-background">
       <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 lg:flex">
-        <Brand className="px-2" />
+        <Link
+          to="/"
+          aria-label="Go to Northpeak homepage"
+          className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <Brand className="px-2" />
+        </Link>
         <p className="mt-1 px-2 text-xs sm:text-sm font-medium text-muted-foreground capitalize">
           {section} workspace
         </p>
         <div className="mt-6 flex-1">
           <NavLinks items={items} />
+        </div>
+        <div className="mb-3 border-t border-sidebar-border pt-3">
+          <HomeLink />
         </div>
         <button
           onClick={signOut}
@@ -136,8 +164,13 @@ export function AppShell({ section, children }: AppShellProps) {
         </button>
       </aside>
 
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-card/90 px-4 backdrop-blur sm:px-6">
+      <div
+        className={cn(
+          "min-h-screen lg:pl-64",
+          constrainToViewport && "flex flex-col lg:h-screen lg:overflow-hidden",
+        )}
+      >
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-card/90 px-4 backdrop-blur sm:px-6">
           <div className="flex items-center gap-3">
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
@@ -147,13 +180,24 @@ export function AppShell({ section, children }: AppShellProps) {
               </SheetTrigger>
               <SheetContent side="left" className="w-72 p-5">
                 <SheetTitle className="sr-only">Navigation</SheetTitle>
-                <Brand />
+                <Link to="/" onClick={() => setOpen(false)} aria-label="Go to Northpeak homepage">
+                  <Brand />
+                </Link>
                 <div className="mt-6">
                   <NavLinks items={items} onNavigate={() => setOpen(false)} />
                 </div>
+                <div className="mt-3 border-t border-sidebar-border pt-3">
+                  <HomeLink onNavigate={() => setOpen(false)} />
+                </div>
               </SheetContent>
             </Sheet>
-            <Brand className="lg:hidden" />
+            <Link
+              to="/"
+              aria-label="Go to Northpeak homepage"
+              className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:hidden"
+            >
+              <Brand />
+            </Link>
           </div>
 
           <div className="flex items-center gap-2">
@@ -189,6 +233,9 @@ export function AppShell({ section, children }: AppShellProps) {
                     Settings
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild className="text-sm sm:text-base py-2">
+                  <Link to="/">Visit homepage</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={signOut}
                   className="text-sm sm:text-base py-2 cursor-pointer"
@@ -200,7 +247,11 @@ export function AppShell({ section, children }: AppShellProps) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:py-8">{children}</main>
+        <main
+          className={cn("mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:py-8", contentClassName)}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -8,7 +8,6 @@ import {
   HomeHero,
   HomeNav,
   InteractiveDemo,
-  RoleComparison,
 } from "@/components/home";
 import { Button } from "@/components/ui/button";
 
@@ -61,11 +60,39 @@ function HomePage() {
           {/* 5 Deadline States Overview */}
           <DeadlineEngineShowcase variant="compact" />
 
-          {/* Manager vs Developer Workflows Teaser */}
-          <RoleComparison variant="teaser" />
+          {/* Product workflow overview */}
+          <section className="grid gap-6 border-y border-border py-12 md:grid-cols-3">
+            <div className="md:col-span-1">
+              <p className="text-sm font-semibold text-primary">One shared rhythm</p>
+              <h2 className="mt-3 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                From planning signal to shipped work.
+              </h2>
+            </div>
+            <div className="md:col-span-2 grid gap-5 sm:grid-cols-3">
+              {[
+                {
+                  step: "Plan",
+                  text: "Shape projects, priorities, and deadlines around the work your team can actually deliver.",
+                },
+                {
+                  step: "Coordinate",
+                  text: "Keep assignments, conversations, and changing task status in one shared place.",
+                },
+                {
+                  step: "Learn",
+                  text: "Use deadline history and activity signals to improve the next sprint, not just close this one.",
+                },
+              ].map((item) => (
+                <div key={item.step} className="space-y-2">
+                  <h3 className="text-base font-bold text-foreground">{item.step}</h3>
+                  <p className="text-sm leading-6 text-muted-foreground">{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </section>
 
           {/* Closing CTA */}
-          <section className="surface-card overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-card to-secondary/30 p-8 sm:p-12 text-center">
+          <section className="surface-card overflow-hidden rounded-3xl border border-border bg-linear-to-b from-card to-secondary/30 p-8 sm:p-12 text-center">
             <div className="mx-auto max-w-2xl">
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground">
                 Ship software on time with total deadline clarity.
@@ -75,7 +102,7 @@ function HomePage() {
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <Button asChild size="lg" className="h-11 px-6">
-                  <Link to="/register">
+                  <Link to="/get-started">
                     Create your workspace
                     <ArrowRight className="size-4" />
                   </Link>

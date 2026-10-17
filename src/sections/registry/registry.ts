@@ -1,7 +1,6 @@
 import type { ComponentType } from "react";
 import { TaskFilters } from "../task-filters";
 import { TaskCard } from "../task-card";
-import { TaskTable } from "../task-table";
 import { TaskBoard } from "../task-board";
 import { TaskDetail } from "../task-detail";
 import { ProjectCard } from "../project-card";
@@ -21,7 +20,6 @@ type SectionComponentMap = {
 export const SECTION_REGISTRY = {
   "task-filters": TaskFilters,
   "task-card": TaskCard,
-  "task-table": TaskTable,
   "task-board": TaskBoard,
   "task-detail": TaskDetail,
   "project-card": ProjectCard,

@@ -18,14 +18,13 @@ export function HomeHero({ className }: HomeHeroProps) {
       </h1>
 
       <p className="mt-5 text-lg text-muted-foreground sm:text-xl lg:text-2xl leading-relaxed max-w-3xl">
-        Managers define deliverables and capacity. Developers ship code and check subtasks.
-        Northpeak calculates real-time deadline health automatically — with zero manual status
-        meetings.
+        Northpeak gives software teams one shared view of what is planned, what is moving, and what
+        needs attention before a deadline becomes a surprise.
       </p>
 
       <div className="mt-8 flex flex-wrap items-center gap-3">
         <Button asChild size="lg" className="h-12 px-7 text-base sm:text-lg">
-          <Link to="/register">
+          <Link to="/get-started">
             Create your workspace
             <ArrowRight className="size-4.5" />
           </Link>
@@ -36,8 +35,8 @@ export function HomeHero({ className }: HomeHeroProps) {
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-4 text-xs sm:text-sm text-muted-foreground font-mono">
-        <span>&bull; Role-specific workspaces (Manager & Developer)</span>
-        <span>&bull; Interactive simulation below</span>
+        <span>&bull; Shared project context</span>
+        <span>&bull; Automatic deadline signals</span>
       </div>
     </section>
   );

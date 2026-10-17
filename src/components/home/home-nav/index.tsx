@@ -74,7 +74,7 @@ export function HomeNav({ currentPath = "/", className }: HomeNavProps) {
                   <Link to="/login">Sign in</Link>
                 </Button>
                 <Button asChild size="default">
-                  <Link to="/register">
+                  <Link to="/get-started">
                     Get started
                     <ArrowRight className="size-4" />
                   </Link>
@@ -149,7 +149,7 @@ export function HomeNav({ currentPath = "/", className }: HomeNavProps) {
                       </Link>
                     </Button>
                     <Button asChild className="w-full">
-                      <Link to="/register" onClick={() => setMobileOpen(false)}>
+                      <Link to="/get-started" onClick={() => setMobileOpen(false)}>
                         Get started
                         <ArrowRight className="size-3.5" />
                       </Link>
