@@ -50,7 +50,7 @@ function ManagerTasks() {
   const selectedProject = findProjectByIdOrSlug(projects.data ?? [], filters.project);
 
   return (
-    <AppShell section="manager" contentClassName="flex min-h-0 flex-1 flex-col">
+    <AppShell section="manager" constrainToViewport contentClassName="flex min-h-0 flex-1 flex-col">
       <PageHeader
         title={selectedProject ? `Tasks · ${selectedProject.title}` : "Tasks"}
         description={

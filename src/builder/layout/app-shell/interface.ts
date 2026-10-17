@@ -5,6 +5,7 @@ export interface AppShellProps {
   section: AppRole;
   children: ReactNode;
   contentClassName?: string;
+  constrainToViewport?: boolean;
 }
 
 export interface BrandProps {

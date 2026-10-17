@@ -101,7 +101,12 @@ function HomeLink({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function AppShell({ section, children, contentClassName }: AppShellProps) {
+export function AppShell({
+  section,
+  children,
+  contentClassName,
+  constrainToViewport = false,
+}: AppShellProps) {
   const { user, profile, role, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -159,7 +164,12 @@ export function AppShell({ section, children, contentClassName }: AppShellProps)
         </button>
       </aside>
 
-      <div className="flex min-h-screen flex-col lg:h-screen lg:overflow-hidden lg:pl-64">
+      <div
+        className={cn(
+          "min-h-screen lg:pl-64",
+          constrainToViewport && "flex flex-col lg:h-screen lg:overflow-hidden",
+        )}
+      >
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-card/90 px-4 backdrop-blur sm:px-6">
           <div className="flex items-center gap-3">
             <Sheet open={open} onOpenChange={setOpen}>

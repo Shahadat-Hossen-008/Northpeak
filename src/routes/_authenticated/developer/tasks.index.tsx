@@ -38,7 +38,11 @@ function DeveloperTasks() {
   const selectedProject = findProjectByIdOrSlug(projects.data ?? [], filters.project);
 
   return (
-    <AppShell section="developer" contentClassName="flex min-h-0 flex-1 flex-col">
+    <AppShell
+      section="developer"
+      constrainToViewport
+      contentClassName="flex min-h-0 flex-1 flex-col"
+    >
       <PageHeader
         title={selectedProject ? `My tasks · ${selectedProject.title}` : "My tasks"}
         description={
