@@ -64,7 +64,9 @@ export function RoleComparison({ variant = "full", className }: RoleComparisonPr
 
           <div className="mt-8 pt-6 border-t border-border">
             <Button asChild variant="outline" className="w-full">
-              <Link to="/register">Create manager workspace</Link>
+              <Link to="/get-started" search={{ role: "manager" }}>
+                Create manager workspace
+              </Link>
             </Button>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AuthLayout } from "@/builder/layout/auth-layout";
+import { PasswordInput } from "@/components/password-input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -63,13 +64,15 @@ function LoginPage() {
 
   return (
     <AuthLayout
-      title="Sign in"
-      subtitle="Access your projects, tasks and deadlines."
+      title="Welcome back to the work."
+      subtitle="Pick up where your team left off — projects, tasks, and deadline signals are ready for you."
+      asideTitle="Return to a clearer sprint."
+      asideBody="See what changed, find the next task that matters, and keep collaboration moving without another status meeting."
       footer={
         <>
-          New here?{" "}
-          <Link to="/register" className="font-semibold text-primary hover:underline">
-            Create an account
+          New to Northpeak?{" "}
+          <Link to="/get-started" className="font-semibold text-primary hover:underline">
+            Get started
           </Link>
         </>
       }
@@ -90,9 +93,8 @@ function LoginPage() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="password">Password</Label>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

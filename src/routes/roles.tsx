@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Layers, Sparkles, Users } from "lucide-react";
+import { ArrowRight, ClipboardList, MessageSquare, Sparkles, Users } from "lucide-react";
 
 import { meta } from "@/builder/layout/meta";
 import { HomeFooter, HomeNav, RoleComparison } from "@/components/home";
@@ -28,12 +28,12 @@ function RolesPage() {
               <span>Workspace Perspectives</span>
             </div>
             <h1 className="mt-4 text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground">
-              Tailored for how engineering teams work.
+              Two views, one delivery system.
             </h1>
             <p className="mt-4 text-base sm:text-lg lg:text-xl text-muted-foreground leading-relaxed">
-              Software delivery requires two distinct views: high-level capacity and risk visibility
-              for team leads, and high-focus tactical execution for developers. Northpeak unites
-              both in real-time.
+              Northpeak keeps planning and execution connected without forcing every teammate into
+              the same workflow. Compare the manager’s control room with the developer’s daily
+              queue.
             </p>
           </div>
 
@@ -42,57 +42,46 @@ function RolesPage() {
             <RoleComparison variant="full" />
           </section>
 
-          {/* Day in the Life Walkthrough Grid */}
+          {/* Distinct operating moments */}
           <section className="mb-20">
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-6">
-              A sprint with Northpeak: Side-by-side
+              What each view makes easier
             </h2>
             <div className="grid gap-6 md:grid-cols-2">
               <div className="surface-card p-6 rounded-2xl border space-y-4">
                 <div className="flex items-center gap-2 text-primary font-mono text-xs sm:text-sm font-bold uppercase">
-                  <Users className="size-4" />
-                  <span>The Manager's Morning</span>
+                  <ClipboardList className="size-4" />
+                  <span>Manager planning desk</span>
                 </div>
                 <h3 className="text-lg sm:text-xl font-bold text-foreground">
-                  Zero-meeting status check
+                  Turn a delivery plan into visible ownership
                 </h3>
                 <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                  Open the Manager Dashboard. Review the <strong>Project Status Donut</strong> and{" "}
-                  <strong>Overdue Work Radar</strong>. Instantly identify if any task slipped into{" "}
-                  <code className="text-warning-foreground font-mono bg-warning-soft px-1.5 py-0.5 rounded text-xs sm:text-sm">
-                    due_soon
-                  </code>{" "}
-                  or{" "}
-                  <code className="text-danger font-mono bg-danger-soft px-1.5 py-0.5 rounded text-xs sm:text-sm">
-                    overdue
-                  </code>
-                  . Reallocate capacity without sending a single Slack message.
+                  Start with the project shape, add the right engineers, then make priorities and
+                  deadlines explicit. The manager view turns a crowded sprint into a short list of
+                  decisions: what is blocked, who has room, and where risk is accumulating.
                 </p>
               </div>
 
               <div className="surface-card p-6 rounded-2xl border space-y-4">
                 <div className="flex items-center gap-2 text-info font-mono text-xs sm:text-sm font-bold uppercase">
-                  <Layers className="size-4" />
-                  <span>The Developer's Flow</span>
+                  <MessageSquare className="size-4" />
+                  <span>Developer delivery desk</span>
                 </div>
                 <h3 className="text-lg sm:text-xl font-bold text-foreground">
-                  Clear priorities and zero noise
+                  Keep progress understandable as the work changes
                 </h3>
                 <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                  Open the Developer Dashboard. See your assigned tasks ordered by deadline urgency
-                  on your Kanban board. Check off subtasks as commits land. When a task is finished,
-                  Northpeak stamps it as{" "}
-                  <code className="text-success font-mono bg-success-soft px-1.5 py-0.5 rounded text-xs sm:text-sm">
-                    completed_on_time
-                  </code>{" "}
-                  automatically.
+                  Open assigned work with its requirements and deadline in view. Move a task when
+                  its state changes, break the next step into subtasks, and leave context in the
+                  discussion so teammates never have to reconstruct progress from a silent board.
                 </p>
               </div>
             </div>
           </section>
 
           {/* Closing CTA */}
-          <section className="surface-card overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-card to-secondary/30 p-8 sm:p-12 text-center">
+          <section className="surface-card overflow-hidden rounded-3xl border border-border bg-linear-to-b from-card to-secondary/30 p-8 sm:p-12 text-center">
             <div className="mx-auto max-w-2xl">
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground">
                 Ready to transform your sprint workflow?
@@ -102,7 +91,7 @@ function RolesPage() {
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <Button asChild size="lg" className="h-11 px-6">
-                  <Link to="/register">
+                  <Link to="/get-started">
                     Create your workspace
                     <ArrowRight className="size-4" />
                   </Link>

@@ -56,7 +56,7 @@ function FeaturesPage() {
           </section>
 
           {/* Closing CTA */}
-          <section className="surface-card overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-card to-secondary/30 p-8 sm:p-12 text-center">
+          <section className="surface-card overflow-hidden rounded-3xl border border-border bg-linear-to-b from-card to-secondary/30 p-8 sm:p-12 text-center">
             <div className="mx-auto max-w-2xl">
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground">
                 Ready to ship on time with your team?
@@ -66,7 +66,7 @@ function FeaturesPage() {
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <Button asChild size="lg" className="h-11 px-6">
-                  <Link to="/register">
+                  <Link to="/get-started">
                     Create your workspace
                     <ArrowRight className="size-4" />
                   </Link>

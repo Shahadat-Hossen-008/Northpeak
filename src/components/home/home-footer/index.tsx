@@ -27,7 +27,7 @@ export function HomeFooter({ className }: HomeFooterProps) {
             <Link to="/login" className="hover:text-foreground transition-colors">
               Sign in
             </Link>
-            <Link to="/register" className="hover:text-foreground transition-colors">
+            <Link to="/get-started" className="hover:text-foreground transition-colors">
               Get started
             </Link>
           </div>
