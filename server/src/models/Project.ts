@@ -35,4 +35,7 @@ const projectSchema = new Schema<IProject>(
   },
 );
 
+projectSchema.index({ manager: 1 });
+projectSchema.index({ team: 1 });
+
 export const Project = mongoose.model<IProject>("Project", projectSchema);

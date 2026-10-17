@@ -1,0 +1,195 @@
+process.env.NODE_ENV = "test";
+
+import test, { before, after, beforeEach } from "node:test";
+import assert from "node:assert/strict";
+import request from "supertest";
+import mongoose from "mongoose";
+import app from "../src/index.ts";
+import { User } from "../src/models/User.ts";
+import { Notification } from "../src/models/Notification.ts";
+
+import { MongoMemoryReplSet } from "mongodb-memory-server";
+
+let replSet: MongoMemoryReplSet;
+
+before(async () => {
+  replSet = await MongoMemoryReplSet.create({
+    replSet: { count: 1, storageEngine: "wiredTiger" },
+  });
+  await mongoose.connect(replSet.getUri());
+});
+
+after(async () => {
+  if (mongoose.connection.readyState === 1) {
+    await mongoose.connection.dropDatabase();
+    await mongoose.disconnect();
+  }
+  if (replSet) {
+    await replSet.stop();
+  }
+});
+
+beforeEach(async () => {
+  if (mongoose.connection.readyState === 1) {
+    const collections = mongoose.connection.collections;
+    for (const key in collections) {
+      await collections[key].deleteMany({});
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Issue A: Public registration must always assign server-set default role "developer"
+// ---------------------------------------------------------------------------
+test("SEC-A: POST /api/auth/register ignores client-supplied role: manager and forces role: developer", async () => {
+  const res = await request(app)
+    .post("/api/auth/register")
+    .send({
+      name: "Attacker Manager",
+      email: "attacker@northpeak.dev",
+      password: "password123",
+      role: "manager",
+    });
+
+  assert.equal(res.status, 201);
+  assert.equal(
+    res.body.user.role,
+    "developer",
+    `Expected server to enforce developer role, but got: ${res.body.user.role}`,
+  );
+
+  const userInDb = await User.findById(res.body.user.id);
+  assert.ok(userInDb);
+  assert.equal(
+    userInDb.role,
+    "developer",
+    `Expected database document to have developer role, but got: ${userInDb.role}`,
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Issue B: PATCH /api/notifications/mark-read must scope updates to caller's notifications
+// ---------------------------------------------------------------------------
+test("SEC-B: PATCH /api/notifications/mark-read cannot mark another user's private notification as read", async () => {
+  // 1. Create Victim (developer)
+  const victimRes = await request(app)
+    .post("/api/auth/register")
+    .send({
+      name: "Victim Dev",
+      email: "victim@northpeak.dev",
+      password: "password123",
+    });
+  assert.equal(victimRes.status, 201);
+  const victimId = victimRes.body.user.id;
+
+  // 2. Create Attacker (developer)
+  const attackerRes = await request(app)
+    .post("/api/auth/register")
+    .send({
+      name: "Attacker Dev",
+      email: "attacker_dev@northpeak.dev",
+      password: "password123",
+    });
+  assert.equal(attackerRes.status, 201);
+  const attackerToken = attackerRes.body.token;
+
+  // 3. Create a private unread notification for the victim
+  const victimNotification = await Notification.create({
+    recipient: victimId,
+    audience: null,
+    kind: "task_assigned",
+    title: "Confidential Victim Task",
+    body: "Only victim should manage this notification",
+    isRead: false,
+  });
+
+  // 4. Attacker attempts to mark victim's notification as read
+  const markRes = await request(app)
+    .patch("/api/notifications/mark-read")
+    .set("Authorization", `Bearer ${attackerToken}`)
+    .send({ ids: [victimNotification._id.toString()] });
+
+  assert.equal(markRes.status, 200);
+
+  // 5. Verify victim's notification remains unread
+  const refreshed = await Notification.findById(victimNotification._id);
+  assert.ok(refreshed);
+  assert.equal(
+    refreshed.isRead,
+    false,
+    "Vulnerability confirmed: attacker marked another user's notification as read!",
+  );
+  // 6. Positive verification (CR-04): Victim can mark their own notification as read
+  const victimTokenRes = await request(app)
+    .post("/api/auth/login")
+    .send({ email: "victim@northpeak.dev", password: "password123" });
+  assert.equal(victimTokenRes.status, 200);
+
+  const victimOwnMarkRes = await request(app)
+    .patch("/api/notifications/mark-read")
+    .set("Authorization", `Bearer ${victimTokenRes.body.token}`)
+    .send({ ids: [victimNotification._id.toString()] });
+  assert.equal(victimOwnMarkRes.status, 200);
+
+  const victimReadRefreshed = await Notification.findById(victimNotification._id);
+  assert.ok(victimReadRefreshed);
+  assert.equal(victimReadRefreshed.isRead, true, "Victim should be able to mark their own notification as read");
+});
+
+// ---------------------------------------------------------------------------
+// Issue D: /api/test/barriers/* must only be mounted when NODE_ENV === "test"
+// ---------------------------------------------------------------------------
+test("SEC-D: /api/test/barriers routes return 404 when NODE_ENV === 'production'", async () => {
+  const origEnv = process.env.NODE_ENV;
+  try {
+    process.env.NODE_ENV = "production";
+    const res = await request(app).post("/api/test/barriers/reset").send();
+    assert.equal(res.status, 404);
+  } finally {
+    process.env.NODE_ENV = origEnv;
+  }
+});
+
+
+test("SEC-D: /api/test/barriers is mounted conditionally only when NODE_ENV === 'test'", async () => {
+  // 1. Verify in-memory mount in test environment
+  const hasBarrierLayer = (app as any)._router?.stack?.some(
+    (layer: any) => layer.regexp && layer.regexp.test("/api/test/barriers"),
+  );
+  assert.equal(hasBarrierLayer, true, "Barrier route must be mounted in test environment");
+
+  // 2. Verify source code strictly guards mounting with process.env.NODE_ENV === 'test'
+  const fs = await import("node:fs");
+  const src = fs.readFileSync(new URL("../src/app.ts", import.meta.url), "utf8");
+  assert.match(
+    src,
+    /if\s*\(\s*process\.env\.NODE_ENV\s*===\s*["']test["']\s*\)\s*\{\s*app\.use\(\s*["']\/api\/test\/barriers["']/,
+    "app.ts must conditionally mount test barriers only when NODE_ENV === 'test'",
+  );
+});
+
+test("SEC-D: /api/test/barriers routes are functional when NODE_ENV === 'test'", async () => {
+  // Promote a user to manager directly in DB for testing barriers (CR-03: clean auth setup)
+  const managerUser = await User.create({
+    name: "Barrier Admin",
+    email: "barrier_admin@northpeak.dev",
+    passwordHash: "hash",
+    role: "manager",
+  });
+
+  const { generateToken } = await import("../src/middleware/auth.ts");
+  const managerToken = generateToken({
+    id: managerUser._id.toString(),
+    email: managerUser.email,
+    role: "manager",
+    name: managerUser.name,
+  });
+
+  const res = await request(app)
+    .post("/api/test/barriers/reset")
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send();
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.reset, true);
+});

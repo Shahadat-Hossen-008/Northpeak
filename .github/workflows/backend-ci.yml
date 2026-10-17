@@ -1,0 +1,55 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - feat/backend-hardening-subtask-authorization
+      - 'feat/**'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Backend Build, Test & Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install server dependencies
+        run: npm --prefix server ci
+
+      - name: Build server (TypeScript check)
+        run: npm --prefix server run build
+
+      - name: Run server test suite
+        run: npm --prefix server test
+
+      - name: Run root regression test suite
+        run: npm test
+
+      - name: Run linter
+        run: npm run lint

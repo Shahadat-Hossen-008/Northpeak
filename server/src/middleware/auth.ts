@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { User, type AppRole } from "../models/User.js";
+import { config } from "../config/env.js";
 
 export interface AuthUserPayload {
   id: string;
@@ -13,7 +14,7 @@ export interface AuthRequest extends Request {
   user?: AuthUserPayload;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || "northpeak_super_secret_jwt_key_2026";
+const JWT_SECRET = config.JWT_SECRET;
 
 export function generateToken(payload: AuthUserPayload): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
