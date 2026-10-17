@@ -12,5 +12,3 @@ export interface DeadlineInput {
   isCompleted: boolean;
   completedAt: string | null;
 }
-
-export type TaskViewMode = "board" | "list";

@@ -1,15 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
 
 import { AppShell } from "@/builder/layout/app-shell";
 import { ErrorState } from "@/components/feedback/error-state";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { PageHeader } from "@/components/page-header";
-import { TaskViewSwitcher } from "@/components/task-view-switcher";
 import { meta } from "@/builder/layout/meta";
 import { TaskBoard } from "@/sections/task-board";
 import { TaskFilters } from "@/sections/task-filters";
-import { TaskTable } from "@/sections/task-table";
 import { useFilteredTasks } from "@/lib/task-utils";
 import { useAllSubtasks, useCommentCounts, useProjects, useTasks } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,12 +35,10 @@ function DeveloperTasks() {
   const { filters, setFilters, filtered } = useFilteredTasks(mine, subtasks.data ?? [], {
     project: project || "all",
   });
-  const [view, setView] = useState<"board" | "table">("board");
-
   const selectedProject = findProjectByIdOrSlug(projects.data ?? [], filters.project);
 
   return (
-    <AppShell section="developer">
+    <AppShell section="developer" contentClassName="flex min-h-0 flex-1 flex-col">
       <PageHeader
         title={selectedProject ? `My tasks · ${selectedProject.title}` : "My tasks"}
         description={
@@ -52,7 +47,7 @@ function DeveloperTasks() {
             : "Search, filter by project, manage workflow stages, and track deadlines for work assigned to you."
         }
       />
-      <div className="mt-6 space-y-4">
+      <div className="mt-6 flex min-h-0 flex-1 flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex-1">
             <TaskFilters
@@ -64,20 +59,11 @@ function DeveloperTasks() {
               showProject={true}
             />
           </div>
-          <div className="shrink-0 self-end sm:self-auto">
-            <TaskViewSwitcher view={view} onViewChange={setView} />
-          </div>
         </div>
         {tasks.isLoading ? (
           <LoadingState />
         ) : tasks.isError ? (
           <ErrorState message={(tasks.error as Error).message} />
-        ) : view === "table" ? (
-          <TaskTable
-            tasks={filtered}
-            subtasks={subtasks.data ?? []}
-            hrefFor={(t) => `/developer/tasks/${t.id}`}
-          />
         ) : (
           <TaskBoard
             tasks={filtered}

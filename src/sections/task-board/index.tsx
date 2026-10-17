@@ -2,7 +2,7 @@ import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { WORKFLOW_COLUMNS } from "@/components/badges/workflow-badge/columns";
 import { TaskCard } from "@/sections/task-card";
-import { useSetTaskCompletion, useUpdateTaskStatus } from "@/hooks/queries";
+import { useUpdateTaskStatus } from "@/hooks/queries";
 import { cn } from "@/lib/utils";
 import type { Task, TaskWorkflowStatus } from "@/types";
 import type { TaskBoardProps } from "./interface";
@@ -12,24 +12,19 @@ export function TaskBoard({
   subtasks,
   commentCounts,
   hrefFor,
-  onToggle,
   onMoveStatus,
   onAddTask,
 }: TaskBoardProps) {
   const updateStatusMutation = useUpdateTaskStatus();
-  const setCompletionMutation = useSetTaskCompletion();
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<TaskWorkflowStatus | null>(null);
 
-  const handleToggle = (task: Task, completed: boolean) => {
-    if (onToggle) {
-      onToggle(task, completed);
-    } else {
-      setCompletionMutation.mutate({
-        task: { id: task.id, title: task.title, project_id: task.project_id },
-        completed,
-      });
-    }
+  const columnFromTarget = (target: EventTarget | null): TaskWorkflowStatus | null => {
+    if (!(target instanceof Element)) return null;
+    const column = target.closest<HTMLElement>("[data-kanban-column]")?.dataset["kanbanColumn"];
+    return WORKFLOW_COLUMNS.some((item) => item.key === column)
+      ? (column as TaskWorkflowStatus)
+      : null;
   };
 
   const handleStatusChange = (task: Task, newStatus: TaskWorkflowStatus) => {
@@ -64,42 +59,43 @@ export function TaskBoard({
   }, [tasks]);
 
   return (
-    <div className="w-full overflow-x-auto pb-6 pt-1 scroll-smooth">
-      <div className="flex gap-4 sm:gap-5 min-w-max items-start">
+    <div
+      className="min-h-112 min-w-0 flex-1 overflow-x-auto overflow-y-hidden pb-2 pt-1 scroll-smooth lg:min-h-0"
+      onDragOver={(e) => {
+        const column = columnFromTarget(e.target);
+        if (!column || !draggedTaskId) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        if (dragOverColumn !== column) {
+          setDragOverColumn(column);
+        }
+      }}
+      onDrop={(e) => {
+        const column = columnFromTarget(e.target);
+        if (!column) return;
+        e.preventDefault();
+        const taskId = e.dataTransfer.getData("text/plain") || draggedTaskId;
+        const targetTask = taskId ? tasks.find((task) => task.id === taskId) : undefined;
+        const currentStatus = targetTask?.status ?? (targetTask?.is_completed ? "done" : "todo");
+
+        setDragOverColumn(null);
+        setDraggedTaskId(null);
+
+        if (targetTask && currentStatus !== column) {
+          handleStatusChange(targetTask, column);
+        }
+      }}
+    >
+      <div className="flex h-full min-h-0 min-w-max items-stretch gap-4 sm:gap-5">
         {columns.map((column) => {
           const isDragOver = dragOverColumn === column.key;
 
           return (
             <section
               key={column.key}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-                if (dragOverColumn !== column.key) {
-                  setDragOverColumn(column.key);
-                }
-              }}
-              onDragLeave={(e) => {
-                const currentTarget = e.currentTarget;
-                const relatedTarget = e.relatedTarget as Node | null;
-                if (!currentTarget.contains(relatedTarget)) {
-                  setDragOverColumn(null);
-                }
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDragOverColumn(null);
-                const taskId = e.dataTransfer.getData("text/plain") || draggedTaskId;
-                if (taskId) {
-                  const targetTask = tasks.find((t) => t.id === taskId);
-                  if (targetTask && targetTask.status !== column.key) {
-                    handleStatusChange(targetTask, column.key);
-                  }
-                }
-                setDraggedTaskId(null);
-              }}
+              data-kanban-column={column.key}
               className={cn(
-                "flex flex-col w-75 sm:w-[330px] md:w-[350px] shrink-0 rounded-xl border border-border/80 p-3.5 sm:p-4 transition-all min-h-125",
+                "flex h-full min-h-0 flex-col w-75 sm:w-82.5 md:w-87.5 shrink-0 rounded-xl border border-border/80 p-3.5 sm:p-4 transition-all",
                 column.columnBg,
                 isDragOver ? "ring-2 ring-primary border-primary/50 bg-primary/8" : "",
               )}
@@ -117,8 +113,13 @@ export function TaskBoard({
                 </span>
               </header>
 
-              {/* Column Task Cards */}
-              <div className="flex-1 space-y-3">
+              {/* Column Task Cards and full-height drop surface */}
+              <div
+                className={cn(
+                  "min-h-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-lg pr-1 transition-colors",
+                  isDragOver ? "bg-primary/5" : "",
+                )}
+              >
                 {column.tasks.length === 0 ? (
                   <div
                     className={cn(
@@ -147,9 +148,6 @@ export function TaskBoard({
                         setDraggedTaskId(task.id);
                       }}
                       onDragEnd={() => setDraggedTaskId(null)}
-                      onToggle={(completed) => handleToggle(task, completed)}
-                      toggleDisabled={setCompletionMutation.isPending}
-                      onMoveStatus={(newStatus) => handleStatusChange(task, newStatus)}
                     />
                   ))
                 )}

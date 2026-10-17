@@ -1,6 +1,5 @@
 export * from "./task-filters";
 export * from "./task-card";
-export * from "./task-table";
 export * from "./task-board";
 export * from "./task-detail";
 export * from "./project-card";

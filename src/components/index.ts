@@ -5,4 +5,3 @@ export * from "./dialogs";
 export * from "./feedback";
 export * from "./page-header";
 export * from "./progress";
-export * from "./task-view-switcher";
