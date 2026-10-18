@@ -130,9 +130,35 @@ export function TaskDetail({ taskId, backHref }: TaskDetailProps) {
           </div>
         </div>
 
-        <dl className="mt-6 grid gap-4 border-t border-border pt-5 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="mt-6 grid gap-4 border-t border-border pt-5 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <dt className="text-xs sm:text-sm text-muted-foreground">Developer</dt>
+            <dt className="text-xs sm:text-sm text-muted-foreground">Created by</dt>
+            <dd className="mt-1 flex items-center gap-2 text-sm sm:text-base font-medium">
+              {task.created_by ? (
+                <>
+                  <UserAvatar name={task.created_by.name} size="sm" />
+                  {task.created_by.name}
+                </>
+              ) : (
+                "Not recorded"
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs sm:text-sm text-muted-foreground">Assigned by</dt>
+            <dd className="mt-1 flex items-center gap-2 text-sm sm:text-base font-medium">
+              {task.assigned_by ? (
+                <>
+                  <UserAvatar name={task.assigned_by.name} size="sm" />
+                  {task.assigned_by.name}
+                </>
+              ) : (
+                "Not recorded"
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs sm:text-sm text-muted-foreground">Assignee</dt>
             <dd className="mt-1 flex items-center gap-2 text-sm sm:text-base font-medium">
               {task.assignee ? (
                 <>
@@ -191,6 +217,7 @@ export function TaskDetail({ taskId, backHref }: TaskDetailProps) {
             projectId={task.project_id}
             actorId={profile?.id ?? null}
             canEdit={canEdit}
+            canAssign={role === "manager"}
           />
         </TabsContent>
         <TabsContent value="comments" className="surface-card mt-4 p-5">

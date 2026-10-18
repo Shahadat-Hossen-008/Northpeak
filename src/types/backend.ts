@@ -26,6 +26,7 @@ export interface MemberWorkloadTask {
   project_id: string;
   title: string;
   description: string;
+  assigned_developer_id: string | null;
   deadline: string | null;
   priority: Priority;
   is_completed: boolean;
@@ -75,15 +76,21 @@ export interface Task {
   created_at: string;
   project: { id: string; title: string } | null;
   assignee: { id: string; name: string } | null;
+  created_by?: { id: string; name: string } | null;
+  assigned_by?: { id: string; name: string } | null;
 }
 
 export interface Subtask {
   id: string;
   task_id: string;
   title: string;
+  description: string;
+  assigned_developer_id: string | null;
   is_completed: boolean;
   completed_at: string | null;
   created_at: string;
+  updated_at?: string;
+  assignee: { id: string; name: string } | null;
 }
 
 export interface Comment {
@@ -91,6 +98,7 @@ export interface Comment {
   task_id: string;
   body: string;
   created_at: string;
+  updated_at?: string;
   author: { id: string; name: string } | null;
 }
 

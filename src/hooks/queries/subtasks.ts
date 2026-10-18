@@ -30,8 +30,8 @@ export function useSubtaskMutations(taskId: string, _actorId?: string | null, _p
   const invalidate = useInvalidate();
 
   const add = useMutation({
-    mutationFn: async (title: string) => {
-      return api.createSubtask(taskId, title);
+    mutationFn: async (input: { title: string; description?: string }) => {
+      return api.createSubtask(taskId, input);
     },
     onSuccess: () => {
       invalidate(["subtasks", "activity"]);
@@ -50,8 +50,22 @@ export function useSubtaskMutations(taskId: string, _actorId?: string | null, _p
   });
 
   const rename = useMutation({
-    mutationFn: async ({ id, title }: { id: string; title: string }) => {
-      return api.updateSubtask(id, { title });
+    mutationFn: async ({
+      id,
+      title,
+      description,
+      assigned_developer_id,
+    }: {
+      id: string;
+      title: string;
+      description?: string;
+      assigned_developer_id?: string | null;
+    }) => {
+      return api.updateSubtask(id, {
+        title,
+        ...(description !== undefined ? { description } : {}),
+        ...(assigned_developer_id !== undefined ? { assigned_developer_id } : {}),
+      });
     },
     onSuccess: () => invalidate(["subtasks"]),
     onError: (error: Error) => toast.error(error.message),

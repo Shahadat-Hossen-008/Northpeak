@@ -262,7 +262,9 @@ function ProjectDetail() {
       <ConfirmDelete
         task={pending}
         onClose={() => setPending(null)}
-        onConfirm={(t) => del.mutate(t.id)}
+        onConfirm={async () => {
+          await del.mutateAsync(pending!.id);
+        }}
       />
       <MemberDetailSheet
         memberId={selectedMemberId}

@@ -9,8 +9,8 @@ export const commentsRouter = Router();
 commentsRouter.get(
   "/counts",
   authenticate,
-  asyncHandler(async (_req, res) => {
-    const counts = await commentService.getCommentCounts();
+  asyncHandler(async (req: AuthRequest, res) => {
+    const counts = await commentService.getCommentCounts(req.user!);
     res.json(counts);
   }),
 );
@@ -19,11 +19,11 @@ commentsRouter.get(
 commentsRouter.get(
   "/task/:taskId",
   authenticate,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: AuthRequest, res) => {
     const rawTaskId = Array.isArray(req.params.taskId)
       ? (req.params.taskId[0] ?? "")
       : (req.params.taskId ?? "");
-    const comments = await commentService.getCommentsForTask(rawTaskId);
+    const comments = await commentService.getCommentsForTask(rawTaskId, req.user!);
     res.json(comments);
   }),
 );
@@ -38,6 +38,16 @@ commentsRouter.post(
       : (req.params.taskId ?? "");
     const comment = await commentService.createComment(rawTaskId, req.user!, req.body);
     res.status(201).json(comment);
+  }),
+);
+
+commentsRouter.patch(
+  "/:id",
+  authenticate,
+  asyncHandler(async (req: AuthRequest, res) => {
+    const rawId = Array.isArray(req.params.id) ? (req.params.id[0] ?? "") : (req.params.id ?? "");
+    const comment = await commentService.updateComment(rawId, req.user!, req.body);
+    res.json(comment);
   }),
 );
 

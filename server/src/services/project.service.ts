@@ -16,6 +16,7 @@ import {
   type SerializedProjectMember,
 } from "../serializers/project.serializer.js";
 import type { AuthUserPayload } from "../middleware/auth.js";
+import { canReadProject } from "./task-access.js";
 
 export interface CreateProjectInput {
   title?: string;
@@ -75,26 +76,48 @@ export class ProjectService {
         assignedDeveloper: { $in: removedDevIds },
         isCompleted: false,
       },
+      { $set: { assignedDeveloper: null, assignedBy: null } },
+      session ? { session } : undefined,
+    );
+    const projectTasksQuery = Task.find({ project: projectId }).select("_id");
+    if (session) projectTasksQuery.session(session);
+    const projectTaskIds = await projectTasksQuery;
+    await Subtask.updateMany(
+      {
+        task: { $in: projectTaskIds.map((task) => task._id) },
+        assignedDeveloper: { $in: removedDevIds },
+        isCompleted: false,
+      },
       { $set: { assignedDeveloper: null } },
       session ? { session } : undefined,
     );
     return updateResult.modifiedCount || 0;
   }
 
-  async getProjects(query: { search?: any; priority?: any }): Promise<SerializedProject[]> {
+  async getProjects(user: AuthUserPayload, query: { search?: any; priority?: any }): Promise<SerializedProject[]> {
     const { search, priority } = query;
-    const filter: Record<string, any> = {};
+    let accessFilter: Record<string, any>;
+    if (user.role === "manager") {
+      accessFilter = { manager: user.id };
+    } else if (user.role === "developer") {
+      const assignedProjectIds = await Task.find({ assignedDeveloper: user.id }).distinct("project");
+      accessFilter = { $or: [{ team: user.id }, { _id: { $in: assignedProjectIds } }] };
+    } else {
+      throw new AppError("Not authorized to read projects", 403);
+    }
 
+    const filter: Record<string, any> = { $and: [accessFilter] };
     if (priority && typeof priority === "string") {
       filter.priority = priority;
     }
 
     if (search && typeof search === "string" && search.trim()) {
       const escaped = escapeRegex(search.trim());
-      filter.$or = [
+      const searchFilter = [
         { title: { $regex: escaped, $options: "i" } },
         { description: { $regex: escaped, $options: "i" } },
       ];
+      filter.$and.push({ $or: searchFilter });
     }
 
     const projects = await Project.find(filter).sort({ createdAt: -1 });
@@ -113,14 +136,13 @@ export class ProjectService {
       const target = rawId.toLowerCase();
       // Lean projection scan to prevent memory exhaustion / DoS
       const allProjects = await Project.find({}, "_id title");
-      const match = allProjects.find((p) => {
+      const matches = allProjects.filter((p) => {
         const slug = slugify(p.title);
         return slug === target || p.title.toLowerCase() === target;
       });
 
-      if (match) {
-        project = await Project.findById(match._id);
-      }
+      if (matches.length > 1) throw new AppError("Project not found", 404);
+      if (matches.length === 1) project = await Project.findById(matches[0]._id);
     }
 
     if (!project) {
@@ -130,13 +152,18 @@ export class ProjectService {
     return project;
   }
 
-  async getProjectDetails(idOrSlug: string): Promise<SerializedProject> {
+  async getProjectDetails(idOrSlug: string, user: AuthUserPayload): Promise<SerializedProject> {
     const project = await this.getProjectByIdOrSlug(idOrSlug);
+    if (!(await canReadProject(project._id, user))) throw new AppError("Project not found", 404);
     return serializeProject(project);
   }
 
-  async getProjectMembers(idOrSlug: string): Promise<SerializedProjectMember[]> {
+  async getProjectMembers(idOrSlug: string, user: AuthUserPayload): Promise<SerializedProjectMember[]> {
     const project = await this.getProjectByIdOrSlug(idOrSlug);
+    const allowed = user.role === "manager"
+      ? project.manager.toString() === user.id
+      : user.role === "developer" && project.team.some((member) => member.toString() === user.id);
+    if (!allowed) throw new AppError("Project not found", 404);
     const eligibleDevs = await getProjectEligibleDevelopers(project._id);
     return eligibleDevs.map(serializeProjectMember);
   }
@@ -261,7 +288,7 @@ export class ProjectService {
                 assignedDeveloper: { $in: removedDevIds },
                 isCompleted: false,
               },
-              { $set: { assignedDeveloper: null } },
+              { $set: { assignedDeveloper: null, assignedBy: null } },
             );
             unassignedTasksCount += postSweep.modifiedCount || 0;
           } catch (sweepErr: any) {

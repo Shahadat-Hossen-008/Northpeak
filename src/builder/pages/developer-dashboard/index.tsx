@@ -4,17 +4,9 @@ import { AppShell } from "@/builder/layout/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { ErrorState } from "@/components/feedback/error-state";
-import { EmptyState } from "@/components/feedback/empty-state";
 import { DashboardMetricCard } from "@/components/cards/metric-card";
 import { SectionRenderer } from "@/sections/registry";
-import { TaskBoard } from "@/sections/task-board";
-import {
-  useAllSubtasks,
-  useCommentCounts,
-  useProjects,
-  useSetTaskCompletion,
-  useTasks,
-} from "@/hooks/queries";
+import { useProjects, useTasks } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { selectDeveloperDashboardMetrics } from "@/lib/dashboard-selectors";
 import type { DeveloperDashboardPageProps } from "./interface";
@@ -23,9 +15,6 @@ export function DeveloperDashboardPage(_props: DeveloperDashboardPageProps) {
   const { profile } = useAuth();
   const projects = useProjects();
   const tasks = useTasks();
-  const subtasks = useAllSubtasks();
-  const counts = useCommentCounts();
-  const setDone = useSetTaskCompletion(profile?.id ?? null);
 
   const {
     mine,
@@ -43,7 +32,6 @@ export function DeveloperDashboardPage(_props: DeveloperDashboardPageProps) {
     profileId: profile?.id,
   });
 
-  const subs = subtasks.data ?? [];
   const loading = (tasks.isLoading && !tasks.data) || (projects.isLoading && !projects.data);
   const isError = (!tasks.data && tasks.isError) || (!projects.data && projects.isError);
   const errorMessage = ((tasks.error || projects.error) as Error)?.message;
@@ -126,19 +114,6 @@ export function DeveloperDashboardPage(_props: DeveloperDashboardPageProps) {
               }}
             />
           </div>
-
-          {/* Remaining TaskBoard Section */}
-          {mine.length === 0 ? (
-            <EmptyState title="No tasks assigned" description="You're all caught up." />
-          ) : (
-            <TaskBoard
-              tasks={mine}
-              subtasks={subs}
-              commentCounts={counts.data ?? {}}
-              hrefFor={(t) => `/developer/tasks/${t.id}?from=/developer/dashboard`}
-              onToggle={(task, completed) => setDone.mutate({ task, completed })}
-            />
-          )}
         </div>
       )}
     </AppShell>

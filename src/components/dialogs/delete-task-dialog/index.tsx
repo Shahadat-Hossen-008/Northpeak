@@ -1,17 +1,7 @@
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { ConfirmActionDialog } from "../confirm-action-dialog";
 import { useDeleteTask } from "@/hooks/queries";
 import type { DeleteTaskDialogProps } from "./interface";
 
@@ -19,45 +9,29 @@ export function DeleteTaskDialog({ task, trigger, onDeleted }: DeleteTaskDialogP
   const [open, setOpen] = useState(false);
   const del = useDeleteTask();
 
-  function handleDelete() {
-    del.mutate(task.id, {
-      onSuccess: () => {
-        setOpen(false);
-        if (onDeleted) onDeleted();
-      },
-    });
+  async function handleDelete() {
+    await del.mutateAsync(task.id);
+    onDeleted?.();
   }
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        {trigger ?? (
-          <Button variant="destructive-outline" size="sm">
-            <Trash2 className="size-4" />
-            Delete task
-          </Button>
-        )}
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete task "{task.title}"?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action cannot be undone. All subtasks and comments belonging to this task will be
-            permanently deleted.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDelete}
-            className="bg-danger text-danger-foreground hover:bg-danger/90"
-            disabled={del.isPending}
-          >
-            {del.isPending ? "Deleting…" : "Delete task"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmActionDialog
+      open={open}
+      onOpenChange={setOpen}
+      title={`Delete task "${task.title}"?`}
+      description="This action cannot be undone. All subtasks and comments belonging to this task will be permanently deleted."
+      confirmLabel="Delete task"
+      pendingLabel="Deleting…"
+      pending={del.isPending}
+      onConfirm={handleDelete}
+    >
+      {trigger ?? (
+        <Button variant="destructive-outline" size="sm">
+          <Trash2 className="size-4" />
+          Delete task
+        </Button>
+      )}
+    </ConfirmActionDialog>
   );
 }
 

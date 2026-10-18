@@ -1,38 +1,18 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmActionDialog } from "../confirm-action-dialog";
 import type { ConfirmDeleteDialogProps } from "./interface";
 
 export function ConfirmDeleteDialog({ task, onClose, onConfirm }: ConfirmDeleteDialogProps) {
+  if (!task) return null;
+
   return (
-    <AlertDialog open={!!task} onOpenChange={(o) => !o && onClose()}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete this task?</AlertDialogTitle>
-          <AlertDialogDescription>
-            "{task?.title}" and its subtasks and comments will be permanently removed.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => {
-              if (task) onConfirm(task);
-              onClose();
-            }}
-          >
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmActionDialog
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title="Delete this task?"
+      description={`"${task.title}" and its subtasks and comments will be permanently removed.`}
+      confirmLabel="Delete task"
+      onConfirm={() => onConfirm(task)}
+    />
   );
 }
 

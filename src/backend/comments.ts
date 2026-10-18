@@ -17,6 +17,13 @@ export const commentsApi = {
     });
   },
 
+  async updateComment(id: string, body: string) {
+    return request<Comment>(`/comments/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ body }),
+    });
+  },
+
   async deleteComment(id: string) {
     return request<{ success: boolean; message: string }>(`/comments/${id}`, {
       method: "DELETE",

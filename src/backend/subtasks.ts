@@ -10,14 +10,25 @@ export const subtasksApi = {
     return request<Subtask[]>(`/subtasks/task/${taskId}`);
   },
 
-  async createSubtask(taskId: string, title: string) {
+  async createSubtask(
+    taskId: string,
+    input: { title: string; description?: string; assigned_developer_id?: string | null },
+  ) {
     return request<Subtask>(`/subtasks/task/${taskId}`, {
       method: "POST",
-      body: JSON.stringify({ title }),
+      body: JSON.stringify(input),
     });
   },
 
-  async updateSubtask(id: string, patch: { title?: string; is_completed?: boolean }) {
+  async updateSubtask(
+    id: string,
+    patch: {
+      title?: string;
+      description?: string;
+      assigned_developer_id?: string | null;
+      is_completed?: boolean;
+    },
+  ) {
     return request<Subtask>(`/subtasks/${id}`, {
       method: "PATCH",
       body: JSON.stringify(patch),

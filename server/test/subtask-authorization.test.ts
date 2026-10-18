@@ -310,3 +310,95 @@ test("SUBTASK-AUTH: Missing parent task or subtask returns 404 Not Found", async
   assert.equal(deleteRes.status, 404);
   assert.equal(deleteRes.body.message, "Subtask not found");
 });
+
+test("SUBTASK-ASSIGN: Manager can assign and clear an eligible developer", async () => {
+  const { projectManagerToken, assignedDev, task, subtask } = await setupAuthTestFixtures();
+
+  const assign = await request(app)
+    .patch(`/api/subtasks/${subtask._id}`)
+    .set("Authorization", `Bearer ${projectManagerToken}`)
+    .send({ assigned_developer_id: assignedDev._id.toString() });
+
+  assert.equal(assign.status, 200);
+  assert.equal(assign.body.assigned_developer_id, assignedDev._id.toString());
+  assert.deepEqual(assign.body.assignee, {
+    id: assignedDev._id.toString(),
+    name: assignedDev.name,
+  });
+
+  const clear = await request(app)
+    .patch(`/api/subtasks/${subtask._id}`)
+    .set("Authorization", `Bearer ${projectManagerToken}`)
+    .send({ assigned_developer_id: null });
+
+  assert.equal(clear.status, 200);
+  assert.equal(clear.body.assigned_developer_id, null);
+  assert.equal(clear.body.assignee, null);
+});
+
+test("SUBTASK-ASSIGN: Assigned developer cannot assign or change the parent", async () => {
+  const { assignedDevToken, unassignedDev, task, subtask } = await setupAuthTestFixtures();
+
+  const assignment = await request(app)
+    .patch(`/api/subtasks/${subtask._id}`)
+    .set("Authorization", `Bearer ${assignedDevToken}`)
+    .send({ assigned_developer_id: unassignedDev._id.toString() });
+
+  assert.equal(assignment.status, 403);
+  assert.equal((await Subtask.findById(subtask._id))?.assignedDeveloper, null);
+
+  const parentChange = await request(app)
+    .patch(`/api/subtasks/${subtask._id}`)
+    .set("Authorization", `Bearer ${assignedDevToken}`)
+    .send({ task: new mongoose.Types.ObjectId().toString() });
+
+  assert.equal(parentChange.status, 400);
+  assert.equal((await Subtask.findById(subtask._id))?.task.toString(), task._id.toString());
+});
+
+test("SUBTASK-ASSIGN: Invalid and ineligible assignees are rejected", async () => {
+  const { projectManagerToken, projectManager, unassignedDevToken, task, subtask } =
+    await setupAuthTestFixtures();
+
+  const malformed = await request(app)
+    .patch(`/api/subtasks/${subtask._id}`)
+    .set("Authorization", `Bearer ${projectManagerToken}`)
+    .send({ assigned_developer_id: "not-an-id" });
+  assert.equal(malformed.status, 400);
+
+  const manager = await request(app)
+    .patch(`/api/subtasks/${subtask._id}`)
+    .set("Authorization", `Bearer ${projectManagerToken}`)
+    .send({ assigned_developer_id: projectManager._id.toString() });
+  assert.equal(manager.status, 400);
+
+  const developerAttempt = await request(app)
+    .patch(`/api/subtasks/${subtask._id}`)
+    .set("Authorization", `Bearer ${unassignedDevToken}`)
+    .send({ assigned_developer_id: null });
+  assert.equal(developerAttempt.status, 403);
+  assert.equal((await Subtask.findById(subtask._id))?.task.toString(), task._id.toString());
+});
+
+test("SUBTASK-ASSIGN: Legacy subtask fields serialize safely", async () => {
+  const { assignedDevToken, task } = await setupAuthTestFixtures();
+  const legacy = await Subtask.collection.insertOne({
+    task: task._id,
+    title: "Legacy subtask",
+    isCompleted: true,
+    completedAt: new Date("2025-01-01T00:00:00.000Z"),
+    createdAt: new Date("2025-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2025-01-01T00:00:00.000Z"),
+  });
+
+  const response = await request(app)
+    .get(`/api/subtasks/task/${task._id}`)
+    .set("Authorization", `Bearer ${assignedDevToken}`);
+
+  assert.equal(response.status, 200);
+  const result = response.body.find((item: { id: string }) => item.id === legacy.insertedId.toString());
+  assert.equal(result.description, "");
+  assert.equal(result.assigned_developer_id, null);
+  assert.equal(result.assignee, null);
+  assert.equal(result.is_completed, true);
+});

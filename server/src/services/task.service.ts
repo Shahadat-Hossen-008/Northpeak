@@ -1,4 +1,4 @@
-import { isValidObjectId } from "mongoose";
+import { isValidObjectId, Types } from "mongoose";
 import { Task, type ITask, type TaskWorkflowStatus } from "../models/Task.js";
 import { Project } from "../models/Project.js";
 import { User } from "../models/User.js";
@@ -11,6 +11,7 @@ import { escapeRegex } from "../lib/utils.js";
 import { concurrencyTestBarriers } from "./team.js";
 import { serializeTask, type SerializedTask } from "../serializers/task.serializer.js";
 import type { AuthUserPayload } from "../middleware/auth.js";
+import { getReadableTask } from "./task-access.js";
 
 export interface CreateTaskInput {
   project_id?: string;
@@ -32,12 +33,7 @@ export interface UpdateTaskInput {
   is_completed?: unknown;
 }
 
-const TASK_WORKFLOW_STATUSES: TaskWorkflowStatus[] = [
-  "todo",
-  "in_progress",
-  "in_review",
-  "done",
-];
+const TASK_WORKFLOW_STATUSES: TaskWorkflowStatus[] = ["todo", "in_progress", "in_review", "done"];
 
 export interface AssigneeResolution {
   isDefined: boolean;
@@ -49,7 +45,9 @@ export class TaskService {
   private async fetchPopulatedTask(taskId: any): Promise<SerializedTask> {
     const populated = await Task.findById(taskId)
       .populate("project", "title")
-      .populate("assignedDeveloper", "name email");
+      .populate("assignedDeveloper", "name email")
+      .populate("createdBy", "name")
+      .populate("assignedBy", "name");
     return serializeTask(populated);
   }
 
@@ -159,7 +157,7 @@ export class TaskService {
     return value;
   }
 
-  async getTasks(query: any): Promise<SerializedTask[]> {
+  async getTasks(user: AuthUserPayload, query: any): Promise<SerializedTask[]> {
     const {
       project_id,
       projectId,
@@ -171,14 +169,31 @@ export class TaskService {
       search,
     } = query;
     const filter: Record<string, any> = {};
+    if (user.role === "manager") {
+      const projects = await Project.find({ manager: user.id }).select("_id");
+      filter.project = { $in: projects.map((project) => project._id) };
+    } else if (user.role === "developer") {
+      filter.assignedDeveloper = user.id;
+    } else {
+      throw new AppError("Not authorized to read tasks", 403);
+    }
 
     const targetProjectId = (project_id || projectId) as string;
     if (targetProjectId && isValidObjectId(targetProjectId)) {
-      filter.project = targetProjectId;
+      if (user.role === "manager") {
+        const authorizedProjectIds = filter.project.$in as any[];
+        filter.project = { $in: authorizedProjectIds.filter((id) => id.toString() === targetProjectId) };
+      } else {
+        filter.project = targetProjectId;
+      }
     }
     const targetAssignedTo = (assigned_to || assignedTo) as string;
     if (targetAssignedTo && isValidObjectId(targetAssignedTo)) {
-      filter.assignedDeveloper = targetAssignedTo;
+      if (user.role === "developer" && targetAssignedTo !== user.id) {
+        filter._id = { $in: [] };
+      } else if (user.role === "manager") {
+        filter.assignedDeveloper = targetAssignedTo;
+      }
     }
     if (priority && typeof priority === "string") {
       filter.priority = priority;
@@ -200,24 +215,19 @@ export class TaskService {
     const tasks = await Task.find(filter)
       .populate("project", "title")
       .populate("assignedDeveloper", "name email")
+      .populate("createdBy", "name")
+      .populate("assignedBy", "name")
       .sort({ deadline: 1 });
 
     return tasks.map(serializeTask);
   }
 
-  async getTaskById(taskId: string): Promise<SerializedTask> {
-    if (!isValidObjectId(taskId)) {
-      throw new AppError("Task not found", 404);
-    }
-
-    const task = await Task.findById(taskId)
-      .populate("project", "title")
-      .populate("assignedDeveloper", "name email");
-
-    if (!task) {
-      throw new AppError("Task not found", 404);
-    }
-
+  async getTaskById(taskId: string, user: AuthUserPayload): Promise<SerializedTask> {
+    const task = await getReadableTask(taskId, user);
+    await task.populate("project", "title");
+    await task.populate("assignedDeveloper", "name email");
+    await task.populate("createdBy", "name");
+    await task.populate("assignedBy", "name");
     return serializeTask(task);
   }
 
@@ -252,6 +262,8 @@ export class TaskService {
       title: title.trim(),
       description: (description || "").trim(),
       assignedDeveloper: assignedDevId,
+      createdBy: user.id,
+      assignedBy: assignedDevId ? user.id : null,
       deadline: deadline ? new Date(deadline) : null,
       priority: priority || "medium",
       status: "todo",
@@ -356,6 +368,9 @@ export class TaskService {
       const assignee = await this.validateAndResolveAssignee(task.project, assigned_developer_id);
       task.assignedDeveloper = assignee.user ? assignee.user._id : null;
       assignedDevUser = assignee.user;
+      if (assignee.id !== (previousAssignee ?? null)) {
+        task.assignedBy = assignee.id ? new Types.ObjectId(user.id) : null;
+      }
     }
 
     // Managers can update all other task fields
@@ -383,6 +398,7 @@ export class TaskService {
       );
       if (!isStillMember) {
         task.assignedDeveloper = null;
+        task.assignedBy = null;
         await task.save();
         throw new AppError(
           "Developer does not belong to the selected project's engineering team",

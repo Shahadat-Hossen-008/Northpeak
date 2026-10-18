@@ -9,8 +9,8 @@ export const tasksRouter = Router();
 tasksRouter.get(
   "/",
   authenticate,
-  asyncHandler(async (req, res) => {
-    const tasks = await taskService.getTasks(req.query);
+  asyncHandler(async (req: AuthRequest, res) => {
+    const tasks = await taskService.getTasks(req.user!, req.query);
     res.json(tasks);
   }),
 );
@@ -19,9 +19,9 @@ tasksRouter.get(
 tasksRouter.get(
   "/:id",
   authenticate,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: AuthRequest, res) => {
     const rawId = Array.isArray(req.params.id) ? (req.params.id[0] ?? "") : (req.params.id ?? "");
-    const task = await taskService.getTaskById(rawId);
+    const task = await taskService.getTaskById(rawId, req.user!);
     res.json(task);
   }),
 );

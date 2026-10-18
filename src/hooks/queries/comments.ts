@@ -50,3 +50,17 @@ export function useDeleteComment(_taskId?: string) {
     onError: (error: Error) => toast.error(error.message),
   });
 }
+
+export function useUpdateComment(_taskId?: string) {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: string }) => {
+      return api.updateComment(id, body);
+    },
+    onSuccess: () => {
+      invalidate(["comments"]);
+      toast.success("Comment updated");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}

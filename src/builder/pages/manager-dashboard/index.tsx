@@ -16,14 +16,12 @@ import { ProgressBar } from "@/components/progress/progress-bar";
 import { DeadlineBadge } from "@/components/badges/deadline-badge";
 import { StatusBadge } from "@/components/badges/status-badge";
 import { statusOf } from "@/components/badges/utils";
-import { ProjectCard } from "@/sections/project-card";
 import { MemberDetailSheet } from "@/sections/member-detail-sheet";
 import { SectionRenderer } from "@/sections/registry";
 import { useActivity, useAllSubtasks, useMembers, useProjects, useTasks } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { selectManagerDashboardMetrics } from "@/lib/dashboard-selectors";
 import { formatDate, timeAgo } from "@/lib/deadline";
-import { projectSlug } from "@/lib/utils";
 import type { ManagerDashboardPageProps } from "./interface";
 
 export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
@@ -139,45 +137,6 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
               }}
             />
           </div>
-
-          <section>
-            <div className="mb-3 flex items-center justify-between">
-              <Link
-                to="/manager/projects"
-                className="project-title-link text-sm sm:text-base font-semibold tracking-wide text-foreground uppercase hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs"
-              >
-                <span className="project-title-text">Projects overview</span>
-                <ArrowUpRight
-                  className="project-redirect-icon size-3.5 text-muted-foreground"
-                  aria-hidden="true"
-                />
-              </Link>
-              <Link
-                to="/manager/projects"
-                className="text-sm sm:text-base font-medium text-primary hover:underline"
-              >
-                View all
-              </Link>
-            </div>
-            {allProjects.length === 0 ? (
-              <EmptyState
-                title="No projects yet"
-                description="Create your first project to get started."
-                action={<CreateProjectDialog actorId={profile?.id ?? null} />}
-              />
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {allProjects.slice(0, 6).map((project) => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    tasks={allTasks}
-                    href={`/manager/projects/${projectSlug(project)}`}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <SectionCard title="Overdue tasks">

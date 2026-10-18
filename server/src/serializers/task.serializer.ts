@@ -12,6 +12,14 @@ export interface SerializedTask {
   created_at: string;
   project?: { id: string; title: string } | null;
   assignee?: { id: string; name: string } | null;
+  created_by: { id: string; name: string } | null;
+  assigned_by: { id: string; name: string } | null;
+}
+
+function serializePerson(value: any): { id: string; name: string } | null {
+  return value && typeof value === "object" && value.name
+    ? { id: value._id?.toString?.() ?? value.id?.toString?.() ?? "", name: value.name }
+    : null;
 }
 
 export function serializeTask(task: any): SerializedTask {
@@ -53,5 +61,7 @@ export function serializeTask(task: any): SerializedTask {
       task.assignedDeveloper.name
         ? { id: task.assignedDeveloper._id.toString(), name: task.assignedDeveloper.name }
         : null,
+    created_by: serializePerson(task.createdBy),
+    assigned_by: serializePerson(task.assignedBy),
   };
 }

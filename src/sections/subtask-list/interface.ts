@@ -3,4 +3,5 @@ export interface SubtaskListProps {
   projectId: string;
   actorId: string | null;
   canEdit: boolean;
+  canAssign: boolean;
 }

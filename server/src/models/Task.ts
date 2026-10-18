@@ -8,6 +8,8 @@ export interface ITask extends Document {
   title: string;
   description: string;
   assignedDeveloper: mongoose.Types.ObjectId | null;
+  createdBy: mongoose.Types.ObjectId | null;
+  assignedBy: mongoose.Types.ObjectId | null;
   deadline: Date | null;
   priority: Priority;
   status: TaskWorkflowStatus;
@@ -23,6 +25,8 @@ const taskSchema = new Schema<ITask>(
     title: { type: String, required: true, trim: true },
     description: { type: String, default: "", trim: true },
     assignedDeveloper: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null, immutable: true },
+    assignedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     deadline: { type: Date, default: null },
     priority: {
       type: String,

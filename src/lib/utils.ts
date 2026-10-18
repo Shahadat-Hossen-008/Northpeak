@@ -31,9 +31,10 @@ export function findProjectByIdOrSlug<T extends { id: string; title: string }>(
   if (byId) return byId;
 
   // 2. Exact slug match
-  const bySlug = projects.find((p) => slugify(p.title) === target);
-  if (bySlug) return bySlug;
+  const slugMatches = projects.filter((p) => slugify(p.title) === target);
+  if (slugMatches.length === 1) return slugMatches[0];
 
   // 3. Case-insensitive title match
-  return projects.find((p) => p.title.toLowerCase() === target);
+  const titleMatches = projects.filter((p) => p.title.toLowerCase() === target);
+  return titleMatches.length === 1 ? titleMatches[0] : undefined;
 }
