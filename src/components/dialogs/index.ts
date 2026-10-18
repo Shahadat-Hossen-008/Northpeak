@@ -19,6 +19,9 @@ export type { DeleteTaskDialogProps } from "./delete-task-dialog";
 export { ConfirmDeleteDialog, ConfirmDelete } from "./confirm-delete-dialog";
 export type { ConfirmDeleteDialogProps } from "./confirm-delete-dialog";
 
+export { ConfirmActionDialog } from "./confirm-action-dialog";
+export type { ConfirmActionDialogProps } from "./confirm-action-dialog";
+
 export { ProjectTeamSelector } from "./team-selector";
 export type { ProjectTeamSelectorProps } from "./team-selector";
 

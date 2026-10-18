@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ConfirmActionDialog } from "../confirm-action-dialog";
 import { useMembers, useTasks, useUpdateProject } from "@/hooks/queries";
 import type { Priority, Project } from "@/types";
 import { ProjectTeamSelector } from "../team-selector";
@@ -42,6 +43,7 @@ export function EditProjectDialog({ project, trigger }: EditProjectDialogProps) 
     team: (project.team ?? []) as string[],
   });
   const [error, setError] = useState<string | null>(null);
+  const [confirmTeamRemoval, setConfirmTeamRemoval] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -81,34 +83,36 @@ export function EditProjectDialog({ project, trigger }: EditProjectDialogProps) 
       .filter((d) => d.openTaskCount > 0);
   }, [originalTeam, form.team, tasksQuery.data, membersQuery.data, project.id]);
 
+  async function saveProject() {
+    setError(null);
+    const data = (await update.mutateAsync({
+      id: project.id,
+      title: form.title.trim(),
+      description: form.description.trim(),
+      start_date: form.start || null,
+      deadline: toIso(form.deadline),
+      priority: form.priority,
+      team: form.team,
+    })) as Project & { unassigned_open_tasks_count?: number };
+    setOpen(false);
+    if (data?.unassigned_open_tasks_count && data.unassigned_open_tasks_count > 0) {
+      toast.info(
+        `Unassigned ${data.unassigned_open_tasks_count} open task(s) from removed team member(s).`,
+      );
+    }
+  }
+
   function submit(event: React.FormEvent) {
     event.preventDefault();
     if (form.title.trim().length < 3) {
       setError("Project name must be at least 3 characters.");
       return;
     }
-    setError(null);
-    update.mutate(
-      {
-        id: project.id,
-        title: form.title.trim(),
-        description: form.description.trim(),
-        start_date: form.start || null,
-        deadline: toIso(form.deadline),
-        priority: form.priority,
-        team: form.team,
-      },
-      {
-        onSuccess: (data: Project & { unassigned_open_tasks_count?: number }) => {
-          setOpen(false);
-          if (data?.unassigned_open_tasks_count && data.unassigned_open_tasks_count > 0) {
-            toast.info(
-              `Unassigned ${data.unassigned_open_tasks_count} open task(s) from removed team member(s).`,
-            );
-          }
-        },
-      },
-    );
+    if (removedDevelopersWithOpenTasks.length > 0) {
+      setConfirmTeamRemoval(true);
+      return;
+    }
+    void saveProject();
   }
 
   return (
@@ -224,6 +228,24 @@ export function EditProjectDialog({ project, trigger }: EditProjectDialogProps) 
             </Button>
           </DialogFooter>
         </form>
+        <ConfirmActionDialog
+          open={confirmTeamRemoval}
+          onOpenChange={setConfirmTeamRemoval}
+          title="Remove team members with open work?"
+          description={
+            <>
+              Removing these developers will unassign{" "}
+              {removedDevelopersWithOpenTasks.reduce(
+                (sum, developer) => sum + developer.openTaskCount,
+                0,
+              )}{" "}
+              open task(s). Completed tasks and task history will remain preserved.
+            </>
+          }
+          confirmLabel="Remove and save"
+          pending={update.isPending}
+          onConfirm={saveProject}
+        />
       </DialogContent>
     </Dialog>
   );

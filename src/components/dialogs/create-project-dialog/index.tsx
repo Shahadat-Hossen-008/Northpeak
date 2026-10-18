@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,6 +26,8 @@ import { ProjectTeamSelector } from "../team-selector";
 import { PRIORITIES, toIso } from "../utils";
 import type { CreateProjectDialogProps } from "./interface";
 
+type ProjectFieldErrors = { title?: string; deadline?: string };
+
 export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
   const [open, setOpen] = useState(false);
   const create = useCreateProject(actorId);
@@ -38,17 +40,31 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
     team: [] as string[],
   });
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<ProjectFieldErrors>({});
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const deadlineRef = useRef<HTMLInputElement>(null);
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (form.title.trim().length < 3) {
-      setError("Project name must be at least 3 characters.");
-      return;
+    if (create.isPending) return;
+    setHasSubmitted(true);
+    const nextErrors: ProjectFieldErrors = {};
+    if (!form.title.trim()) nextErrors.title = "Enter a name for this project.";
+    else if (form.title.trim().length < 3) {
+      nextErrors.title = "Use at least 3 characters for the project name.";
     }
     if (form.start && form.deadline && new Date(form.deadline) < new Date(form.start)) {
-      setError("Deadline must be after the start date.");
+      nextErrors.deadline = "Choose a deadline on or after the start date.";
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      setError(null);
+      if (nextErrors.title) titleRef.current?.focus();
+      else if (nextErrors.deadline) deadlineRef.current?.focus();
       return;
     }
+    setFieldErrors({});
     setError(null);
     create.mutate(
       {
@@ -62,6 +78,8 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
       {
         onSuccess: () => {
           setOpen(false);
+          setHasSubmitted(false);
+          setFieldErrors({});
           setForm({
             title: "",
             description: "",
@@ -71,34 +89,73 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
             team: [],
           });
         },
+        onError: (err: unknown) => {
+          setError(err instanceof Error ? err.message : "Could not create the project. Try again.");
+        },
       },
     );
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen) {
+          setFieldErrors({});
+          setError(null);
+          setHasSubmitted(false);
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button>
           <Plus className="size-4" />
           New project
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Create project</DialogTitle>
           <DialogDescription>Set the scope, dates and priority for the work.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="project-title">Project name</Label>
+          <div className="space-y-2">
+            <Label htmlFor="project-title">
+              Project name{" "}
+              <span aria-hidden="true" className="text-danger">
+                *
+              </span>
+            </Label>
             <Input
               id="project-title"
+              ref={titleRef}
+              aria-required="true"
+              aria-invalid={Boolean(fieldErrors.title)}
+              aria-describedby={fieldErrors.title ? "project-title-error" : undefined}
               value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              onChange={(e) => {
+                const title = e.target.value;
+                setForm((prev) => ({ ...prev, title }));
+                if (hasSubmitted) {
+                  const message = !title.trim()
+                    ? "Enter a name for this project."
+                    : title.trim().length < 3
+                      ? "Use at least 3 characters for the project name."
+                      : "";
+                  setFieldErrors((prev) => ({ ...prev, title: message }));
+                }
+                setError(null);
+              }}
               placeholder="E-Commerce Platform"
             />
+            {fieldErrors.title ? (
+              <p id="project-title-error" className="text-xs text-danger">
+                {fieldErrors.title}
+              </p>
+            ) : null}
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <Label htmlFor="project-description">Description</Label>
             <Textarea
               id="project-description"
@@ -115,32 +172,66 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
           />
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label htmlFor="project-start">Start date</Label>
               <Input
                 id="project-start"
                 type="date"
                 value={form.start}
-                onChange={(e) => setForm({ ...form, start: e.target.value })}
+                onChange={(e) => {
+                  const start = e.target.value;
+                  setForm((prev) => ({ ...prev, start }));
+                  if (hasSubmitted) {
+                    const deadlineIsBeforeStart =
+                      start && form.deadline && new Date(form.deadline) < new Date(start);
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      deadline: deadlineIsBeforeStart
+                        ? "Choose a deadline on or after the start date."
+                        : "",
+                    }));
+                  }
+                }}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label htmlFor="project-deadline">Deadline</Label>
               <Input
                 id="project-deadline"
+                ref={deadlineRef}
                 type="date"
+                aria-invalid={Boolean(fieldErrors.deadline)}
+                aria-describedby={fieldErrors.deadline ? "project-deadline-error" : undefined}
                 value={form.deadline}
-                onChange={(e) => setForm({ ...form, deadline: e.target.value })}
+                onChange={(e) => {
+                  const deadline = e.target.value;
+                  setForm((prev) => ({ ...prev, deadline }));
+                  if (hasSubmitted) {
+                    const deadlineIsBeforeStart =
+                      form.start && deadline && new Date(deadline) < new Date(form.start);
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      deadline: deadlineIsBeforeStart
+                        ? "Choose a deadline on or after the start date."
+                        : "",
+                    }));
+                  }
+                }}
               />
+              {fieldErrors.deadline ? (
+                <p id="project-deadline-error" className="text-xs text-danger">
+                  {fieldErrors.deadline}
+                </p>
+              ) : null}
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Priority</Label>
+          <div className="space-y-2">
+            <Label htmlFor="project-priority">Priority</Label>
             <Select
               value={form.priority}
               onValueChange={(value) => setForm({ ...form, priority: value as Priority })}
             >
-              <SelectTrigger>
+              <SelectTrigger id="project-priority">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -152,7 +243,11 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
               </SelectContent>
             </Select>
           </div>
-          {error ? <p className="text-sm text-danger">{error}</p> : null}
+          {error ? (
+            <p className="text-sm text-danger" role="alert">
+              {error}
+            </p>
+          ) : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
