@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo } from "react";
 
 import { AppShell } from "@/builder/layout/app-shell";
 import { ErrorState } from "@/components/feedback/error-state";
@@ -7,18 +8,33 @@ import { PageHeader } from "@/components/page-header";
 import { meta } from "@/builder/layout/meta";
 import { TaskBoard } from "@/sections/task-board";
 import { TaskFilters } from "@/sections/task-filters";
-import { useFilteredTasks } from "@/lib/task-utils";
+import {
+  getTaskFilterProjects,
+  projectNameForTaskSearch,
+  useFilteredTasks,
+} from "@/lib/task-utils";
 import { useAllSubtasks, useCommentCounts, useProjects, useTasks } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { findProjectByIdOrSlug } from "@/lib/utils";
+import { taskFiltersFromSearch, taskFiltersToSearch } from "@/lib/task-utils";
 
-type TasksSearch = {
+type TasksSearch = Record<string, unknown> & {
   project?: string | undefined;
+  projectName?: string | undefined;
+  q?: string | undefined;
+  status?: string | undefined;
+  priority?: string | undefined;
+  sort?: string | undefined;
 };
 
 export const Route = createFileRoute("/_authenticated/developer/tasks/")({
   validateSearch: (search: Record<string, unknown>): TasksSearch => ({
-    project: typeof search["project"] === "string" ? search["project"] : undefined,
+    ...search,
+    ...taskFiltersToSearch(taskFiltersFromSearch(search, false), false),
+    projectName:
+      typeof search["project"] === "string" && typeof search["projectName"] === "string"
+        ? search["projectName"]
+        : undefined,
   }),
   head: () => meta("My tasks", "Every task assigned to you with deadline status."),
   component: DeveloperTasks,
@@ -26,16 +42,89 @@ export const Route = createFileRoute("/_authenticated/developer/tasks/")({
 
 function DeveloperTasks() {
   const { profile } = useAuth();
-  const { project } = Route.useSearch();
+  const search = Route.useSearch();
+  const projectName = search["projectName"];
+  const navigate = Route.useNavigate();
   const tasks = useTasks();
   const projects = useProjects();
   const subtasks = useAllSubtasks();
   const commentCounts = useCommentCounts();
   const mine = (tasks.data ?? []).filter((t) => t.assigned_developer_id === profile?.id);
-  const { filters, setFilters, filtered } = useFilteredTasks(mine, subtasks.data ?? [], {
-    project: project || "all",
-  });
-  const selectedProject = findProjectByIdOrSlug(projects.data ?? [], filters.project);
+  const eligibleProjects = getTaskFilterProjects(
+    projects.data ?? [],
+    tasks.data ?? [],
+    profile?.id,
+    "developer",
+  );
+  const filters = useMemo(() => taskFiltersFromSearch(search, false), [search]);
+  const { filtered } = useFilteredTasks(mine, subtasks.data ?? [], filters);
+  useEffect(() => {
+    if (
+      tasks.isLoading ||
+      projects.isLoading ||
+      !tasks.data ||
+      !projects.data ||
+      filters.project === "all"
+    )
+      return;
+    const resolved = findProjectByIdOrSlug(eligibleProjects, filters.project);
+    if (
+      resolved &&
+      (resolved.id !== filters.project ||
+        projectName !==
+          projectNameForTaskSearch({ ...filters, project: resolved.id }, eligibleProjects))
+    ) {
+      const normalized = { ...filters, project: resolved.id };
+      void navigate({
+        replace: true,
+        search: (previous) => ({
+          ...previous,
+          ...taskFiltersToSearch(
+            normalized,
+            false,
+            projectNameForTaskSearch(normalized, eligibleProjects),
+          ),
+        }),
+      });
+    } else if (!resolved) {
+      void navigate({
+        replace: true,
+        search: (previous) => ({ ...previous, project: undefined, projectName: undefined }),
+      });
+    }
+  }, [
+    tasks.isLoading,
+    projects.isLoading,
+    tasks.data,
+    projects.data,
+    filters.project,
+    projectName,
+    filters,
+    eligibleProjects,
+    navigate,
+  ]);
+  const setFilters = (next: typeof filters) => {
+    void navigate({
+      search: (previous) => ({
+        ...previous,
+        ...taskFiltersToSearch(next, false, projectNameForTaskSearch(next, eligibleProjects)),
+      }),
+    });
+  };
+  const setSearch = (value: string) => {
+    void navigate({
+      replace: true,
+      search: (previous) => ({
+        ...previous,
+        ...taskFiltersToSearch(
+          { ...filters, search: value },
+          false,
+          projectNameForTaskSearch(filters, eligibleProjects),
+        ),
+      }),
+    });
+  };
+  const selectedProject = findProjectByIdOrSlug(eligibleProjects, filters.project);
 
   return (
     <AppShell
@@ -57,9 +146,10 @@ function DeveloperTasks() {
             <TaskFilters
               filters={filters}
               setFilters={setFilters}
+              onSearchChange={setSearch}
               developers={[]}
               showDeveloper={false}
-              projects={projects.data ?? []}
+              projects={eligibleProjects}
               showProject={true}
             />
           </div>
