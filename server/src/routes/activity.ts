@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate, type AuthRequest } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/error.js";
 import { activityService } from "../services/activity.service.js";
 
@@ -9,8 +9,8 @@ export const activityRouter = Router();
 activityRouter.get(
   "/",
   authenticate,
-  asyncHandler(async (req, res) => {
-    const activities = await activityService.getActivities(req.query);
+  asyncHandler(async (req: AuthRequest, res) => {
+    const activities = await activityService.getActivities(req.user!, req.query);
     res.json(activities);
   }),
 );

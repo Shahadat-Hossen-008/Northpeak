@@ -290,7 +290,16 @@ test("CHAR-MEMBERS: GET /api/members, /:id, /:id/workload success, 401, 400", as
 // 8-13: Projects Endpoints
 // ---------------------------------------------------------------------------
 test("CHAR-PROJECTS: GET, POST, PATCH, DELETE /api/projects success, 401, 403, 404", async () => {
-  const { managerToken, devToken, project } = await createFixtures();
+  const { managerToken, devToken, project, manager } = await createFixtures();
+  const otherManager = await User.create({
+    name: "Other Manager", email: "other-project-manager@test.dev", passwordHash: "hash", role: "manager",
+  });
+  const otherManagerToken = generateToken({
+    id: otherManager._id.toString(), email: otherManager.email, role: "manager", name: otherManager.name,
+  });
+  const otherProject = await Project.create({
+    title: "Other Manager Project", manager: otherManager._id, team: [], priority: "low",
+  });
 
   // 401 without token
   assert.equal((await request(app).get("/api/projects")).status, 401);
@@ -310,6 +319,16 @@ test("CHAR-PROJECTS: GET, POST, PATCH, DELETE /api/projects success, 401, 403, 4
   // 200 GET all & single
   const list = await request(app).get("/api/projects").set("Authorization", `Bearer ${devToken}`);
   assert.equal(list.status, 200);
+  assert.deepEqual(list.body.map((item: { id: string }) => item.id), [project._id.toString()]);
+  const managerList = await request(app).get("/api/projects").set("Authorization", `Bearer ${managerToken}`);
+  assert.deepEqual(managerList.body.map((item: { id: string }) => item.id), [project._id.toString()]);
+  const searchedProjects = await request(app)
+    .get("/api/projects?search=E-Commerce")
+    .set("Authorization", `Bearer ${managerToken}`);
+  assert.deepEqual(searchedProjects.body.map((item: { id: string }) => item.id), [project._id.toString()]);
+  assert.equal((await request(app).get(`/api/projects/${otherProject._id}`).set("Authorization", `Bearer ${managerToken}`)).status, 404);
+  assert.equal((await request(app).get(`/api/projects/${otherProject._id}/members`).set("Authorization", `Bearer ${managerToken}`)).status, 404);
+  assert.equal(manager._id.toString(), managerList.body[0].manager_id);
   const single = await request(app)
     .get(`/api/projects/${project._id}`)
     .set("Authorization", `Bearer ${devToken}`);
@@ -395,8 +414,36 @@ test("CHAR-TASKS: GET, POST, PATCH, PATCH /complete, DELETE /api/tasks", async (
     (await request(app).get("/api/tasks").set("Authorization", `Bearer ${devToken}`)).status,
     200,
   );
+  const otherAssignedTask = await Task.create({
+    project: project._id, title: "Other developer task", assignedDeveloper: (await User.findOne({ email: "john@test.dev" }))!._id,
+    status: "todo", isCompleted: false,
+  });
+  const completedTask = await Task.create({
+    project: project._id, title: "Completed assignment", assignedDeveloper: dev._id,
+    status: "done", isCompleted: true,
+  });
+  const unassignedTask = await Task.create({ project: project._id, title: "Unassigned task" });
+  const otherManager = await User.create({
+    name: "Manager Outside Scope", email: "manager-outside-scope@test.dev", passwordHash: "hash", role: "manager",
+  });
+  const otherManagerToken = generateToken({
+    id: otherManager._id.toString(), email: otherManager.email, role: "manager", name: otherManager.name,
+  });
+  const otherProject = await Project.create({ title: "Outside project", manager: otherManager._id, team: [] });
+  const outsideTask = await Task.create({ project: otherProject._id, title: "Outside manager task" });
+  assert.equal((await request(app).get(`/api/tasks/${outsideTask._id}`).set("Authorization", `Bearer ${managerToken}`)).status, 404);
+  const managerTasks = await request(app).get("/api/tasks").set("Authorization", `Bearer ${managerToken}`);
+  assert.ok(!managerTasks.body.some((item: { id: string }) => item.id === outsideTask.id));
+  const scopedTasks = await request(app).get("/api/tasks").set("Authorization", `Bearer ${devToken}`);
+  assert.ok(scopedTasks.body.some((item: { id: string }) => item.id === completedTask.id));
+  assert.ok(!scopedTasks.body.some((item: { id: string }) => [otherAssignedTask.id, unassignedTask.id].includes(item.id)));
+  assert.equal((await request(app).get(`/api/tasks/${otherAssignedTask._id}`).set("Authorization", `Bearer ${devToken}`)).status, 404);
+  assert.equal((await request(app).get(`/api/tasks/${unassignedTask._id}`).set("Authorization", `Bearer ${devToken}`)).status, 404);
+  assert.equal((await request(app).get("/api/tasks").query({ assigned_to: otherAssignedTask.assignedDeveloper.toString() }).set("Authorization", `Bearer ${devToken}`)).body.length, 0);
+  assert.equal((await request(app).get("/api/tasks").query({ project_id: "507f1f77bcf86cd799439011" }).set("Authorization", `Bearer ${devToken}`)).body.length, 0);
   assert.equal(
-    (await request(app).get(`/api/tasks/${task._id}`).set("Authorization", `Bearer ${devToken}`)).status,
+    (await request(app).get(`/api/tasks/${task._id}`).set("Authorization", `Bearer ${devToken}`))
+      .status,
     200,
   );
 
@@ -408,8 +455,12 @@ test("CHAR-TASKS: GET, POST, PATCH, PATCH /complete, DELETE /api/tasks", async (
       project_id: project._id.toString(),
       title: "Second Task",
       assigned_developer_id: dev._id.toString(),
+      created_by: dev._id.toString(),
+      assigned_by: dev._id.toString(),
     });
   assert.equal(create.status, 201);
+  assert.deepEqual(create.body.created_by, { id: manager._id.toString(), name: manager.name });
+  assert.deepEqual(create.body.assigned_by, { id: manager._id.toString(), name: manager.name });
   const taskCreateAct = await Activity.findOne({ task: create.body.id, message: /created task/ });
   assert.ok(taskCreateAct, "Task creation must record activity");
   const taskAssignNotif = await Notification.findOne({
@@ -418,6 +469,33 @@ test("CHAR-TASKS: GET, POST, PATCH, PATCH /complete, DELETE /api/tasks", async (
     task: create.body.id,
   });
   assert.ok(taskAssignNotif, "Task creation with assignee must create notification");
+
+  // Attribution is server-authored and unchanged by unrelated edits or forged identity fields.
+  const createdAttribution = await request(app)
+    .patch(`/api/tasks/${create.body.id}`)
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({
+      title: "Second Task edited",
+      created_by: dev._id.toString(),
+      assigned_by: dev._id.toString(),
+    });
+  assert.equal(createdAttribution.status, 200);
+  assert.equal(createdAttribution.body.created_by.id, manager._id.toString());
+  assert.equal(createdAttribution.body.assigned_by.id, manager._id.toString());
+  await Task.findByIdAndUpdate(create.body.id, { assignedBy: otherDev._id });
+  const noOpAssignment = await request(app)
+    .patch(`/api/tasks/${create.body.id}`)
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({ assigned_developer_id: dev._id.toString() });
+  assert.equal(noOpAssignment.body.assigned_by.id, otherDev._id.toString());
+
+  await Project.findByIdAndUpdate(project._id, { $addToSet: { team: otherDev._id } });
+  const reassigned = await request(app)
+    .patch(`/api/tasks/${create.body.id}`)
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({ assigned_developer_id: otherDev._id.toString() });
+  assert.equal(reassigned.body.assigned_developer_id, otherDev._id.toString());
+  assert.equal(reassigned.body.assigned_by.id, manager._id.toString());
 
   // 403 Developer not assigned cannot update
   const unauthPatch = await request(app)
@@ -449,6 +527,7 @@ test("CHAR-TASKS: GET, POST, PATCH, PATCH /complete, DELETE /api/tasks", async (
   assert.equal(unassignPatch.status, 200);
   assert.equal(unassignPatch.body.assigned_developer_id, null);
   assert.equal(unassignPatch.body.assignee, null);
+  assert.equal(unassignPatch.body.assigned_by, null);
   await Task.findByIdAndDelete(tempTask._id);
 
   // 200 Assignee updates status
@@ -667,7 +746,11 @@ test("CHAR-SUBTASKS: GET, POST, PATCH, DELETE /api/subtasks", async () => {
     200,
   );
   assert.equal(
-    (await request(app).get(`/api/subtasks/task/${task._id}`).set("Authorization", `Bearer ${devToken}`)).status,
+    (
+      await request(app)
+        .get(`/api/subtasks/task/${task._id}`)
+        .set("Authorization", `Bearer ${devToken}`)
+    ).status,
     200,
   );
 
@@ -743,6 +826,12 @@ test("CHAR-COMMENTS: GET counts, GET /task, POST, DELETE /api/comments", async (
     .set("Authorization", `Bearer ${devToken}`);
   assert.equal(taskComments.status, 200);
   assert.equal(taskComments.body.length, 1);
+  const foreignTask = await Task.create({ project: task.project, title: "Private other task", assignedDeveloper: (await User.findOne({ email: "john@test.dev" }))!._id });
+  await Comment.create({ task: foreignTask._id, author: (await User.findOne({ email: "john@test.dev" }))!._id, body: "private comment" });
+  assert.equal((await request(app).get(`/api/comments/task/${foreignTask._id}`).set("Authorization", `Bearer ${devToken}`)).status, 404);
+  assert.equal((await request(app).post(`/api/comments/task/${foreignTask._id}`).set("Authorization", `Bearer ${devToken}`).send({ body: "forged access" })).status, 404);
+  const scopedCounts = await request(app).get("/api/comments/counts").set("Authorization", `Bearer ${devToken}`);
+  assert.equal(scopedCounts.body[foreignTask._id.toString()], undefined);
 
   // 201 Add comment
   const create = await request(app)
@@ -762,8 +851,7 @@ test("CHAR-COMMENTS: GET counts, GET /task, POST, DELETE /api/comments", async (
   const unauthDevDel = await request(app)
     .delete(`/api/comments/${create.body.id}`)
     .set("Authorization", `Bearer ${otherDevToken}`);
-  assert.equal(unauthDevDel.status, 403);
-  assert.equal(unauthDevDel.body.message, "Not authorized to delete this comment");
+  assert.equal(unauthDevDel.status, 404);
 
   // 403 Other manager cannot delete comment on this project's task
   const otherManager = await User.create({
@@ -781,29 +869,36 @@ test("CHAR-COMMENTS: GET counts, GET /task, POST, DELETE /api/comments", async (
   const crossManagerDel = await request(app)
     .delete(`/api/comments/${create.body.id}`)
     .set("Authorization", `Bearer ${otherManagerToken}`);
-  assert.equal(crossManagerDel.status, 403);
-  assert.equal(crossManagerDel.body.message, "Not authorized to delete this comment");
+  assert.equal(crossManagerDel.status, 404);
 
   // 200 Project manager owning the project CAN delete developer's comment
   const managerDel = await request(app)
     .delete(`/api/comments/${create.body.id}`)
     .set("Authorization", `Bearer ${managerToken}`);
   assert.equal(managerDel.status, 200);
-  assert.equal(await Comment.findById(create.body.id), null, "Project manager must be able to delete comment");
+  assert.equal(
+    await Comment.findById(create.body.id),
+    null,
+    "Project manager must be able to delete comment",
+  );
 
   // 200 Comment author CAN delete their own comment
   const authorDel = await request(app)
     .delete(`/api/comments/${comment._id}`)
     .set("Authorization", `Bearer ${devToken}`);
   assert.equal(authorDel.status, 200);
-  assert.equal(await Comment.findById(comment._id), null, "Comment author must be able to delete comment");
+  assert.equal(
+    await Comment.findById(comment._id),
+    null,
+    "Comment author must be able to delete comment",
+  );
 });
 
 // ---------------------------------------------------------------------------
 // 29-32: Notifications, Activity, Barriers
 // ---------------------------------------------------------------------------
 test("CHAR-NOTIFS-ACTIVITY: Notifications, Activity, and Health", async () => {
-  const { devToken, notification } = await createFixtures();
+  const { devToken, otherDevToken, notification, task, project } = await createFixtures();
 
   // 401 without token
   assert.equal((await request(app).get("/api/notifications")).status, 401);
@@ -830,6 +925,10 @@ test("CHAR-NOTIFS-ACTIVITY: Notifications, Activity, and Health", async () => {
   const acts = await request(app).get("/api/activity").set("Authorization", `Bearer ${devToken}`);
   assert.equal(acts.status, 200);
   assert.ok(Array.isArray(acts.body));
+  const foreignTask = await Task.create({ project: project._id, title: "Private activity task", assignedDeveloper: (await User.findOne({ email: "john@test.dev" }))!._id });
+  await Activity.create({ project: project._id, task: foreignTask._id, actor: foreignTask.assignedDeveloper, message: "private activity" });
+  assert.equal((await request(app).get(`/api/activity?taskId=${foreignTask._id}`).set("Authorization", `Bearer ${devToken}`)).status, 404);
+  assert.equal((await request(app).get(`/api/activity?taskId=${task._id}`).set("Authorization", `Bearer ${otherDevToken}`)).status, 404);
 
   // 200 Health check (public)
   const health = await request(app).get("/api/health");

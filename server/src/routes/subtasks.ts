@@ -9,8 +9,8 @@ export const subtasksRouter = Router();
 subtasksRouter.get(
   "/",
   authenticate,
-  asyncHandler(async (_req, res) => {
-    const subtasks = await subtaskService.getAllSubtasks();
+  asyncHandler(async (req: AuthRequest, res) => {
+    const subtasks = await subtaskService.getAllSubtasks(req.user!);
     res.json(subtasks);
   }),
 );
@@ -19,11 +19,11 @@ subtasksRouter.get(
 subtasksRouter.get(
   "/task/:taskId",
   authenticate,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: AuthRequest, res) => {
     const rawTaskId = Array.isArray(req.params.taskId)
       ? (req.params.taskId[0] ?? "")
       : (req.params.taskId ?? "");
-    const subtasks = await subtaskService.getSubtasksByTaskId(rawTaskId);
+    const subtasks = await subtaskService.getSubtasksByTaskId(rawTaskId, req.user!);
     res.json(subtasks);
   }),
 );

@@ -7,14 +7,21 @@ import { Notification } from "../models/Notification.js";
 import { AppError } from "../middleware/error.js";
 import { serializeComment, type SerializedComment } from "../serializers/comment.serializer.js";
 import type { AuthUserPayload } from "../middleware/auth.js";
+import { getReadableTask, getReadableTaskIds } from "./task-access.js";
 
 export interface CreateCommentInput {
   body?: string;
 }
 
+export interface UpdateCommentInput {
+  body?: unknown;
+}
+
 export class CommentService {
-  async getCommentCounts(): Promise<Record<string, number>> {
+  async getCommentCounts(user: AuthUserPayload): Promise<Record<string, number>> {
+    const taskIds = await getReadableTaskIds(user);
     const counts = await Comment.aggregate([
+      { $match: { task: { $in: taskIds } } },
       {
         $group: {
           _id: "$task",
@@ -32,10 +39,11 @@ export class CommentService {
     return result;
   }
 
-  async getCommentsForTask(taskId: string): Promise<SerializedComment[]> {
+  async getCommentsForTask(taskId: string, user: AuthUserPayload): Promise<SerializedComment[]> {
     if (!isValidObjectId(taskId)) {
       throw new AppError("Invalid task ID format", 400);
     }
+    await getReadableTask(taskId, user);
 
     const comments = await Comment.find({ task: taskId })
       .populate("author", "name email role")
@@ -58,10 +66,7 @@ export class CommentService {
       throw new AppError("Task not found", 404);
     }
 
-    const task = await Task.findById(taskId);
-    if (!task) {
-      throw new AppError("Task not found", 404);
-    }
+    const task = await getReadableTask(taskId, user);
 
     const comment = await Comment.create({
       task: task._id,
@@ -116,6 +121,7 @@ export class CommentService {
     if (!comment) {
       throw new AppError("Comment not found", 404);
     }
+    await getReadableTask(comment.task.toString(), user);
 
     const isAuthor = comment.author.toString() === user.id;
     if (!isAuthor) {
@@ -136,6 +142,36 @@ export class CommentService {
 
     await comment.deleteOne();
     return { success: true, message: "Comment deleted" };
+  }
+
+  async updateComment(
+    commentId: string,
+    user: AuthUserPayload,
+    input: UpdateCommentInput,
+  ): Promise<SerializedComment> {
+    if (!isValidObjectId(commentId)) {
+      throw new AppError("Comment not found", 404);
+    }
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      throw new AppError("Comment not found", 404);
+    }
+    await getReadableTask(comment.task.toString(), user);
+
+    if (comment.author.toString() !== user.id) {
+      throw new AppError("Not authorized to edit this comment", 403);
+    }
+
+    if (typeof input.body !== "string" || !input.body.trim()) {
+      throw new AppError("Comment body is required", 400);
+    }
+
+    comment.body = input.body.trim();
+    await comment.save();
+
+    const populated = await Comment.findById(comment._id).populate("author", "name email role");
+    return serializeComment(populated);
   }
 }
 

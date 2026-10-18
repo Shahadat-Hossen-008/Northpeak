@@ -9,6 +9,7 @@ import app from "../src/index.ts";
 import { User } from "../src/models/User.ts";
 import { Project } from "../src/models/Project.ts";
 import { Task } from "../src/models/Task.ts";
+import { Subtask } from "../src/models/Subtask.ts";
 import { concurrencyTestBarriers } from "../src/services/team.ts";
 import { generateToken } from "../src/middleware/auth.ts";
 
@@ -73,8 +74,22 @@ test("CONC-01: Removing developer from project team unassigns active tasks", asy
     project: project._id,
     title: "Alpha Task 1",
     assignedDeveloper: dev._id,
+    assignedBy: manager._id,
     isCompleted: false,
     status: "in_progress",
+  });
+  const openSubtask = await Subtask.create({
+    task: task._id,
+    title: "Open child",
+    assignedDeveloper: dev._id,
+    isCompleted: false,
+  });
+  const completedSubtask = await Subtask.create({
+    task: task._id,
+    title: "Completed child",
+    assignedDeveloper: dev._id,
+    isCompleted: true,
+    completedAt: new Date(),
   });
 
   // Manager removes Dev One from project team
@@ -89,6 +104,12 @@ test("CONC-01: Removing developer from project team unassigns active tasks", asy
   const updatedTask = await Task.findById(task._id);
   assert.ok(updatedTask);
   assert.equal(updatedTask.assignedDeveloper, null);
+  assert.equal(updatedTask.assignedBy, null);
+  assert.equal((await Subtask.findById(openSubtask._id))?.assignedDeveloper, null);
+  assert.equal(
+    (await Subtask.findById(completedSubtask._id))?.assignedDeveloper?.toString(),
+    dev._id.toString(),
+  );
 });
 
 test("CONC-02: Task creation aborted when developer is concurrently removed from team", async () => {

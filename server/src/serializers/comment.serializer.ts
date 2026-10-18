@@ -3,6 +3,7 @@ export interface SerializedComment {
   task_id: string;
   body: string;
   created_at: string;
+  updated_at: string;
   author: { id: string; name: string } | null;
 }
 
@@ -15,6 +16,11 @@ export function serializeComment(c: any): SerializedComment {
       ? c.createdAt instanceof Date
         ? c.createdAt.toISOString()
         : new Date(c.createdAt).toISOString()
+      : new Date().toISOString(),
+    updated_at: c.updatedAt
+      ? c.updatedAt instanceof Date
+        ? c.updatedAt.toISOString()
+        : new Date(c.updatedAt).toISOString()
       : new Date().toISOString(),
     author:
       c.author && typeof c.author === "object" && c.author.name

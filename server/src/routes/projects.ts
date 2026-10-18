@@ -9,8 +9,8 @@ export const projectsRouter = Router();
 projectsRouter.get(
   "/",
   authenticate,
-  asyncHandler(async (req, res) => {
-    const projects = await projectService.getProjects(req.query);
+  asyncHandler(async (req: AuthRequest, res) => {
+    const projects = await projectService.getProjects(req.user!, req.query);
     res.json(projects);
   }),
 );
@@ -19,9 +19,9 @@ projectsRouter.get(
 projectsRouter.get(
   "/:id",
   authenticate,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: AuthRequest, res) => {
     const rawId = Array.isArray(req.params.id) ? (req.params.id[0] ?? "") : (req.params.id ?? "");
-    const project = await projectService.getProjectDetails(rawId);
+    const project = await projectService.getProjectDetails(rawId, req.user!);
     res.json(project);
   }),
 );
@@ -30,9 +30,9 @@ projectsRouter.get(
 projectsRouter.get(
   "/:id/members",
   authenticate,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: AuthRequest, res) => {
     const rawId = Array.isArray(req.params.id) ? (req.params.id[0] ?? "") : (req.params.id ?? "");
-    const members = await projectService.getProjectMembers(rawId);
+    const members = await projectService.getProjectMembers(rawId, req.user!);
     res.json(members);
   }),
 );
