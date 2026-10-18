@@ -50,12 +50,17 @@ export function InteractiveDemo({
     setTasks((prev) =>
       prev.map((t) => {
         if (t.id !== taskId) return t;
-        const nextState = t.workflowState === "done" ? "in_progress" : "done";
-        return {
+        const nextState: PrototypeTask["workflowState"] =
+          t.workflowState === "done" ? "in_progress" : "done";
+        const updatedTask = {
           ...t,
           workflowState: nextState,
-          completedAtDay: nextState === "done" ? sprintDay : undefined,
         };
+        if (nextState === "done") {
+          return { ...updatedTask, completedAtDay: sprintDay };
+        }
+        delete updatedTask.completedAtDay;
+        return updatedTask;
       }),
     );
   };
@@ -338,9 +343,7 @@ export function InteractiveDemo({
                               : "border-input bg-card hover:border-primary",
                           )}
                         >
-                          {task.workflowState === "done" && (
-                            <Check className="size-3.5 stroke-[3]" />
-                          )}
+                          {task.workflowState === "done" && <Check className="size-3.5 stroke-3" />}
                         </button>
 
                         <div className="min-w-0">
@@ -463,7 +466,7 @@ export function InteractiveDemo({
                 {/* Sarah's Interactive Task Card */}
                 <div className="mt-3 surface-card p-3.5 bg-card shadow-sm border border-border">
                   <div className="flex items-center justify-between gap-2">
-                    <PriorityBadge priority={computedTasks[0]?.priority ?? "urgent"} />
+                    <PriorityBadge priority={computedTasks[0]?.priority ?? "critical"} />
                     <StatusBadge state={computedTasks[0]?.deadlineState ?? "due_soon"} />
                   </div>
 
@@ -502,7 +505,7 @@ export function InteractiveDemo({
                                 : "border-input bg-card",
                             )}
                           >
-                            {st.completed && <Check className="size-3 stroke-[3]" />}
+                            {st.completed && <Check className="size-3 stroke-3" />}
                           </span>
                           <span
                             className={cn(
@@ -554,7 +557,7 @@ export function InteractiveDemo({
                           <WorkflowStatusBadge status="done" />
                           <StatusBadge state={task.deadlineState} />
                         </div>
-                        <h5 className="mt-2 text-xs sm:text-sm font-semibold text-foreground line-clamp-2 line-through text-muted-foreground">
+                        <h5 className="mt-2 text-xs sm:text-sm font-semibold line-clamp-2 line-through text-muted-foreground">
                           {task.title}
                         </h5>
                         <div className="mt-2 text-xs text-muted-foreground font-mono">

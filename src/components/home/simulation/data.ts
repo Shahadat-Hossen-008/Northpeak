@@ -5,7 +5,7 @@ export const INITIAL_TASKS: PrototypeTask[] = [
     id: "task-1",
     title: "Stripe Webhook Idempotency & Replay Shield",
     assignee: { name: "Sarah Chen", role: "Senior Backend Eng", handle: "@sarah" },
-    priority: "urgent",
+    priority: "critical",
     workflowState: "in_progress",
     dueDay: 6,
     subtasks: [
