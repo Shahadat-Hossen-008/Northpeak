@@ -10,6 +10,7 @@ export const Route = createFileRoute("/roles")({
     meta(
       "Roles & Workflows",
       "Compare Northpeak workspaces for Engineering Managers and Developers. Macro visibility paired with tactical execution.",
+      "/roles",
     ),
   component: RolesPage,
 });

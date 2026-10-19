@@ -47,9 +47,9 @@ export function ProjectTeamSelector({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       <div className="flex items-center justify-between">
-        <Label>Assigned Engineering Team</Label>
+        <Label htmlFor="project-team-trigger">Assigned Engineering Team</Label>
         <span className="text-xs text-muted-foreground">
           {selectedIds.length} {selectedIds.length === 1 ? "developer" : "developers"} assigned
         </span>
@@ -64,7 +64,7 @@ export function ProjectTeamSelector({
               className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1 text-xs font-medium text-foreground border border-border shadow-xs"
             >
               <UserAvatar name={dev.name} size="sm" className="size-4 text-[9px]" />
-              <span className="truncate max-w-[120px]">{dev.name}</span>
+              <span className="truncate max-w-30">{dev.name}</span>
               <button
                 type="button"
                 disabled={disabled}
@@ -83,9 +83,11 @@ export function ProjectTeamSelector({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
+            id="project-team-trigger"
             type="button"
             variant="outline"
             role="combobox"
+            aria-haspopup="dialog"
             aria-expanded={open}
             disabled={disabled || isLoading}
             className="w-full justify-between font-normal text-left h-auto py-2"
@@ -109,6 +111,7 @@ export function ProjectTeamSelector({
               <Search className="size-4 text-muted-foreground shrink-0" />
               <input
                 type="text"
+                aria-label="Search developers by name or email"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => {
@@ -117,11 +120,12 @@ export function ProjectTeamSelector({
                   }
                 }}
                 placeholder="Search by name or email…"
-                className="w-full bg-transparent text-xs placeholder:text-muted-foreground focus:outline-none"
+                className="w-full bg-transparent text-xs placeholder:text-muted-foreground focus-visible:outline-none"
               />
               {search && (
                 <button
                   type="button"
+                  aria-label="Clear developer search"
                   onClick={() => setSearch("")}
                   className="text-muted-foreground hover:text-foreground cursor-pointer"
                 >
@@ -142,6 +146,7 @@ export function ProjectTeamSelector({
                     <button
                       key={dev.id}
                       type="button"
+                      aria-pressed={isSelected}
                       onClick={() => toggle(dev.id)}
                       className={cn(
                         "flex w-full items-center justify-between gap-2.5 rounded-md px-2.5 py-1.5 text-left text-xs transition-colors hover:bg-muted/80 cursor-pointer",

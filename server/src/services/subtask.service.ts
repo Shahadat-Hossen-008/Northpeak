@@ -9,6 +9,7 @@ import { AppError } from "../middleware/error.js";
 import { serializeSubtask, type SerializedSubtask } from "../serializers/subtask.serializer.js";
 import type { AuthUserPayload } from "../middleware/auth.js";
 import { isDeveloperInProjectTeam } from "./team.js";
+import { reconcileAssignmentsSafely } from "./reconcile.service.js";
 
 export interface CreateSubtaskInput {
   title?: string;
@@ -67,6 +68,22 @@ export class SubtaskService {
     return user._id.toString();
   }
 
+  /**
+   * Post-write concurrency guard: if the assignee left the project team between validation and
+   * the write, clear the assignment (never leave an open subtask with an ineligible assignee).
+   */
+  private async assertAssigneeStillInTeam(projectId: string, subtask: any): Promise<void> {
+    const assigneeId = subtask.assignedDeveloper?.toString();
+    if (!assigneeId) return;
+    if (await isDeveloperInProjectTeam(projectId, assigneeId)) return;
+    try {
+      await Subtask.updateOne({ _id: subtask._id }, { $set: { assignedDeveloper: null } });
+    } catch {
+      await reconcileAssignmentsSafely({ projectId });
+    }
+    throw new AppError("Developer does not belong to the selected project's engineering team", 400);
+  }
+
   private populateAssignee(query: any) {
     return query.populate("assignedDeveloper", "name");
   }
@@ -74,7 +91,9 @@ export class SubtaskService {
   async getAllSubtasks(user: AuthUserPayload): Promise<SerializedSubtask[]> {
     const tasks =
       user.role === "manager"
-        ? await Task.find({ project: { $in: await Project.find({ manager: user.id }).distinct("_id") } }).select("_id")
+        ? await Task.find({
+            project: { $in: await Project.find({ manager: user.id }).distinct("_id") },
+          }).select("_id")
         : await Task.find({ assignedDeveloper: user.id }).select("_id");
     const taskIds = tasks.map((task) => task._id);
     const subtasks = await this.populateAssignee(
@@ -147,6 +166,10 @@ export class SubtaskService {
       description: typeof description === "string" ? description.trim() : "",
       assignedDeveloper,
     });
+
+    if (assignedDeveloper) {
+      await this.assertAssigneeStillInTeam(task.project.toString(), subtask);
+    }
 
     await Activity.create({
       project: task.project,
@@ -245,6 +268,11 @@ export class SubtaskService {
     }
 
     await subtask.save();
+
+    if (assignmentProvided && subtask.assignedDeveloper && !subtask.isCompleted) {
+      await this.assertAssigneeStillInTeam(task.project.toString(), subtask);
+    }
+
     const populated = await this.populateAssignee(Subtask.findById(subtask._id));
     return serializeSubtask(populated);
   }

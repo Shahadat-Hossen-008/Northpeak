@@ -1,3 +1,4 @@
+import { config } from "../config/env.js";
 import mongoose, { isValidObjectId } from "mongoose";
 import { Project, type IProject } from "../models/Project.js";
 import { User } from "../models/User.js";
@@ -8,6 +9,7 @@ import { Activity } from "../models/Activity.js";
 import { Notification } from "../models/Notification.js";
 import { AppError } from "../middleware/error.js";
 import { escapeRegex, slugify } from "../lib/utils.js";
+import { reconcileAssignmentsSafely } from "./reconcile.service.js";
 import { getProjectEligibleDevelopers, concurrencyTestBarriers } from "./team.js";
 import {
   serializeProject,
@@ -94,13 +96,18 @@ export class ProjectService {
     return updateResult.modifiedCount || 0;
   }
 
-  async getProjects(user: AuthUserPayload, query: { search?: any; priority?: any }): Promise<SerializedProject[]> {
+  async getProjects(
+    user: AuthUserPayload,
+    query: { search?: any; priority?: any },
+  ): Promise<SerializedProject[]> {
     const { search, priority } = query;
     let accessFilter: Record<string, any>;
     if (user.role === "manager") {
       accessFilter = { manager: user.id };
     } else if (user.role === "developer") {
-      const assignedProjectIds = await Task.find({ assignedDeveloper: user.id }).distinct("project");
+      const assignedProjectIds = await Task.find({ assignedDeveloper: user.id }).distinct(
+        "project",
+      );
       accessFilter = { $or: [{ team: user.id }, { _id: { $in: assignedProjectIds } }] };
     } else {
       throw new AppError("Not authorized to read projects", 403);
@@ -158,11 +165,15 @@ export class ProjectService {
     return serializeProject(project);
   }
 
-  async getProjectMembers(idOrSlug: string, user: AuthUserPayload): Promise<SerializedProjectMember[]> {
+  async getProjectMembers(
+    idOrSlug: string,
+    user: AuthUserPayload,
+  ): Promise<SerializedProjectMember[]> {
     const project = await this.getProjectByIdOrSlug(idOrSlug);
-    const allowed = user.role === "manager"
-      ? project.manager.toString() === user.id
-      : user.role === "developer" && project.team.some((member) => member.toString() === user.id);
+    const allowed =
+      user.role === "manager"
+        ? project.manager.toString() === user.id
+        : user.role === "developer" && project.team.some((member) => member.toString() === user.id);
     if (!allowed) throw new AppError("Project not found", 404);
     const eligibleDevs = await getProjectEligibleDevelopers(project._id);
     return eligibleDevs.map(serializeProjectMember);
@@ -241,6 +252,7 @@ export class ProjectService {
     if (priority !== undefined) project.priority = priority;
 
     let unassignedTasksCount = 0;
+    let reconciliationPending = false;
 
     if (team !== undefined) {
       const validation = await this.validateTeamDeveloperIds(team);
@@ -279,36 +291,41 @@ export class ProjectService {
 
         await session.commitTransaction();
 
-        // Post-commit sweep: ensures tasks created concurrently during snapshot are unassigned
+        // Post-commit reconciliation: repairs open task/subtask assignments created concurrently
+        // with the transaction snapshot. Failure is non-fatal (the removal is committed) but is
+        // surfaced to the caller and retried by the periodic reconciler.
         if (removedDevIds.length > 0) {
-          try {
-            const postSweep = await Task.updateMany(
-              {
-                project: project._id,
-                assignedDeveloper: { $in: removedDevIds },
-                isCompleted: false,
-              },
-              { $set: { assignedDeveloper: null, assignedBy: null } },
-            );
-            unassignedTasksCount += postSweep.modifiedCount || 0;
-          } catch (sweepErr: any) {
-            console.error(
-              JSON.stringify({
-                level: "error",
-                message: "Post-commit sweep failed during team removal unassignment",
-                projectId: project._id.toString(),
-                removedDevIds,
-                error: sweepErr?.message || String(sweepErr),
-              }),
-            );
+          const swept = await reconcileAssignmentsSafely({ projectId: project._id });
+          if (swept.ok) {
+            unassignedTasksCount += swept.result?.tasks ?? 0;
+          } else {
+            reconciliationPending = true;
           }
         }
       } catch (err: any) {
         if (session && session.inTransaction()) {
           await session.abortTransaction();
         }
+        if (
+          err?.message?.includes("Transaction numbers are only allowed") &&
+          config.NODE_ENV === "production"
+        ) {
+          // Production must run on a replica set / Atlas cluster. Never silently degrade to
+          // non-atomic team removal; surface a clear, non-sensitive failure instead.
+          console.error(
+            JSON.stringify({
+              level: "error",
+              message: "MongoDB transactions unavailable: production requires a replica set",
+              projectId: project._id.toString(),
+            }),
+          );
+          throw new AppError(
+            "Project team update is temporarily unavailable. Please try again later.",
+            503,
+          );
+        }
         if (err?.message?.includes("Transaction numbers are only allowed")) {
-          // Standalone MongoDB fallback with compensating rollback
+          // Standalone MongoDB fallback with compensating rollback (development/test only)
           await project.save();
 
           if (concurrencyTestBarriers.duringProjectTeamRemoval) {
@@ -373,6 +390,7 @@ export class ProjectService {
     return {
       ...serialized,
       unassigned_open_tasks_count: unassignedTasksCount,
+      ...(reconciliationPending ? { assignment_reconciliation_pending: true } : {}),
     };
   }
 

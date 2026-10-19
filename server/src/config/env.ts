@@ -12,6 +12,67 @@ export interface AppConfig {
 
 const VALID_ENVS = ["development", "test", "production"] as const;
 
+const DEFAULT_DEV_CORS_ORIGINS = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://localhost:8080",
+];
+
+function parseAndValidateCorsOrigins(rawCorsOrigin: string | undefined, isProd: boolean): string[] {
+  const rawList = rawCorsOrigin
+    ? rawCorsOrigin
+        .split(",")
+        .map((o) => o.trim())
+        .filter(Boolean)
+    : [];
+
+  if (rawList.length === 0) {
+    if (isProd) {
+      throw new Error(
+        "[ConfigError] CORS_ORIGIN environment variable is required in production and must list allowed client origins.",
+      );
+    }
+    return [...DEFAULT_DEV_CORS_ORIGINS];
+  }
+
+  return rawList.map((entry) => {
+    if (entry === "*") {
+      throw new Error(
+        "[ConfigError] Wildcard (*) CORS_ORIGIN is not permitted when credentials are enabled.",
+      );
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(entry);
+    } catch {
+      throw new Error(`[ConfigError] Invalid CORS_ORIGIN entry: "${entry}"`);
+    }
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error(`[ConfigError] Invalid CORS_ORIGIN protocol in "${entry}"`);
+    }
+
+    if (isProd && parsed.protocol !== "https:") {
+      throw new Error(`[ConfigError] Production CORS_ORIGIN entries must use HTTPS: "${entry}"`);
+    }
+
+    if (
+      parsed.username ||
+      parsed.password ||
+      (parsed.pathname !== "/" && parsed.pathname !== "") ||
+      parsed.search ||
+      parsed.hash
+    ) {
+      throw new Error(
+        `[ConfigError] CORS_ORIGIN entry "${entry}" must be an origin only (no path, query, hash, or credentials).`,
+      );
+    }
+
+    return parsed.origin;
+  });
+}
+
 export function loadAndValidateConfig(): AppConfig {
   const nodeEnv = process.env.NODE_ENV;
 
@@ -23,6 +84,7 @@ export function loadAndValidateConfig(): AppConfig {
 
   const isDev = nodeEnv === "development";
   const isTest = nodeEnv === "test";
+  const isProd = nodeEnv === "production";
 
   let jwtSecret = process.env.JWT_SECRET;
   if (!jwtSecret) {
@@ -34,9 +96,7 @@ export function loadAndValidateConfig(): AppConfig {
       );
     }
   } else if (!isDev && !isTest && jwtSecret.length < 32) {
-    throw new Error(
-      "[ConfigError] JWT_SECRET must be at least 32 characters in production.",
-    );
+    throw new Error("[ConfigError] JWT_SECRET must be at least 32 characters in production.");
   }
 
   let mongoUri = process.env.MONGODB_URI;
@@ -46,9 +106,7 @@ export function loadAndValidateConfig(): AppConfig {
     } else if (isTest) {
       mongoUri = "mongodb://localhost:27017/northpeak_test";
     } else {
-      throw new Error(
-        "[ConfigError] MONGODB_URI environment variable is required in production.",
-      );
+      throw new Error("[ConfigError] MONGODB_URI environment variable is required in production.");
     }
   }
 
@@ -57,12 +115,9 @@ export function loadAndValidateConfig(): AppConfig {
     throw new Error(`[ConfigError] Invalid PORT: "${process.env.PORT}"`);
   }
 
-  const corsOrigins = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean)
-    : ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080"];
+  const corsOrigins = parseAndValidateCorsOrigins(process.env.CORS_ORIGIN, isProd);
 
-  const trustProxy =
-    process.env.TRUST_PROXY === "true" || process.env.TRUST_PROXY === "1";
+  const trustProxy = process.env.TRUST_PROXY === "true" || process.env.TRUST_PROXY === "1";
 
   return {
     NODE_ENV: nodeEnv as "development" | "test" | "production",

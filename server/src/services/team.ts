@@ -87,6 +87,7 @@ class BarrierManager {
   public duringProjectTeamRemoval: (() => Promise<void>) | null = null;
   public beforeProjectSave: (() => Promise<void>) | null = null;
   public simulateRemovalFailure: boolean = false;
+  public simulateReconcileFailure: boolean = false;
 
   public emit(eventName: string): void {
     this.emittedEvents.add(eventName);
@@ -158,6 +159,7 @@ class BarrierManager {
     this.duringProjectTeamRemoval = null;
     this.beforeProjectSave = null;
     this.simulateRemovalFailure = false;
+    this.simulateReconcileFailure = false;
     this.emittedEvents.clear();
     this.eventWaiters.clear();
   }

@@ -133,7 +133,7 @@ export function EditProjectDialog({ project, trigger }: EditProjectDialogProps) 
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-1.5">
+          <div className="space-y-2.5">
             <Label htmlFor="edit-project-title">Project name</Label>
             <Input
               id="edit-project-title"
@@ -141,7 +141,7 @@ export function EditProjectDialog({ project, trigger }: EditProjectDialogProps) 
               onChange={(e) => setForm({ ...form, title: e.target.value })}
             />
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2.5">
             <Label htmlFor="edit-project-desc">Description</Label>
             <Textarea
               id="edit-project-desc"
@@ -181,7 +181,7 @@ export function EditProjectDialog({ project, trigger }: EditProjectDialogProps) 
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
+            <div className="space-y-2.5">
               <Label htmlFor="edit-project-start">Start date</Label>
               <Input
                 id="edit-project-start"
@@ -190,7 +190,7 @@ export function EditProjectDialog({ project, trigger }: EditProjectDialogProps) 
                 onChange={(e) => setForm({ ...form, start: e.target.value })}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2.5">
               <Label htmlFor="edit-project-deadline">Deadline</Label>
               <Input
                 id="edit-project-deadline"
@@ -200,13 +200,13 @@ export function EditProjectDialog({ project, trigger }: EditProjectDialogProps) 
               />
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Priority</Label>
+          <div className="space-y-2.5">
+            <Label htmlFor="edit-project-priority">Priority</Label>
             <Select
               value={form.priority}
               onValueChange={(val) => setForm({ ...form, priority: val as Priority })}
             >
-              <SelectTrigger>
+              <SelectTrigger id="edit-project-priority">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

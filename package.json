@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "build:client": "NITRO_PRESET=node-server vite build",
+    "start:client": "node .output/server/index.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "server": "npm --prefix server run dev",
     "server:build": "npm --prefix server run build",
+    "server:start": "npm --prefix server run start",
     "server:seed": "npm --prefix server run seed",
     "lint": "eslint .",
     "test": "./server/node_modules/.bin/tsx --test tests/**/*.test.ts",

@@ -14,8 +14,9 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () =>
     meta(
-      "Northpeak — Deadline-aware project management",
+      "Deadline-aware project management",
       "Northpeak gives software teams automatic deadline status on every task: on track, due soon, overdue, or completed late.",
+      "/",
     ),
   component: HomePage,
 });

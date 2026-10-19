@@ -66,13 +66,13 @@ export function SettingsPage({ section }: SettingsPageProps) {
                 <p className="text-xs sm:text-sm text-muted-foreground capitalize">{role}</p>
               </div>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2.5">
               <Label htmlFor="name">Full name</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
-            <div className="space-y-1.5">
-              <Label>Email</Label>
-              <Input value={user?.email ?? ""} disabled />
+            <div className="space-y-2.5">
+              <Label htmlFor="account-email">Email</Label>
+              <Input id="account-email" value={user?.email ?? ""} disabled />
             </div>
             <Button type="submit" disabled={saving} loading={saving}>
               {saving ? "Saving…" : "Save changes"}
@@ -81,7 +81,7 @@ export function SettingsPage({ section }: SettingsPageProps) {
         </SectionCard>
         <SectionCard title="Security">
           <form onSubmit={savePassword} className="space-y-4">
-            <div className="space-y-1.5">
+            <div className="space-y-2.5">
               <Label htmlFor="pw">New password</Label>
               <Input
                 id="pw"

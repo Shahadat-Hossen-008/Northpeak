@@ -9,6 +9,7 @@ export const Route = createFileRoute("/welcome")({
   head: () => ({
     meta: [
       { title: "Welcome — Northpeak" },
+      { name: "robots", content: "noindex, nofollow" },
       { name: "description", content: "Setting up your workspace." },
     ],
   }),

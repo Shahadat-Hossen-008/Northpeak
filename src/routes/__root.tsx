@@ -28,21 +28,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Northpeak — Project management for software teams" },
-      {
-        name: "description",
-        content:
-          "Plan projects, assign tasks and track deadlines with automatic on-track, due-soon and overdue status.",
-      },
-      { property: "og:title", content: "Northpeak" },
-      {
-        property: "og:description",
-        content: "Project management for software teams with automatic deadline status.",
-      },
-      { property: "og:type", content: "website" },
-      { property: "og:image", content: "/logo.png" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: "/logo.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

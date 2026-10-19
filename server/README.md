@@ -46,15 +46,23 @@ server/
 
 ## Environment Variables
 
-Configure these in `server/.env` (or pass via environment):
+Configure these in `server/.env` (see `server/.env.example`) or pass via your backend hosting platform:
 
 ```env
+NODE_ENV=development
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/northpeak
-JWT_SECRET=northpeak-super-secret-jwt-key-2026-change-in-prod
-JWT_EXPIRES_IN=7d
-FRONTEND_URL=http://localhost:8080
+JWT_SECRET=northpeak_super_secret_jwt_key_2026_dev_fallback
+CORS_ORIGIN=http://localhost:3000,http://localhost:5173,http://localhost:8080
+TRUST_PROXY=false
+RECONCILE_INTERVAL_MS=300000
 ```
+
+In `NODE_ENV=production`:
+
+- `JWT_SECRET` must be explicitly defined and at least 32 characters.
+- `MONGODB_URI` must be explicitly defined (and backed by a replica set / Atlas cluster for multi-document transactions).
+- `CORS_ORIGIN` must be explicitly defined as one or more comma-separated HTTPS client origins (wildcard `*` is rejected).
 
 ## Available Scripts
 
@@ -69,9 +77,17 @@ npm run dev               # Inside server/
 npm run server:build      # From repository root
 npm run build             # Inside server/
 
+# Start compiled production server (requires server/dist/ build)
+npm run server:start      # From repository root
+npm start                 # Inside server/
+
 # Seed MongoDB with demo users, projects, tasks, and comments
 npm run server:seed       # From repository root
 npm run seed              # Inside server/
+
+# Run backend test suite
+npm --prefix server test  # From repository root
+npm test                  # Inside server/
 ```
 
 ## Demo Seed Credentials

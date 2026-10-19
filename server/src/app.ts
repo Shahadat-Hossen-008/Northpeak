@@ -5,7 +5,7 @@ import { config } from "./config/env.js";
 import { securityHeaders } from "./middleware/security.js";
 import { requestLogger } from "./middleware/logger.js";
 import { createAuthRateLimiter } from "./middleware/rateLimit.js";
-import { errorHandler } from "./middleware/error.js";
+import { errorHandler, AppError } from "./middleware/error.js";
 
 import { authRouter } from "./routes/auth.js";
 import { membersRouter } from "./routes/members.js";
@@ -17,6 +17,33 @@ import { notificationsRouter } from "./routes/notifications.js";
 import { activityRouter } from "./routes/activity.js";
 import { testBarriersRouter } from "./routes/testBarriers.js";
 
+export function createCorsOptions(allowedOrigins: string[] = config.CORS_ORIGINS): cors.CorsOptions {
+  const normalizedAllowed = new Set(
+    allowedOrigins.map((origin) => origin.trim().replace(/\/+$/, "")).filter(Boolean),
+  );
+
+  return {
+    origin(requestOrigin, callback) {
+      if (!requestOrigin) {
+        callback(null, false);
+        return;
+      }
+
+      const normalizedOrigin = requestOrigin.trim().replace(/\/+$/, "");
+      if (normalizedAllowed.has(normalizedOrigin)) {
+        callback(null, requestOrigin);
+        return;
+      }
+
+      callback(new AppError("Origin not allowed by CORS", 403));
+    },
+    credentials: true,
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
+    exposedHeaders: ["X-Request-Id", "Retry-After"],
+  };
+}
+
 export const app = express();
 
 if (config.TRUST_PROXY) {
@@ -25,12 +52,7 @@ if (config.TRUST_PROXY) {
 
 // 1. Security headers & CORS
 app.use(securityHeaders);
-app.use(
-  cors({
-    origin: config.CORS_ORIGINS,
-    credentials: true,
-  }),
-);
+app.use(cors(createCorsOptions()));
 
 // 2. Body parser with 100kb payload limit
 app.use(express.json({ limit: "100kb" }));

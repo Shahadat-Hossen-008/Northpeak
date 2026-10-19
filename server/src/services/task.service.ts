@@ -9,6 +9,7 @@ import { Notification } from "../models/Notification.js";
 import { AppError } from "../middleware/error.js";
 import { escapeRegex } from "../lib/utils.js";
 import { concurrencyTestBarriers } from "./team.js";
+import { reconcileAssignmentsSafely } from "./reconcile.service.js";
 import { serializeTask, type SerializedTask } from "../serializers/task.serializer.js";
 import type { AuthUserPayload } from "../middleware/auth.js";
 import { getReadableTask } from "./task-access.js";
@@ -182,7 +183,9 @@ export class TaskService {
     if (targetProjectId && isValidObjectId(targetProjectId)) {
       if (user.role === "manager") {
         const authorizedProjectIds = filter.project.$in as any[];
-        filter.project = { $in: authorizedProjectIds.filter((id) => id.toString() === targetProjectId) };
+        filter.project = {
+          $in: authorizedProjectIds.filter((id) => id.toString() === targetProjectId),
+        };
       } else {
         filter.project = targetProjectId;
       }
@@ -284,7 +287,20 @@ export class TaskService {
       const currentProject = await Project.findById(project._id).select("team");
       const isStillMember = currentProject?.team?.some((id) => id.toString() === assignedDevId);
       if (!isStillMember) {
-        await Task.findByIdAndDelete(task._id);
+        try {
+          await Task.findByIdAndDelete(task._id);
+        } catch (cleanupErr) {
+          // Compensation failed: fall back to the reconciler, which unassigns the invalid open task.
+          console.error(
+            JSON.stringify({
+              level: "error",
+              message: "Task cleanup failed after membership loss; deferring to reconciler",
+              taskId: task._id.toString(),
+              error: cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr),
+            }),
+          );
+          await reconcileAssignmentsSafely({ projectId: project._id });
+        }
         throw new AppError(
           "Developer does not belong to the selected project's engineering team",
           400,
@@ -397,9 +413,21 @@ export class TaskService {
         (id) => id.toString() === assignedDevUser._id.toString(),
       );
       if (!isStillMember) {
-        task.assignedDeveloper = null;
-        task.assignedBy = null;
-        await task.save();
+        try {
+          task.assignedDeveloper = null;
+          task.assignedBy = null;
+          await task.save();
+        } catch (cleanupErr) {
+          console.error(
+            JSON.stringify({
+              level: "error",
+              message: "Task unassign failed after membership loss; deferring to reconciler",
+              taskId: task._id.toString(),
+              error: cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr),
+            }),
+          );
+          await reconcileAssignmentsSafely({ projectId: task.project });
+        }
         throw new AppError(
           "Developer does not belong to the selected project's engineering team",
           400,

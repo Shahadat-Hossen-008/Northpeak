@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, BriefcaseBusiness, Check, Code2 } from "lucide-r
 import { useState } from "react";
 import { z } from "zod";
 
+import { meta } from "@/builder/layout/meta";
 import { HomeFooter, HomeNav } from "@/components/home";
 import { Button } from "@/components/ui/button";
 import type { AppRole } from "@/types";
@@ -11,15 +12,12 @@ export const Route = createFileRoute("/get-started")({
   validateSearch: z.object({
     role: z.enum(["manager", "developer"]).optional().catch(undefined),
   }),
-  head: () => ({
-    meta: [
-      { title: "Get started — Northpeak" },
-      {
-        name: "description",
-        content: "Choose the Northpeak workspace perspective that fits how you work.",
-      },
-    ],
-  }),
+  head: () =>
+    meta(
+      "Choose your workspace",
+      "Choose the Northpeak workspace perspective that fits how you work and organize project deadlines.",
+      "/get-started",
+    ),
   component: GetStartedPage,
 });
 

@@ -1,14 +1,4 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
+# Private workspace pages are protected by authentication and marked noindex in-page.
+# robots.txt is advisory only and is NOT an access-control mechanism.
 User-agent: *
 Allow: /

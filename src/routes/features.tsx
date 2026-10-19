@@ -12,6 +12,7 @@ export const Route = createFileRoute("/features")({
     meta(
       "Features & Deadline Engine",
       "Test-drive Northpeak's interactive deadline intelligence engine, sprint timeline simulator, and automatic health states.",
+      "/features",
     ),
   component: FeaturesPage,
 });

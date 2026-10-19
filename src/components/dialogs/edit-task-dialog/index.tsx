@@ -115,7 +115,7 @@ export function EditTaskDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-1.5">
+          <div className="space-y-2.5">
             <Label htmlFor="edit-task-title">Title</Label>
             <Input
               id="edit-task-title"
@@ -123,7 +123,7 @@ export function EditTaskDialog({
               onChange={(e) => setForm({ ...form, title: e.target.value })}
             />
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2.5">
             <Label htmlFor="edit-task-desc">Description</Label>
             <Textarea
               id="edit-task-desc"
@@ -133,14 +133,14 @@ export function EditTaskDialog({
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Assigned developer</Label>
+            <div className="space-y-2.5">
+              <Label htmlFor="edit-task-assignee">Assigned developer</Label>
               <Select
                 disabled={isDevelopersLoading}
                 value={form.developerId || "unassigned"}
                 onValueChange={(val) => setForm({ ...form, developerId: val })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="edit-task-assignee">
                   <SelectValue
                     placeholder={isDevelopersLoading ? "Loading developers…" : "Unassigned"}
                   />
@@ -172,7 +172,7 @@ export function EditTaskDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2.5">
               <Label htmlFor="edit-task-deadline">Deadline</Label>
               <Input
                 id="edit-task-deadline"
@@ -183,13 +183,13 @@ export function EditTaskDialog({
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Priority</Label>
+            <div className="space-y-2.5">
+              <Label htmlFor="edit-task-priority">Priority</Label>
               <Select
                 value={form.priority}
                 onValueChange={(val) => setForm({ ...form, priority: val as Priority })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="edit-task-priority">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -201,13 +201,13 @@ export function EditTaskDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>Workflow Stage</Label>
+            <div className="space-y-2.5">
+              <Label htmlFor="edit-task-status">Workflow Stage</Label>
               <Select
                 value={form.status}
                 onValueChange={(val) => setForm({ ...form, status: val as TaskWorkflowStatus })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="edit-task-status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

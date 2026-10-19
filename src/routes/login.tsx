@@ -15,6 +15,7 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Sign in — Northpeak" },
+      { name: "robots", content: "noindex, follow" },
       { name: "description", content: "Sign in to your Northpeak project workspace." },
       { property: "og:title", content: "Sign in — Northpeak" },
       { property: "og:description", content: "Sign in to your Northpeak project workspace." },
@@ -78,7 +79,7 @@ function LoginPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <div className="space-y-1.5">
+        <div className="space-y-2.5">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
@@ -88,10 +89,15 @@ function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@company.com"
             aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "login-email-error" : undefined}
           />
-          {errors.email ? <p className="text-xs sm:text-sm text-danger">{errors.email}</p> : null}
+          {errors.email ? (
+            <p id="login-email-error" role="alert" className="text-xs sm:text-sm text-danger">
+              {errors.email}
+            </p>
+          ) : null}
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2.5">
           <Label htmlFor="password">Password</Label>
           <PasswordInput
             id="password"
@@ -100,9 +106,12 @@ function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? "login-password-error" : undefined}
           />
           {errors.password ? (
-            <p className="text-xs sm:text-sm text-danger">{errors.password}</p>
+            <p id="login-password-error" role="alert" className="text-xs sm:text-sm text-danger">
+              {errors.password}
+            </p>
           ) : null}
         </div>
         <div className="flex items-center justify-between">

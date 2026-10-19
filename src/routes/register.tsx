@@ -20,6 +20,7 @@ export const Route = createFileRoute("/register")({
   head: () => ({
     meta: [
       { title: "Create account — Northpeak" },
+      { name: "robots", content: "noindex, follow" },
       {
         name: "description",
         content: "Create a Northpeak account as a project manager or developer.",
@@ -110,29 +111,43 @@ function RegisterPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <div className="space-y-1.5">
+        <div className="space-y-2.5">
           <Label htmlFor="name">Full name</Label>
           <Input
             id="name"
+            autoComplete="name"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="Sarah Khan"
+            aria-invalid={Boolean(errors.name)}
+            aria-describedby={errors.name ? "register-name-error" : undefined}
           />
-          {errors.name ? <p className="text-xs sm:text-sm text-danger">{errors.name}</p> : null}
+          {errors.name ? (
+            <p id="register-name-error" role="alert" className="text-xs sm:text-sm text-danger">
+              {errors.name}
+            </p>
+          ) : null}
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2.5">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             type="email"
+            autoComplete="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             placeholder="you@company.com"
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "register-email-error" : undefined}
           />
-          {errors.email ? <p className="text-xs sm:text-sm text-danger">{errors.email}</p> : null}
+          {errors.email ? (
+            <p id="register-email-error" role="alert" className="text-xs sm:text-sm text-danger">
+              {errors.email}
+            </p>
+          ) : null}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
+          <div className="space-y-2.5">
             <Label htmlFor="password">Password</Label>
             <PasswordInput
               id="password"
@@ -140,12 +155,20 @@ function RegisterPage() {
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               placeholder="At least 6 characters"
+              aria-invalid={Boolean(errors.password)}
+              aria-describedby={errors.password ? "register-password-error" : undefined}
             />
             {errors.password ? (
-              <p className="text-xs sm:text-sm text-danger">{errors.password}</p>
+              <p
+                id="register-password-error"
+                role="alert"
+                className="text-xs sm:text-sm text-danger"
+              >
+                {errors.password}
+              </p>
             ) : null}
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2.5">
             <Label htmlFor="confirm">Confirm password</Label>
             <PasswordInput
               id="confirm"
@@ -153,9 +176,17 @@ function RegisterPage() {
               value={form.confirm}
               onChange={(e) => setForm({ ...form, confirm: e.target.value })}
               placeholder="Confirm password"
+              aria-invalid={Boolean(errors.confirm)}
+              aria-describedby={errors.confirm ? "register-confirm-error" : undefined}
             />
             {errors.confirm ? (
-              <p className="text-xs sm:text-sm text-danger">{errors.confirm}</p>
+              <p
+                id="register-confirm-error"
+                role="alert"
+                className="text-xs sm:text-sm text-danger"
+              >
+                {errors.confirm}
+              </p>
             ) : null}
           </div>
         </div>

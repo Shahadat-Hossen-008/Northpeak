@@ -7,7 +7,14 @@ import { commentsApi } from "./comments";
 import { notificationsApi } from "./notifications";
 import { activityApi } from "./activity";
 
-export { getAuthToken, setAuthToken, request } from "./client";
+export {
+  getAuthToken,
+  setAuthToken,
+  request,
+  resolveApiBaseUrl,
+  buildApiUrl,
+  type ApiClientEnv,
+} from "./client";
 export { authApi } from "./auth";
 export { membersApi } from "./members";
 export { projectsApi } from "./projects";

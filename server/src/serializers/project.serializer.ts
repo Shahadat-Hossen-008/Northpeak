@@ -9,6 +9,7 @@ export interface SerializedProject {
   priority: string;
   created_at: string;
   unassigned_open_tasks_count?: number;
+  assignment_reconciliation_pending?: boolean;
 }
 
 export function serializeProject(p: any): SerializedProject {
@@ -18,10 +19,19 @@ export function serializeProject(p: any): SerializedProject {
     description: p.description,
     manager_id: p.manager ? p.manager.toString() : null,
     team: Array.isArray(p.team) ? p.team.map((id: any) => id.toString()) : [],
-    start_date: p.startDate ? (p.startDate instanceof Date ? p.startDate.toISOString() : new Date(p.startDate).toISOString()) : null,
-    deadline: p.deadline ? (p.deadline instanceof Date ? p.deadline.toISOString() : new Date(p.deadline).toISOString()) : null,
+    start_date: p.startDate
+      ? p.startDate instanceof Date
+        ? p.startDate.toISOString()
+        : new Date(p.startDate).toISOString()
+      : null,
+    deadline: p.deadline
+      ? p.deadline instanceof Date
+        ? p.deadline.toISOString()
+        : new Date(p.deadline).toISOString()
+      : null,
     priority: p.priority,
-    created_at: p.createdAt instanceof Date ? p.createdAt.toISOString() : new Date(p.createdAt).toISOString(),
+    created_at:
+      p.createdAt instanceof Date ? p.createdAt.toISOString() : new Date(p.createdAt).toISOString(),
   };
 }
 
@@ -31,4 +41,3 @@ import {
 } from "./member.serializer.js";
 
 export { serializeProjectMember, type SerializedProjectMember };
-

@@ -13,6 +13,7 @@ export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
       { title: "Reset password — Northpeak" },
+      { name: "robots", content: "noindex, nofollow" },
       { name: "description", content: "Choose a new password for your Northpeak account." },
       { property: "og:title", content: "Reset password — Northpeak" },
       { property: "og:description", content: "Choose a new password for your Northpeak account." },
@@ -61,7 +62,7 @@ function ResetPasswordPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
+        <div className="space-y-2.5">
           <Label htmlFor="new-password">New password</Label>
           <PasswordInput
             id="new-password"
@@ -71,7 +72,7 @@ function ResetPasswordPage() {
             placeholder="At least 6 characters"
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2.5">
           <Label htmlFor="confirm-password">Confirm password</Label>
           <PasswordInput
             id="confirm-password"
