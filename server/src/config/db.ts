@@ -5,7 +5,7 @@ export async function connectDB(overrideUri?: string): Promise<void> {
   const uri = overrideUri || config.MONGODB_URI;
 
   try {
-    const conn = await mongoose.connect(uri);
+    const conn = await mongoose.connect(`${uri}/northpeak`);
     console.log(`[Database] MongoDB connected: ${conn.connection.host}/${conn.connection.name}`);
   } catch (error) {
     console.error("[Database] MongoDB connection error:", error);
