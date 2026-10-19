@@ -39,7 +39,8 @@ server/
 │   │   └── tasks.ts          # Task CRUD, filters, and complete toggle
 │   ├── seed/
 │   │   └── seed.ts           # Database seeder script
-│   └── index.ts              # Express application entry point
+│   ├── index.ts              # Vercel-compatible Express application entry point
+│   └── start.ts              # Long-running Node.js server entry point
 ├── package.json
 └── tsconfig.json
 ```
