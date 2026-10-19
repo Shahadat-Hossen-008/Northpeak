@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "build:vercel": "NITRO_PRESET=vercel vite build",
     "build:client": "NITRO_PRESET=node-server vite build",
     "start:client": "node .output/server/index.mjs",
     "build:dev": "vite build --mode development",

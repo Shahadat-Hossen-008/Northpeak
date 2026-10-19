@@ -202,6 +202,7 @@ All demo accounts use the password: `password123`
 | :--------------------- | :--------------------------------------------------------- |
 | `npm run dev`          | Starts the Vite development server on port 8080            |
 | `npm run build`        | Builds the frontend application for production (`.output`) |
+| `npm run build:vercel` | Builds the SSR application using Nitro's Vercel preset      |
 | `npm run build:client` | Builds the independent Nitro Node SSR client (`.output/`)  |
 | `npm run start:client` | Starts the built Node SSR client using `PORT`              |
 | `npm run server`       | Starts the Express backend development server on port 5000 |
@@ -212,4 +213,4 @@ All demo accounts use the password: `password123`
 | `npm run lint`         | Runs ESLint across the codebase                            |
 | `npm run format`       | Formats all files using Prettier                           |
 
-For the documented independent Node frontend service, use `npm run build:client`; the existing `npm run build` keeps the Vite/Nitro preset selected by the build environment (Cloudflare by default in this project).
+For Vercel, use the repository's `vercel.json`, which runs `npm run build:vercel` and selects Nitro's `vercel` preset. Do not set an output directory or deploy only `.output/public`: Nitro emits the Vercel Build Output API under `.vercel/output`, including the SSR server function and static assets. The generic Node.js service uses `npm run build:client` and `npm run start:client` instead; it intentionally emits `.output/` with Nitro's `node-server` preset.
