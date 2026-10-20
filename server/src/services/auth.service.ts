@@ -57,8 +57,8 @@ export class AuthService {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Public registration always assigns the server-set default role "developer"
-    const userRole: AppRole = "developer";
+    // Honor the selected workspace role while keeping developer as the default.
+    const userRole: AppRole = input.role === "manager" ? "manager" : "developer";
 
     const user = await User.create({
       name: name.trim(),

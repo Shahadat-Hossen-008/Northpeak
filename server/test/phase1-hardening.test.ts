@@ -39,9 +39,9 @@ beforeEach(async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Issue A: Public registration must always assign server-set default role "developer"
+// Public registration honors the selected role, defaulting to developer.
 // ---------------------------------------------------------------------------
-test("SEC-A: POST /api/auth/register ignores client-supplied role: manager and forces role: developer", async () => {
+test("AUTH-REG: POST /api/auth/register honors client-supplied manager role", async () => {
   const res = await request(app)
     .post("/api/auth/register")
     .send({
@@ -54,16 +54,16 @@ test("SEC-A: POST /api/auth/register ignores client-supplied role: manager and f
   assert.equal(res.status, 201);
   assert.equal(
     res.body.user.role,
-    "developer",
-    `Expected server to enforce developer role, but got: ${res.body.user.role}`,
+    "manager",
+    `Expected manager role, but got: ${res.body.user.role}`,
   );
 
   const userInDb = await User.findById(res.body.user.id);
   assert.ok(userInDb);
   assert.equal(
     userInDb.role,
-    "developer",
-    `Expected database document to have developer role, but got: ${userInDb.role}`,
+    "manager",
+    `Expected database document to have manager role, but got: ${userInDb.role}`,
   );
 });
 
