@@ -258,7 +258,10 @@ test("INFRA-05C: logSanitizedConnectError redacts credentials across valid, malf
       assert.ok(!sanitized.includes(syntheticUser), `Sanitized message leaked username: ${sanitized}`);
       assert.ok(!sanitized.includes(syntheticPass), `Sanitized message leaked password: ${sanitized}`);
 
-      logSanitizedConnectError(new Error(msg));
+      logSanitizedConnectError(new Error(msg), {
+        readyStateBefore: 0,
+        readyStateAfter: 0,
+      });
     }
   } finally {
     console.error = origConsoleError;
@@ -272,6 +275,56 @@ test("INFRA-05C: logSanitizedConnectError redacts credentials across valid, malf
     assert.equal(parsed.level, "error");
     assert.equal(parsed.component, "database");
   }
+});
+
+test("INFRA-05E: connection diagnostics include sanitized topology and underlying network errors", () => {
+  const syntheticUser = "nested_diag_user";
+  const syntheticPass = "nested_diag_password";
+  const networkError = Object.assign(
+    new Error(`getaddrinfo EAI_AGAIN mongodb+srv://${syntheticUser}:${syntheticPass}@cluster0.example.mongodb.net`),
+    { code: "EAI_AGAIN", syscall: "getaddrinfo" },
+  );
+  const error = Object.assign(new Error("Server selection timed out"), {
+    name: "MongooseServerSelectionError",
+    cause: networkError,
+    reason: {
+      type: "ReplicaSetNoPrimary",
+      setName: "atlas-shard-0",
+      servers: new Map([
+        [
+          `mongodb://${syntheticUser}:${syntheticPass}@cluster0.example.mongodb.net:27017`,
+          { type: "Unknown", error: networkError },
+        ],
+      ]),
+    },
+  });
+
+  const capturedLogs: string[] = [];
+  const origConsoleError = console.error;
+  console.error = (...args: any[]) => {
+    capturedLogs.push(args.map(String).join(" "));
+  };
+
+  try {
+    logSanitizedConnectError(error, {
+      reqId: "diagnostic-request-id",
+      readyStateBefore: 0,
+      readyStateAfter: 0,
+    });
+  } finally {
+    console.error = origConsoleError;
+  }
+
+  assert.equal(capturedLogs.length, 1);
+  assert.ok(!capturedLogs[0].includes(syntheticUser));
+  assert.ok(!capturedLogs[0].includes(syntheticPass));
+  const parsed = JSON.parse(capturedLogs[0]);
+  assert.equal(parsed.reqId, "diagnostic-request-id");
+  assert.equal(parsed.connectionAttempted, true);
+  assert.equal(parsed.details.topologyType, "ReplicaSetNoPrimary");
+  assert.equal(parsed.details.servers[0].error.code, "EAI_AGAIN");
+  assert.equal(parsed.details.servers[0].error.syscall, "getaddrinfo");
+  assert.equal(parsed.details.cause.code, "EAI_AGAIN");
 });
 
 test("INFRA-05D: Connection lifecycle handles failure retry, disconnect-reconnect, concurrent deduplication, and 503 middleware", async () => {

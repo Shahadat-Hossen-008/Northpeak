@@ -5,6 +5,7 @@ import { config } from "./config/env.js";
 import { ensureDBConnection } from "./config/db.js";
 import { securityHeaders } from "./middleware/security.js";
 import { requestLogger } from "./middleware/logger.js";
+import type { LoggedRequest } from "./middleware/logger.js";
 import { createAuthRateLimiter } from "./middleware/rateLimit.js";
 import { errorHandler, AppError } from "./middleware/error.js";
 
@@ -72,13 +73,13 @@ app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
 
 // 5. Ensure database connection for API routes (supports serverless entrypoints like Vercel)
-const requireDatabase: express.RequestHandler = async (_req, _res, next) => {
+const requireDatabase: express.RequestHandler = async (req, _res, next) => {
   if (mongoose.connection.readyState === 1) {
     next();
     return;
   }
   try {
-    await ensureDBConnection();
+    await ensureDBConnection(undefined, (req as LoggedRequest).id);
     next();
   } catch {
     next(new AppError("Database unavailable", 503));
@@ -120,10 +121,10 @@ app.get("/api/health/live", (_req, res) => {
 });
 
 // Readiness probe (additive)
-app.get("/api/health/ready", async (_req, res) => {
+app.get("/api/health/ready", async (req, res) => {
   if (mongoose.connection.readyState !== 1 && process.env.NODE_ENV !== "test") {
     try {
-      await ensureDBConnection();
+      await ensureDBConnection(undefined, (req as LoggedRequest).id);
     } catch {
       // Fall through to 503 response below; sanitized reason is logged by ensureDBConnection
     }
