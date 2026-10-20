@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import { config } from "./config/env.js";
+import { ensureDBConnection } from "./config/db.js";
 import { securityHeaders } from "./middleware/security.js";
 import { requestLogger } from "./middleware/logger.js";
 import { createAuthRateLimiter } from "./middleware/rateLimit.js";
@@ -17,7 +18,9 @@ import { notificationsRouter } from "./routes/notifications.js";
 import { activityRouter } from "./routes/activity.js";
 import { testBarriersRouter } from "./routes/testBarriers.js";
 
-export function createCorsOptions(allowedOrigins: string[] = config.CORS_ORIGINS): cors.CorsOptions {
+export function createCorsOptions(
+  allowedOrigins: string[] = config.CORS_ORIGINS,
+): cors.CorsOptions {
   const normalizedAllowed = new Set(
     allowedOrigins.map((origin) => origin.trim().replace(/\/+$/, "")).filter(Boolean),
   );
@@ -68,22 +71,36 @@ const authLimiter = createAuthRateLimiter({
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
 
-// 5. REST API routes
-app.use("/api/auth", authRouter);
-app.use("/api/members", membersRouter);
-app.use("/api/projects", projectsRouter);
-app.use("/api/tasks", tasksRouter);
-app.use("/api/subtasks", subtasksRouter);
-app.use("/api/comments", commentsRouter);
-app.use("/api/notifications", notificationsRouter);
-app.use("/api/activity", activityRouter);
+// 5. Ensure database connection for API routes (supports serverless entrypoints like Vercel)
+const requireDatabase: express.RequestHandler = async (_req, _res, next) => {
+  if (mongoose.connection.readyState === 1) {
+    next();
+    return;
+  }
+  try {
+    await ensureDBConnection();
+    next();
+  } catch {
+    next(new AppError("Database unavailable", 503));
+  }
+};
 
-// 6. Test-only barrier routes (strictly mounted in test environment)
+// 6. REST API routes
+app.use("/api/auth", requireDatabase, authRouter);
+app.use("/api/members", requireDatabase, membersRouter);
+app.use("/api/projects", requireDatabase, projectsRouter);
+app.use("/api/tasks", requireDatabase, tasksRouter);
+app.use("/api/subtasks", requireDatabase, subtasksRouter);
+app.use("/api/comments", requireDatabase, commentsRouter);
+app.use("/api/notifications", requireDatabase, notificationsRouter);
+app.use("/api/activity", requireDatabase, activityRouter);
+
+// 7. Test-only barrier routes (strictly mounted in test environment)
 if (process.env.NODE_ENV === "test") {
   app.use("/api/test/barriers", testBarriersRouter);
 }
 
-// 7. Health check endpoints
+// 8. Health check endpoints
 // Base health check (preserves existing contract)
 app.get("/api/health", (_req, res) => {
   res.json({
@@ -103,7 +120,15 @@ app.get("/api/health/live", (_req, res) => {
 });
 
 // Readiness probe (additive)
-app.get("/api/health/ready", (_req, res) => {
+app.get("/api/health/ready", async (_req, res) => {
+  if (mongoose.connection.readyState !== 1 && process.env.NODE_ENV !== "test") {
+    try {
+      await ensureDBConnection();
+    } catch {
+      // Fall through to 503 response below; sanitized reason is logged by ensureDBConnection
+    }
+  }
+
   const isDbReady = mongoose.connection.readyState === 1;
   if (!isDbReady) {
     res.status(503).json({
@@ -121,7 +146,7 @@ app.get("/api/health/ready", (_req, res) => {
   });
 });
 
-// 8. Centralized 4-argument error handler (must be mounted last)
+// 9. Centralized 4-argument error handler (must be mounted last)
 app.use(errorHandler);
 
 export default app;

@@ -6,7 +6,13 @@ import request from "supertest";
 import mongoose from "mongoose";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import { app, createCorsOptions } from "../src/app.ts";
-import { loadAndValidateConfig } from "../src/config/env.ts";
+import { loadAndValidateConfig, config } from "../src/config/env.ts";
+import {
+  resolveMongoUri,
+  ensureDBConnection,
+  sanitizeDatabaseErrorMessage,
+  logSanitizedConnectError,
+} from "../src/config/db.ts";
 import { redactSensitiveData } from "../src/middleware/logger.ts";
 import { AppError, errorHandler } from "../src/middleware/error.ts";
 import { createAuthRateLimiter } from "../src/middleware/rateLimit.js";
@@ -192,6 +198,166 @@ test("INFRA-05: /api/health/live and /api/health/ready report system health", as
   assert.equal(readyRes.status, 200);
   assert.equal(readyRes.body.status, "ready");
   assert.equal(readyRes.body.database, "connected");
+});
+
+test("INFRA-05B: resolveMongoUri safely normalizes Atlas SRV, trailing slashes, and encoded credentials", () => {
+  assert.equal(
+    resolveMongoUri("mongodb+srv://user:pass@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority"),
+    "mongodb+srv://user:pass@cluster0.abcde.mongodb.net/northpeak?retryWrites=true&w=majority",
+  );
+  assert.equal(
+    resolveMongoUri("mongodb+srv://user:pass@cluster0.abcde.mongodb.net?retryWrites=true"),
+    "mongodb+srv://user:pass@cluster0.abcde.mongodb.net/northpeak?retryWrites=true",
+  );
+  assert.equal(
+    resolveMongoUri("mongodb+srv://user:pass@cluster0.abcde.mongodb.net/northpeak?retryWrites=true"),
+    "mongodb+srv://user:pass@cluster0.abcde.mongodb.net/northpeak?retryWrites=true",
+  );
+  assert.equal(
+    resolveMongoUri("mongodb+srv://user:pass@cluster0.abcde.mongodb.net/custom_db/?retryWrites=true"),
+    "mongodb+srv://user:pass@cluster0.abcde.mongodb.net/custom_db?retryWrites=true",
+  );
+  // Multiple trailing slashes and percent-encoded credentials
+  assert.equal(
+    resolveMongoUri("mongodb+srv://my%40user:p%40ss%231%3A2@cluster0.abcde.mongodb.net///?retryWrites=true&w=majority"),
+    "mongodb+srv://my%40user:p%40ss%231%3A2@cluster0.abcde.mongodb.net/northpeak?retryWrites=true&w=majority",
+  );
+  assert.equal(
+    resolveMongoUri("mongodb+srv://my%40user:p%40ss%231%3A2@cluster0.abcde.mongodb.net/northpeak///?tls=true"),
+    "mongodb+srv://my%40user:p%40ss%231%3A2@cluster0.abcde.mongodb.net/northpeak?tls=true",
+  );
+  assert.equal(
+    resolveMongoUri("mongodb://localhost:27017"),
+    "mongodb://localhost:27017/northpeak",
+  );
+  assert.equal(
+    resolveMongoUri("mongodb://localhost:27017/northpeak"),
+    "mongodb://localhost:27017/northpeak",
+  );
+});
+
+test("INFRA-05C: logSanitizedConnectError redacts credentials across valid, malformed, and bare authority strings", () => {
+  const syntheticUser = "synth_atlas_admin_99";
+  const syntheticPass = "Sup3r$ecr3tP%40ssw0rd!";
+
+  const samples = [
+    `connect ECONNREFUSED mongodb+srv://${syntheticUser}:${syntheticPass}@cluster0.test.mongodb.net/northpeak?retryWrites=true`,
+    `Invalid scheme in mongo://${syntheticUser}:${syntheticPass}@cluster0.test.mongodb.net/northpeak`,
+    `Authentication failed for authority ${syntheticUser}:${syntheticPass}@cluster0.test.mongodb.net:27017`,
+  ];
+
+  const capturedLogs: string[] = [];
+  const origConsoleError = console.error;
+  console.error = (...args: any[]) => {
+    capturedLogs.push(args.map(String).join(" "));
+  };
+
+  try {
+    for (const msg of samples) {
+      const sanitized = sanitizeDatabaseErrorMessage(msg);
+      assert.ok(!sanitized.includes(syntheticUser), `Sanitized message leaked username: ${sanitized}`);
+      assert.ok(!sanitized.includes(syntheticPass), `Sanitized message leaked password: ${sanitized}`);
+
+      logSanitizedConnectError(new Error(msg));
+    }
+  } finally {
+    console.error = origConsoleError;
+  }
+
+  assert.equal(capturedLogs.length, samples.length);
+  for (const logLine of capturedLogs) {
+    assert.ok(!logLine.includes(syntheticUser), `Log output leaked username: ${logLine}`);
+    assert.ok(!logLine.includes(syntheticPass), `Log output leaked password: ${logLine}`);
+    const parsed = JSON.parse(logLine);
+    assert.equal(parsed.level, "error");
+    assert.equal(parsed.component, "database");
+  }
+});
+
+test("INFRA-05D: Connection lifecycle handles failure retry, disconnect-reconnect, concurrent deduplication, and 503 middleware", async () => {
+  const origConfigUri = config.MONGODB_URI;
+  const origConnect = mongoose.connect;
+
+  try {
+    await mongoose.disconnect();
+    assert.equal(mongoose.connection.readyState, 0);
+
+    // 1. In test mode without active connection, /api/health/ready reports 503 disconnected
+    const disconnectedRes = await request(app).get("/api/health/ready");
+    assert.equal(disconnectedRes.status, 503);
+    assert.equal(disconnectedRes.body.status, "not_ready");
+    assert.equal(disconnectedRes.body.database, "disconnected");
+
+    // 2. Simulated initial connection failure clears connectPromise and requireDatabase returns 503
+    let connectCallCount = 0;
+    const origConsoleError = console.error;
+    const errorLogs: string[] = [];
+    console.error = (...args: any[]) => {
+      errorLogs.push(args.map(String).join(" "));
+    };
+
+    try {
+      mongoose.connect = (async () => {
+        connectCallCount += 1;
+        throw new Error(
+          "Could not connect to mongodb+srv://leak_user:leak_pass@cluster0.example.mongodb.net/northpeak",
+        );
+      }) as typeof mongoose.connect;
+
+      // API route protected by requireDatabase returns 503 when DB connection fails
+      const apiFailRes = await request(app).get("/api/projects");
+      assert.equal(apiFailRes.status, 503);
+      assert.equal(apiFailRes.body.message, "Database unavailable");
+      assert.equal(connectCallCount, 1);
+
+      // Liveness and base health remain 200 OK even while DB is unavailable
+      const healthRes = await request(app).get("/api/health");
+      assert.equal(healthRes.status, 200);
+      const liveRes = await request(app).get("/api/health/live");
+      assert.equal(liveRes.status, 200);
+
+      // Verify credentials were never logged during the failure
+      assert.ok(errorLogs.length >= 1);
+      for (const entry of errorLogs) {
+        assert.ok(!entry.includes("leak_user"));
+        assert.ok(!entry.includes("leak_pass"));
+      }
+    } finally {
+      console.error = origConsoleError;
+      mongoose.connect = origConnect;
+    }
+
+    // 3. Subsequent retry after failed connection succeeds and deduplicates concurrent callers
+    config.MONGODB_URI = replSet.getUri();
+    let realConnectCalls = 0;
+    mongoose.connect = (async (...args: Parameters<typeof origConnect>) => {
+      realConnectCalls += 1;
+      return origConnect.apply(mongoose, args);
+    }) as typeof mongoose.connect;
+
+    await Promise.all([ensureDBConnection(), ensureDBConnection(), ensureDBConnection()]);
+    assert.equal(realConnectCalls, 1, "Concurrent calls while disconnected must share a single mongoose.connect attempt");
+    assert.equal(mongoose.connection.readyState, 1);
+
+    const readyRes = await request(app).get("/api/health/ready");
+    assert.equal(readyRes.status, 200);
+    assert.equal(readyRes.body.status, "ready");
+    assert.equal(readyRes.body.database, "connected");
+
+    // 4. Warm container disconnect -> subsequent request reconnects cleanly (connectPromise was cleared)
+    await mongoose.disconnect();
+    assert.equal(mongoose.connection.readyState, 0);
+
+    await ensureDBConnection();
+    assert.equal(realConnectCalls, 2, "Must initiate a fresh mongoose.connect after disconnect");
+    assert.equal(mongoose.connection.readyState, 1);
+  } finally {
+    mongoose.connect = origConnect;
+    config.MONGODB_URI = origConfigUri;
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(replSet.getUri());
+    }
+  }
 });
 
 test("INFRA-05A: CORS accepts configured frontend origins and rejects other origins", async () => {
