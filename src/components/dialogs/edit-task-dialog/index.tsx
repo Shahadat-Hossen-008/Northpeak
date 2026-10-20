@@ -115,7 +115,7 @@ export function EditTaskDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <Label htmlFor="edit-task-title">Title</Label>
             <Input
               id="edit-task-title"
@@ -123,7 +123,7 @@ export function EditTaskDialog({
               onChange={(e) => setForm({ ...form, title: e.target.value })}
             />
           </div>
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <Label htmlFor="edit-task-desc">Description</Label>
             <Textarea
               id="edit-task-desc"
@@ -133,7 +133,7 @@ export function EditTaskDialog({
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               <Label htmlFor="edit-task-assignee">Assigned developer</Label>
               <Select
                 disabled={isDevelopersLoading}
@@ -172,7 +172,7 @@ export function EditTaskDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               <Label htmlFor="edit-task-deadline">Deadline</Label>
               <Input
                 id="edit-task-deadline"
@@ -183,7 +183,7 @@ export function EditTaskDialog({
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               <Label htmlFor="edit-task-priority">Priority</Label>
               <Select
                 value={form.priority}
@@ -201,7 +201,7 @@ export function EditTaskDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               <Label htmlFor="edit-task-status">Workflow Stage</Label>
               <Select
                 value={form.status}

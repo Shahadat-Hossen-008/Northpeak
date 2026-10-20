@@ -156,7 +156,7 @@ export function CreateTaskDialog({
           <DialogDescription>Assign work to a developer with a clear deadline.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-5">
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <Label htmlFor="task-project">
               Project{" "}
               <span aria-hidden="true" className="text-danger">
@@ -196,7 +196,7 @@ export function CreateTaskDialog({
           </div>
           <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,1.7fr)_minmax(15rem,1fr)]">
             <div className="min-w-0 space-y-4">
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 <Label htmlFor="task-title" className="text-base">
                   Task title{" "}
                   <span aria-hidden="true" className="text-danger">
@@ -232,7 +232,7 @@ export function CreateTaskDialog({
                   </p>
                 ) : null}
               </div>
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 <Label htmlFor="task-description">Description</Label>
                 <Textarea
                   id="task-description"
@@ -246,7 +246,7 @@ export function CreateTaskDialog({
             </div>
 
             <div className="min-w-0 space-y-4 rounded-lg border border-border bg-muted/20 p-4">
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 <Label id="task-creator-label">Created by</Label>
                 <div
                   className="flex h-10 items-center gap-2.5 rounded-lg border border-border bg-background px-3 text-sm sm:text-base"
@@ -258,7 +258,7 @@ export function CreateTaskDialog({
                   </span>
                 </div>
               </div>
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 <Label htmlFor="task-assignee">Assignee</Label>
                 <Select
                   disabled={!form.projectId || isDevelopersLoading}
@@ -307,7 +307,7 @@ export function CreateTaskDialog({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 <Label htmlFor="task-status">Task status</Label>
                 <Select
                   value={form.status}
@@ -330,7 +330,7 @@ export function CreateTaskDialog({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 <Label htmlFor="task-deadline">
                   Due date{" "}
                   <span aria-hidden="true" className="text-danger">
@@ -361,7 +361,7 @@ export function CreateTaskDialog({
                   </p>
                 ) : null}
               </div>
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 <Label htmlFor="task-priority">Priority</Label>
                 <Select
                   value={form.priority}
