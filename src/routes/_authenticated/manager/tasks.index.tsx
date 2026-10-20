@@ -43,7 +43,8 @@ export const Route = createFileRoute("/_authenticated/manager/tasks/")({
         ? search["projectName"]
         : undefined,
   }),
-  head: () => meta("All tasks", "Search, filter and sort every task across your projects."),
+  head: () =>
+    meta("All tasks", "Search, filter and sort every task across your projects.", "/manager/tasks"),
   component: ManagerTasks,
 });
 

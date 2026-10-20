@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_authenticated/developer/projects")({
       priority?: string | undefined;
       status?: string | undefined;
     },
-  head: () => meta("My projects", "Projects where you have assigned tasks."),
+  head: () => meta("My projects", "Projects where you have assigned tasks.", "/developer/projects"),
   component: DeveloperProjects,
 });
 

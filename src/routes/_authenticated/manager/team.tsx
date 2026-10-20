@@ -14,7 +14,8 @@ import { meta } from "@/builder/layout/meta";
 import { useMembers, useTasks } from "@/hooks/queries";
 
 export const Route = createFileRoute("/_authenticated/manager/team")({
-  head: () => meta("Team", "Developer workload, active, completed and overdue tasks."),
+  head: () =>
+    meta("Team", "Developer workload, active, completed and overdue tasks.", "/manager/team"),
   component: Team,
 });
 

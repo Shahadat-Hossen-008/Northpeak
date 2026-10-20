@@ -30,7 +30,12 @@ export const Route = createFileRoute("/_authenticated/manager/projects/")({
       priority?: string | undefined;
       status?: string | undefined;
     },
-  head: () => meta("Projects", "All projects you manage with progress and deadline status."),
+  head: () =>
+    meta(
+      "Projects",
+      "All projects you manage with progress and deadline status.",
+      "/manager/projects",
+    ),
   component: ManagerProjects,
 });
 

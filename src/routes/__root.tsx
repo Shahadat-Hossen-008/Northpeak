@@ -12,8 +12,11 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
+import { absoluteSiteUrl } from "@/builder/layout/meta";
 
 import { NotFoundPage, ServerErrorPage } from "@/builder/pages";
+
+const socialImageUrl = absoluteSiteUrl("/northpeak-social.png");
 
 function NotFoundComponent() {
   return <NotFoundPage />;
@@ -28,6 +31,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      ...(socialImageUrl
+        ? [
+            { property: "og:image", content: socialImageUrl },
+            { name: "twitter:card", content: "summary_large_image" },
+            { name: "twitter:image", content: socialImageUrl },
+          ]
+        : []),
     ],
     links: [
       { rel: "stylesheet", href: appCss },

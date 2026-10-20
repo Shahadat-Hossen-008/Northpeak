@@ -10,17 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { homePathForRole, useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
+import { meta } from "@/builder/layout/meta";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({
-    meta: [
-      { title: "Sign in — Northpeak" },
-      { name: "robots", content: "noindex, follow" },
-      { name: "description", content: "Sign in to your Northpeak project workspace." },
-      { property: "og:title", content: "Sign in — Northpeak" },
-      { property: "og:description", content: "Sign in to your Northpeak project workspace." },
-    ],
-  }),
+  head: () => {
+    const page = meta("Sign in", "Sign in to your Northpeak project workspace.", "/login");
+    return { ...page, meta: [...page.meta, { name: "robots", content: "noindex, follow" }] };
+  },
   component: LoginPage,
 });
 
@@ -79,7 +75,7 @@ function LoginPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
@@ -97,7 +93,7 @@ function LoginPage() {
             </p>
           ) : null}
         </div>
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <Label htmlFor="password">Password</Label>
           <PasswordInput
             id="password"

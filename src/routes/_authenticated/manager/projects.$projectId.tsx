@@ -33,7 +33,12 @@ import { timeAgo } from "@/lib/deadline";
 import { findProjectByIdOrSlug, projectSlug } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/manager/projects/$projectId")({
-  head: () => meta("Project details", "Project overview, progress, tasks, team and activity."),
+  head: ({ params }) =>
+    meta(
+      "Project details",
+      "Project overview, progress, tasks, team and activity.",
+      `/manager/projects/${encodeURIComponent(params.projectId)}`,
+    ),
   component: ProjectDetail,
 });
 

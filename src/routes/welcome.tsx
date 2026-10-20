@@ -3,16 +3,14 @@ import { useEffect } from "react";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { useAuth } from "@/hooks/useAuth";
 import { homePathForRole } from "@/lib/auth-utils";
+import { meta } from "@/builder/layout/meta";
 
 export const Route = createFileRoute("/welcome")({
   ssr: false,
-  head: () => ({
-    meta: [
-      { title: "Welcome — Northpeak" },
-      { name: "robots", content: "noindex, nofollow" },
-      { name: "description", content: "Setting up your workspace." },
-    ],
-  }),
+  head: () => {
+    const page = meta("Welcome", "Setting up your workspace.", "/welcome");
+    return { ...page, meta: [...page.meta, { name: "robots", content: "noindex, nofollow" }] };
+  },
   component: WelcomePage,
 });
 

@@ -7,18 +7,18 @@ import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/password-input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
+import { meta } from "@/builder/layout/meta";
 
 export const Route = createFileRoute("/reset-password")({
   ssr: false,
-  head: () => ({
-    meta: [
-      { title: "Reset password — Northpeak" },
-      { name: "robots", content: "noindex, nofollow" },
-      { name: "description", content: "Choose a new password for your Northpeak account." },
-      { property: "og:title", content: "Reset password — Northpeak" },
-      { property: "og:description", content: "Choose a new password for your Northpeak account." },
-    ],
-  }),
+  head: () => {
+    const page = meta(
+      "Reset password",
+      "Choose a new password for your Northpeak account.",
+      "/reset-password",
+    );
+    return { ...page, meta: [...page.meta, { name: "robots", content: "noindex, nofollow" }] };
+  },
   component: ResetPasswordPage,
 });
 
@@ -62,7 +62,7 @@ function ResetPasswordPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <Label htmlFor="new-password">New password</Label>
           <PasswordInput
             id="new-password"
@@ -72,7 +72,7 @@ function ResetPasswordPage() {
             placeholder="At least 6 characters"
           />
         </div>
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <Label htmlFor="confirm-password">Confirm password</Label>
           <PasswordInput
             id="confirm-password"

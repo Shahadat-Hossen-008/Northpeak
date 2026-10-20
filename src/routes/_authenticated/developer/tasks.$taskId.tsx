@@ -11,7 +11,12 @@ export const Route = createFileRoute("/_authenticated/developer/tasks/$taskId")(
   validateSearch: (search: Record<string, unknown>): TaskSearch => ({
     from: typeof search["from"] === "string" ? search["from"] : undefined,
   }),
-  head: () => meta("Task details", "Your task, subtasks, comments and deadline."),
+  head: ({ params }) =>
+    meta(
+      "Task details",
+      "Your task, subtasks, comments and deadline.",
+      `/developer/tasks/${encodeURIComponent(params.taskId)}`,
+    ),
   component: Page,
 });
 

@@ -36,7 +36,8 @@ export const Route = createFileRoute("/_authenticated/developer/tasks/")({
         ? search["projectName"]
         : undefined,
   }),
-  head: () => meta("My tasks", "Every task assigned to you with deadline status."),
+  head: () =>
+    meta("My tasks", "Every task assigned to you with deadline status.", "/developer/tasks"),
   component: DeveloperTasks,
 });
 

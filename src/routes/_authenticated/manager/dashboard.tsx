@@ -7,6 +7,7 @@ export const Route = createFileRoute("/_authenticated/manager/dashboard")({
     meta(
       "Manager dashboard",
       "Project progress, overdue work, developer workload and upcoming deadlines.",
+      "/manager/dashboard",
     ),
   component: ManagerDashboardRoute,
 });

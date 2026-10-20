@@ -3,6 +3,11 @@ import { NotificationsPage } from "@/builder/pages/notifications";
 import { meta } from "@/builder/layout/meta";
 
 export const Route = createFileRoute("/_authenticated/developer/notifications")({
-  head: () => meta("Notifications", "Your assignments, deadlines and comment updates."),
+  head: () =>
+    meta(
+      "Notifications",
+      "Your assignments, deadlines and comment updates.",
+      "/developer/notifications",
+    ),
   component: () => <NotificationsPage section="developer" />,
 });
