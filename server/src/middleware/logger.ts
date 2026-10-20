@@ -13,6 +13,8 @@ const REDACTED_KEYS = new Set([
   "cookie",
   "jwt",
   "passwordhash",
+  "code",
+  "credential",
 ]);
 
 export function redactSensitiveData(obj: any): any {
@@ -32,11 +34,7 @@ export function redactSensitiveData(obj: any): any {
   return sanitized;
 }
 
-export function requestLogger(
-  req: LoggedRequest,
-  res: Response,
-  next: NextFunction,
-): void {
+export function requestLogger(req: LoggedRequest, res: Response, next: NextFunction): void {
   const reqId =
     (typeof req.headers["x-request-id"] === "string" && req.headers["x-request-id"]) ||
     crypto.randomUUID();

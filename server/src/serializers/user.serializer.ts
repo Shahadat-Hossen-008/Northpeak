@@ -1,10 +1,9 @@
-import type { IUser } from "../models/User.js";
-
 export interface SerializedAuthUser {
   id: string;
   name: string;
   email: string;
   role: string;
+  emailVerified?: boolean;
 }
 
 export interface SerializedUserProfile extends SerializedAuthUser {
@@ -17,6 +16,7 @@ export function serializeAuthUser(user: {
   name: string;
   email: string;
   role: string;
+  emailVerified?: boolean;
 }): SerializedAuthUser {
   const id = user._id ? user._id.toString() : user.id ? user.id.toString() : "";
   return {
@@ -24,6 +24,7 @@ export function serializeAuthUser(user: {
     name: user.name,
     email: user.email,
     role: user.role,
+    emailVerified: user.emailVerified !== false,
   };
 }
 
@@ -33,6 +34,7 @@ export function serializeUserProfile(user: {
   name: string;
   email: string;
   role: string;
+  emailVerified?: boolean;
   createdAt?: Date;
 }): SerializedUserProfile {
   const base = serializeAuthUser(user);

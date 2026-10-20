@@ -6,6 +6,8 @@ export interface IUser extends Document {
   name: string;
   email: string;
   passwordHash: string;
+  googleId?: string;
+  emailVerified?: boolean;
   role: AppRole;
   createdAt: Date;
   updatedAt: Date;
@@ -21,7 +23,10 @@ const userSchema = new Schema<IUser>(
       lowercase: true,
       trim: true,
     },
-    passwordHash: { type: String, required: true },
+    passwordHash: { type: String, required: false, select: false },
+    googleId: { type: String, unique: true, sparse: true, select: false },
+    // Existing seed and production accounts remain trusted; registration opts out explicitly.
+    emailVerified: { type: Boolean, default: true },
     role: {
       type: String,
       enum: ["manager", "developer"],

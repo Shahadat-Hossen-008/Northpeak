@@ -23,6 +23,30 @@ authRouter.post(
   }),
 );
 
+authRouter.post(
+  "/google",
+  asyncHandler(async (req, res) => {
+    const result = await authService.googleSignIn(req.body);
+    res.json(result);
+  }),
+);
+
+authRouter.post(
+  "/verify-email",
+  asyncHandler(async (req, res) => {
+    const result = await authService.verifyEmail(req.body);
+    res.json(result);
+  }),
+);
+
+authRouter.post(
+  "/resend-verification",
+  asyncHandler(async (req, res) => {
+    const result = await authService.resendVerification(req.body);
+    res.json(result);
+  }),
+);
+
 // Get current session user
 authRouter.get(
   "/me",

@@ -71,6 +71,13 @@ const authLimiter = createAuthRateLimiter({
 });
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
+const authVerificationLimiter = createAuthRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 20,
+});
+app.use("/api/auth/verify-email", authVerificationLimiter);
+app.use("/api/auth/resend-verification", authVerificationLimiter);
+app.use("/api/auth/google", authVerificationLimiter);
 
 // 5. Ensure database connection for API routes (supports serverless entrypoints like Vercel)
 const requireDatabase: express.RequestHandler = async (req, _res, next) => {

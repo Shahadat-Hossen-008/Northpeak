@@ -3,34 +3,58 @@ import { config } from "./env.js";
 
 let connectPromise: Promise<typeof mongoose> | null = null;
 
+const DEFAULT_DATABASE_NAME = "northpeak";
+const SERVER_SELECTION_TIMEOUT_MS = 5000;
+const MONGODB_URI_PATTERN = /mongodb(\+srv)?:\/\/[^\s"']+/gi;
+const AUTHORITY_CREDENTIALS_PATTERN = /([a-z][a-z0-9+.-]*:\/\/)?[^/\s"':@]+:[^@\s"']+@/gi;
+
+interface ConnectionErrorContext {
+  reqId?: string;
+  readyStateBefore: number;
+  readyStateAfter: number;
+}
+
+function splitUriQuery(uri: string): { base: string; query: string } {
+  const queryIndex = uri.indexOf("?");
+  if (queryIndex === -1) return { base: uri, query: "" };
+
+  return {
+    base: uri.slice(0, queryIndex),
+    query: uri.slice(queryIndex),
+  };
+}
+
+function appendDefaultDatabase(base: string, query: string, databaseName: string): string {
+  return `${base.replace(/\/+$/, "")}/${databaseName}${query}`;
+}
+
 /**
  * Normalizes a MongoDB connection URI by ensuring a database name is present
  * (defaulting to "northpeak") without corrupting query strings or trailing slashes.
  */
-export function resolveMongoUri(rawUri: string, defaultDbName = "northpeak"): string {
+export function resolveMongoUri(rawUri: string, defaultDbName = DEFAULT_DATABASE_NAME): string {
   const trimmed = rawUri.trim();
-  const qIndex = trimmed.indexOf("?");
-  const base = qIndex === -1 ? trimmed : trimmed.slice(0, qIndex);
-  const query = qIndex === -1 ? "" : trimmed.slice(qIndex);
+  const { base, query } = splitUriQuery(trimmed);
 
-  const schemeEnd = base.indexOf("://");
-  if (schemeEnd === -1) {
-    return `${base.replace(/\/+$/, "")}/${defaultDbName}${query}`;
+  const schemeEndIndex = base.indexOf("://");
+  if (schemeEndIndex === -1) {
+    return appendDefaultDatabase(base, query, defaultDbName);
   }
 
-  const afterScheme = base.slice(schemeEnd + 3);
-  const slashIndex = afterScheme.indexOf("/");
+  const authorityAndPath = base.slice(schemeEndIndex + 3);
+  const pathStartIndex = authorityAndPath.indexOf("/");
 
-  if (slashIndex === -1) {
+  if (pathStartIndex === -1) {
     return `${base}/${defaultDbName}${query}`;
   }
 
-  const dbPath = afterScheme.slice(slashIndex + 1).replace(/\/+$/, "");
-  if (!dbPath) {
-    return `${base.replace(/\/+$/, "")}/${defaultDbName}${query}`;
+  const databasePath = authorityAndPath.slice(pathStartIndex + 1).replace(/\/+$/, "");
+  if (!databasePath) {
+    return appendDefaultDatabase(base, query, defaultDbName);
   }
 
-  return `${base.slice(0, schemeEnd + 3 + slashIndex)}/${dbPath}${query}`;
+  const authority = base.slice(0, schemeEndIndex + 3 + pathStartIndex);
+  return `${authority}/${databasePath}${query}`;
 }
 
 export function sanitizeDatabaseErrorMessage(rawMessage: unknown): string {
@@ -40,10 +64,10 @@ export function sanitizeDatabaseErrorMessage(rawMessage: unknown): string {
 
   return (
     String(rawMessage)
-      // Redact full mongodb / mongodb+srv URIs
-      .replace(/mongodb(\+srv)?:\/\/[^\s"']+/gi, "[REDACTED_URI]")
-      // Redact any remaining scheme://user:pass@host or bare user:pass@host authority segments
-      .replace(/([a-z][a-z0-9+.-]*:\/\/)?[^/\s"':@]+:[^@\s"']+@/gi, "$1[REDACTED]@")
+      // Redact full mongodb / mongodb+srv URIs.
+      .replace(MONGODB_URI_PATTERN, "[REDACTED_URI]")
+      // Redact any remaining scheme://user:pass@host or bare user:pass@host authority segments.
+      .replace(AUTHORITY_CREDENTIALS_PATTERN, "$1[REDACTED]@")
   );
 }
 
@@ -77,14 +101,7 @@ function describeServerSelectionFailure(error: any): Record<string, unknown> {
   };
 }
 
-export function logSanitizedConnectError(
-  error: any,
-  context: {
-    reqId?: string;
-    readyStateBefore: number;
-    readyStateAfter: number;
-  },
-): void {
+export function logSanitizedConnectError(error: any, context: ConnectionErrorContext): void {
   console.error(
     JSON.stringify({
       level: "error",
@@ -121,7 +138,7 @@ export async function ensureDBConnection(overrideUri?: string, reqId?: string): 
   const uri = resolveMongoUri(overrideUri || config.MONGODB_URI);
   const readyStateBefore = mongoose.connection.readyState;
   const attempt = mongoose.connect(uri, {
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: SERVER_SELECTION_TIMEOUT_MS,
   });
 
   if (!overrideUri) {

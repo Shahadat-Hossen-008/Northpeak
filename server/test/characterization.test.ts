@@ -153,12 +153,14 @@ test("CHAR-AUTH: POST /api/auth/register success, validation errors, and activit
     .post("/api/auth/register")
     .send({ name: "New User", email: "new@test.dev", password: "password123" });
   assert.equal(res.status, 201);
-  assert.ok(res.body.token);
-  assert.equal(res.body.user.role, "developer");
+  assert.equal(res.body.requiresEmailVerification, true);
+  assert.equal(res.body.email, "new@test.dev");
+  const registeredUser = await User.findOne({ email: "new@test.dev" });
+  assert.equal(registeredUser?.emailVerified, false);
 
   // Verify Activity side effect
   const joinActivity = await Activity.findOne({
-    actor: res.body.user.id,
+    actor: registeredUser!._id,
     message: "joined Northpeak as developer",
   });
   assert.ok(joinActivity, "Registration must record a joined Northpeak activity");
