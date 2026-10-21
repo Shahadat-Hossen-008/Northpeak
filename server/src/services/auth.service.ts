@@ -48,6 +48,7 @@ const RESEND_COOLDOWN_MS = 60 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
 
 function hashVerificationCode(code: string) {
+  // Store only a keyed digest so a database leak cannot reveal active codes.
   return crypto.createHmac("sha256", config.JWT_SECRET).update(code).digest("hex");
 }
 
@@ -64,6 +65,8 @@ function createSession(user: InstanceType<typeof User>): AuthResult {
 }
 
 async function createAndSendVerification(user: InstanceType<typeof User>) {
+  // Persist the challenge before delivery so verification and resend share one
+  // expiry, cooldown, and attempt counter for the account.
   const code = crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
   await EmailVerification.findOneAndUpdate(
     { userId: user._id },
@@ -79,6 +82,8 @@ async function createAndSendVerification(user: InstanceType<typeof User>) {
   try {
     await sendVerificationCode(user.email, user.name, code);
   } catch (error) {
+    // Do not leave a challenge that the user never received or that can be
+    // mistaken for a successfully sent verification email.
     await EmailVerification.deleteOne({ userId: user._id });
     throw error;
   }
@@ -86,6 +91,7 @@ async function createAndSendVerification(user: InstanceType<typeof User>) {
 
 export class AuthService {
   async register(input: RegisterInput): Promise<RegisterResult> {
+    // Fail before creating the account when production email delivery is not configured.
     assertEmailDeliveryConfigured();
     const { name, email, password } = input;
 
@@ -121,7 +127,7 @@ export class AuthService {
       emailVerified: false,
     });
 
-    // Side effect: Record registration activity
+    // Keep registration visible in the activity feed independently of verification.
     await Activity.create({
       actor: user._id,
       message: `joined Northpeak as ${user.role}`,
@@ -178,6 +184,7 @@ export class AuthService {
     ) {
       throw new AppError("This verification code is invalid or expired", 400);
     }
+    // Compare fixed-length digests in constant time to reduce timing leakage.
     const submitted = Buffer.from(hashVerificationCode(input.code), "hex");
     const saved = Buffer.from(challenge.codeHash, "hex");
     if (submitted.length !== saved.length || !crypto.timingSafeEqual(submitted, saved)) {
@@ -190,6 +197,7 @@ export class AuthService {
       expiresAt: { $gt: new Date() },
       attempts: { $lt: MAX_CODE_ATTEMPTS },
     });
+    // Delete the challenge before issuing a session so a code cannot be reused.
     if (!consumed) throw new AppError("This verification code is invalid or expired", 400);
     user.emailVerified = true;
     await user.save();
