@@ -3,7 +3,7 @@ import { useEffect, useMemo } from "react";
 import { AppShell } from "@/builder/layout/app-shell";
 import { CreateTaskDialog } from "@/components/dialogs/create-task-dialog";
 import { ErrorState } from "@/components/feedback/error-state";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { WorkspaceLoadingState } from "@/components/feedback/workspace-loading-state";
 import { PageHeader } from "@/components/page-header";
 import { meta } from "@/builder/layout/meta";
 import { TaskBoard } from "@/sections/task-board";
@@ -21,6 +21,7 @@ import {
   useTasks,
 } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
+import { useMinimumLoading } from "@/hooks/use-minimum-loading";
 import { findProjectByIdOrSlug } from "@/lib/utils";
 import { taskFiltersFromSearch, taskFiltersToSearch } from "@/lib/task-utils";
 
@@ -58,6 +59,13 @@ function ManagerTasks() {
   const subtasks = useAllSubtasks();
   const members = useMembers();
   const commentCounts = useCommentCounts();
+  const isLoading =
+    (tasks.isLoading && !tasks.data) ||
+    (projects.isLoading && !projects.data) ||
+    (subtasks.isLoading && !subtasks.data) ||
+    (members.isLoading && !members.data) ||
+    (commentCounts.isLoading && !commentCounts.data);
+  const loading = useMinimumLoading(isLoading);
   const developers = (members.data ?? []).filter((m) => m.role === "developer");
   const filters = useMemo(() => taskFiltersFromSearch(search, true), [search]);
   const managerProjects = getTaskFilterProjects(
@@ -158,8 +166,8 @@ function ManagerTasks() {
             />
           </div>
         </div>
-        {tasks.isLoading ? (
-          <LoadingState />
+        {loading ? (
+          <WorkspaceLoadingState />
         ) : tasks.isError ? (
           <ErrorState message={(tasks.error as Error).message} />
         ) : (

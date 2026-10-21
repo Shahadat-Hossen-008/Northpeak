@@ -12,7 +12,7 @@ import { DeleteProjectDialog } from "@/components/dialogs/delete-project-dialog"
 import { ConfirmDeleteDialog as ConfirmDelete } from "@/components/dialogs/confirm-delete-dialog";
 import { meta } from "@/builder/layout/meta";
 import { EmptyState } from "@/components/feedback/empty-state";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { WorkspaceLoadingState } from "@/components/feedback/workspace-loading-state";
 import { SectionCard } from "@/components/cards/section-card";
 import { UserAvatar } from "@/components/avatar";
 import { ProjectOverviewCard, ProjectTasksList } from "@/sections/project-deliverables";
@@ -54,8 +54,8 @@ function ProjectDetail() {
   const project = findProjectByIdOrSlug(projects.data ?? [], projectId);
   const actualProjectId = project?.id ?? projectId;
 
-  const projectMembers = useMembers(actualProjectId);
-  const activity = useActivity({ projectId: actualProjectId, limit: 30 });
+  const projectMembers = useMembers(project?.id ?? null);
+  const activity = useActivity({ projectId: actualProjectId, limit: 30 }, Boolean(project));
   const commentCounts = useCommentCounts();
   const del = useDeleteTask();
   const [pending, setPending] = useState<Task | null>(null);
@@ -70,10 +70,10 @@ function ProjectDetail() {
     }
   }, [project?.title]);
 
-  if (projects.isLoading || tasks.isLoading)
+  if ((projects.isLoading && !projects.data) || (tasks.isLoading && !tasks.data))
     return (
       <AppShell section="manager">
-        <LoadingState />
+        <WorkspaceLoadingState />
       </AppShell>
     );
   if (!project)
@@ -88,6 +88,18 @@ function ProjectDetail() {
             </Button>
           }
         />
+      </AppShell>
+    );
+  if (
+    (subtasks.isLoading && !subtasks.data) ||
+    (members.isLoading && !members.data) ||
+    (projectMembers.isLoading && !projectMembers.data) ||
+    (activity.isLoading && !activity.data) ||
+    (commentCounts.isLoading && !commentCounts.data)
+  )
+    return (
+      <AppShell section="manager">
+        <WorkspaceLoadingState />
       </AppShell>
     );
 

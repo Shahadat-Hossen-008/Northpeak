@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/builder/layout/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { CreateProjectDialog } from "@/components/dialogs/create-project-dialog";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { WorkspaceLoadingState } from "@/components/feedback/workspace-loading-state";
 import { ErrorState } from "@/components/feedback/error-state";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { DashboardMetricCard } from "@/components/cards/metric-card";
@@ -20,6 +20,7 @@ import { MemberDetailSheet } from "@/sections/member-detail-sheet";
 import { SectionRenderer } from "@/sections/registry";
 import { useActivity, useAllSubtasks, useMembers, useProjects, useTasks } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
+import { useMinimumLoading } from "@/hooks/use-minimum-loading";
 import { selectManagerDashboardMetrics } from "@/lib/dashboard-selectors";
 import { formatDate, timeAgo } from "@/lib/deadline";
 import type { ManagerDashboardPageProps } from "./interface";
@@ -33,7 +34,13 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
   const members = useMembers();
   const activity = useActivity({ limit: 8 });
 
-  const loading = (projects.isLoading && !projects.data) || (tasks.isLoading && !tasks.data);
+  const isLoading =
+    (projects.isLoading && !projects.data) ||
+    (tasks.isLoading && !tasks.data) ||
+    (members.isLoading && !members.data) ||
+    (subtasks.isLoading && !subtasks.data) ||
+    (activity.isLoading && !activity.data);
+  const loading = useMinimumLoading(isLoading);
   const failed = (!projects.data && projects.isError) || (!tasks.data && tasks.isError);
   const errorMessage = ((projects.error || tasks.error) as Error)?.message;
 
@@ -76,7 +83,7 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
       />
 
       {loading ? (
-        <LoadingState />
+        <WorkspaceLoadingState />
       ) : failed ? (
         <div className="mt-6">
           <ErrorState message={errorMessage} />

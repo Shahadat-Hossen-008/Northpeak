@@ -120,8 +120,27 @@ export function getAuthToken(): string | null {
   return localStorage.getItem("northpeak_token");
 }
 
+let authTokenRevision = 0;
+let lastAuthToken: string | null | undefined;
+
+export function getAuthTokenRevision(): number {
+  const token = getAuthToken();
+  if (lastAuthToken === undefined) {
+    lastAuthToken = token;
+  } else if (lastAuthToken !== token) {
+    lastAuthToken = token;
+    authTokenRevision += 1;
+  }
+  return authTokenRevision;
+}
+
 export function setAuthToken(token: string | null): void {
   if (typeof window === "undefined") return;
+  const currentToken = localStorage.getItem("northpeak_token");
+  if (currentToken !== token) {
+    lastAuthToken = token;
+    authTokenRevision += 1;
+  }
   if (token) {
     localStorage.setItem("northpeak_token", token);
   } else {

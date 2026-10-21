@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="np-loader" viewBox="0 0 480 300" width="480" height="300" role="img" aria-labelledby="np-title np-desc">
+  <title id="np-title">Loading your Northpeak workspace</title>
+  <desc id="np-desc">Four colored gauge arcs sweep over a rising mountain peak while a progress marker travels toward a deadline flag.</desc>
+
+  <style>
+    /* Design tokens (match the dashboard palette) */
+    .np-loader {
+      --np-primary: #2563eb;
+      --np-peak-back: #93c5fd;
+      --np-snow: #ffffff;
+      --np-pink: #f4a3b5;
+      --np-amber: #f6cb6e;
+      --np-blue: #8db4f7;
+      --np-slate: #8ea0bb;
+      --np-track: #e2e8f0;
+      --np-surface: #ffffff;
+      --np-text: #0f172a;
+      --np-muted: #64748b;
+      --np-cycle: 2.8s;
+      --np-ease: cubic-bezier(0.45, 0, 0.25, 1);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    /* Base state is the finished frame, so static renderers show a complete image */
+    .np-arc-track { fill: none; stroke-width: 9; stroke-linecap: round; opacity: 0.3; }
+    .np-arc-sweep { fill: none; stroke-width: 9; stroke-linecap: round; stroke-dasharray: 28 100; stroke-dashoffset: 32; }
+    .np-peak-back { fill: var(--np-peak-back); }
+    .np-peak-front { fill: var(--np-primary); }
+    .np-snow { fill: var(--np-snow); opacity: 0.9; }
+    .np-title { fill: var(--np-text); font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+    .np-sub { fill: var(--np-muted); font-size: 12.5px; }
+    .np-rail { fill: var(--np-track); }
+    .np-progress { fill: var(--np-primary); }
+    .np-marker { fill: var(--np-primary); stroke: var(--np-surface); stroke-width: 3; }
+    .np-pole { stroke: var(--np-muted); stroke-width: 2; stroke-linecap: round; }
+    .np-flag { fill: var(--np-amber); }
+
+    .np-peak-back, .np-peak-front, .np-snow, .np-progress, .np-marker {
+      transform-box: fill-box;
+    }
+    .np-peak-back, .np-peak-front, .np-snow { transform-origin: 50% 100%; }
+    .np-progress { transform-origin: 0 50%; }
+
+    .np-arc-sweep { animation: np-sweep var(--np-cycle) var(--np-ease) infinite both; }
+    .np-d1 { animation-delay: 0s; }
+    .np-d2 { animation-delay: 0.1s; }
+    .np-d3 { animation-delay: 0.2s; }
+    .np-d4 { animation-delay: 0.3s; }
+    .np-peak-back { animation: np-rise var(--np-cycle) var(--np-ease) infinite both; }
+    .np-peak-front { animation: np-rise var(--np-cycle) var(--np-ease) 0.18s infinite both; }
+    .np-snow { animation: np-rise var(--np-cycle) var(--np-ease) 0.3s infinite both; }
+    .np-progress { animation: np-fill var(--np-cycle) var(--np-ease) infinite both; }
+    .np-marker { animation: np-travel var(--np-cycle) var(--np-ease) infinite both; }
+
+    @keyframes np-sweep {
+      from { stroke-dashoffset: 32; }
+      to   { stroke-dashoffset: -102; }
+    }
+    @keyframes np-rise {
+      0%   { transform: scaleY(0); opacity: 0; }
+      28%  { transform: scaleY(1); opacity: 1; }
+      85%  { transform: scaleY(1); opacity: 1; }
+      100% { transform: scaleY(1); opacity: 0; }
+    }
+    @keyframes np-fill {
+      from { transform: scaleX(0); }
+      to   { transform: scaleX(1); }
+    }
+    @keyframes np-travel {
+      from { transform: translateX(0); }
+      to   { transform: translateX(200px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .np-arc-sweep { animation: none; opacity: 0; }
+      .np-peak-back, .np-peak-front, .np-snow { animation: none; }
+      .np-progress { animation: none; transform: scaleX(0.5); }
+      .np-marker { animation: none; transform: translateX(100px); }
+      .np-arc-track { opacity: 0.7; }
+    }
+  </style>
+
+  <!-- Gauge arcs, same order and colors as the Task Status chart -->
+  <g aria-hidden="true">
+    <path class="np-arc-track" stroke="var(--np-pink)"  d="M140 150 A100 100 0 0 1 340 150"/>
+    <path class="np-arc-track" stroke="var(--np-amber)" d="M156 150 A84 84 0 0 1 324 150"/>
+    <path class="np-arc-track" stroke="var(--np-blue)"  d="M172 150 A68 68 0 0 1 308 150"/>
+    <path class="np-arc-track" stroke="var(--np-slate)" d="M188 150 A52 52 0 0 1 292 150"/>
+
+    <path class="np-arc-sweep np-d4" stroke="var(--np-pink)"  pathLength="100" d="M140 150 A100 100 0 0 1 340 150"/>
+    <path class="np-arc-sweep np-d3" stroke="var(--np-amber)" pathLength="100" d="M156 150 A84 84 0 0 1 324 150"/>
+    <path class="np-arc-sweep np-d2" stroke="var(--np-blue)"  pathLength="100" d="M172 150 A68 68 0 0 1 308 150"/>
+    <path class="np-arc-sweep np-d1" stroke="var(--np-slate)" pathLength="100" d="M188 150 A52 52 0 0 1 292 150"/>
+  </g>
+
+  <!-- Mountain mark -->
+  <g aria-hidden="true">
+    <path class="np-peak-back"  d="M196 150 L222 116 L248 150 Z"/>
+    <path class="np-peak-front" d="M222 150 L252 112 L282 150 Z"/>
+    <path class="np-snow"       d="M252 112 L244.5 122 L252 118.5 L259.5 122 Z"/>
+  </g>
+
+  <!-- Deadline rail: marker travels toward the flag -->
+  <g aria-hidden="true">
+    <rect class="np-rail"     x="140" y="203" width="200" height="6" rx="3"/>
+    <rect class="np-progress" x="140" y="203" width="200" height="6" rx="3"/>
+    <line class="np-pole" x1="340" y1="206" x2="340" y2="184"/>
+    <path class="np-flag" d="M340 184 L353 189.5 L340 195 Z"/>
+    <circle class="np-marker" cx="140" cy="206" r="7"/>
+  </g>
+
+  <text class="np-title" x="240" y="244" text-anchor="middle">Loading your workspace</text>
+  <text class="np-sub"   x="240" y="264" text-anchor="middle">Syncing tasks and deadlines</text>
+</svg>

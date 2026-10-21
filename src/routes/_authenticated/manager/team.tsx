@@ -6,7 +6,7 @@ import { AppShell } from "@/builder/layout/app-shell";
 import { MemberDetailSheet } from "@/sections/member-detail-sheet";
 import { statusOf } from "@/components/badges/utils";
 import { EmptyState } from "@/components/feedback/empty-state";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { WorkspaceLoadingState } from "@/components/feedback/workspace-loading-state";
 import { PageHeader } from "@/components/page-header";
 import { ProgressBar } from "@/components/progress/progress-bar";
 import { UserAvatar } from "@/components/avatar";
@@ -34,7 +34,7 @@ function Team() {
       />
       <div className="mt-6">
         {members.isLoading || tasks.isLoading ? (
-          <LoadingState />
+          <WorkspaceLoadingState />
         ) : devs.length === 0 ? (
           <EmptyState
             icon={Users}
