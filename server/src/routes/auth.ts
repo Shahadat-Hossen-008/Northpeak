@@ -39,6 +39,7 @@ authRouter.post(
   }),
 );
 
+// Public endpoint; the service returns a generic response to avoid revealing account status.
 authRouter.post(
   "/resend-verification",
   asyncHandler(async (req, res) => {

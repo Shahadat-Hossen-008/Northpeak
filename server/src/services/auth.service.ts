@@ -197,6 +197,7 @@ export class AuthService {
   }
 
   async resendVerification(input: { email?: unknown }): Promise<{ message: string }> {
+    // Keep the response generic to prevent account enumeration; enforce the resend cooldown here.
     const generic = { message: "If this account needs verification, a code has been sent." };
     if (typeof input.email !== "string" || !input.email.trim()) return generic;
     const user = await User.findOne({ email: input.email.toLowerCase().trim() });

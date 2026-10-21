@@ -1,6 +1,7 @@
 import { AppError } from "../middleware/error.js";
 
 export function assertEmailDeliveryConfigured() {
+  // Production registration and resend both require these backend-only Resend settings.
   if (process.env.NODE_ENV !== "test" && (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM)) {
     throw new AppError("Email verification is temporarily unavailable", 503);
   }

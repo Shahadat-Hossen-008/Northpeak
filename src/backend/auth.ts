@@ -28,6 +28,7 @@ export const authApi = {
   },
 
   async resendVerification(email: string) {
+    // Calls the backend resend endpoint; delivery and cooldown checks stay server-side.
     return request<{ message: string }>("/auth/resend-verification", {
       method: "POST",
       body: JSON.stringify({ email }),
