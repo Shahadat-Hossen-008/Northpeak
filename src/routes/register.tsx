@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { AuthLayout } from "@/builder/layout/auth-layout";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { PasswordInput } from "@/components/password-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,26 +13,20 @@ import { useAuth } from "@/hooks/useAuth";
 import { homePathForRole } from "@/lib/auth-utils";
 import type { AppRole } from "@/types";
 import { api } from "@/lib/api";
+import { meta } from "@/builder/layout/meta";
 
 export const Route = createFileRoute("/register")({
   validateSearch: z.object({
     role: z.enum(["manager", "developer"]).optional().catch(undefined),
   }),
-  head: () => ({
-    meta: [
-      { title: "Create account — Northpeak" },
-      { name: "robots", content: "noindex, follow" },
-      {
-        name: "description",
-        content: "Create a Northpeak account as a project manager or developer.",
-      },
-      { property: "og:title", content: "Create account — Northpeak" },
-      {
-        property: "og:description",
-        content: "Create a Northpeak account as a project manager or developer.",
-      },
-    ],
-  }),
+  head: () => {
+    const page = meta(
+      "Create account",
+      "Create a Northpeak account as a project manager or developer.",
+      "/register",
+    );
+    return { ...page, meta: [...page.meta, { name: "robots", content: "noindex, follow" }] };
+  },
   component: RegisterPage,
 });
 
@@ -73,14 +68,22 @@ function RegisterPage() {
         role: selectedRole,
       });
       setSubmitting(false);
-      toast.success("Account created");
-      await reload();
-      void navigate({ to: homePathForRole(data.user.role), replace: true });
+      toast.success("Check your email for a verification code");
+      void navigate({
+        to: "/verify-email",
+        search: { email: data.email, role: selectedRole },
+        replace: true,
+      });
     } catch (error) {
       setSubmitting(false);
       const message = error instanceof Error ? error.message : "Failed to create account";
       toast.error(message);
     }
+  }
+
+  async function handleGoogleSuccess(userRole: AppRole) {
+    await reload();
+    void navigate({ to: homePathForRole(userRole), replace: true });
   }
 
   return (
@@ -111,7 +114,18 @@ function RegisterPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <div className="space-y-2.5">
+        <GoogleSignInButton
+          role={selectedRole}
+          onSuccess={(googleRole) => void handleGoogleSuccess(googleRole)}
+          onError={(message) => toast.error(message)}
+          disabled={submitting}
+        />
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <span className="h-px flex-1 bg-border" />
+          <span>or use your email</span>
+          <span className="h-px flex-1 bg-border" />
+        </div>
+        <div className="space-y-3">
           <Label htmlFor="name">Full name</Label>
           <Input
             id="name"
@@ -128,7 +142,7 @@ function RegisterPage() {
             </p>
           ) : null}
         </div>
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
@@ -147,7 +161,7 @@ function RegisterPage() {
           ) : null}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <Label htmlFor="password">Password</Label>
             <PasswordInput
               id="password"
@@ -168,7 +182,7 @@ function RegisterPage() {
               </p>
             ) : null}
           </div>
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <Label htmlFor="confirm">Confirm password</Label>
             <PasswordInput
               id="confirm"

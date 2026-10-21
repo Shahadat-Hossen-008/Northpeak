@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AuthLayout } from "@/builder/layout/auth-layout";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import type { AppRole } from "@/types";
 import { PasswordInput } from "@/components/password-input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,17 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { homePathForRole, useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
+import { meta } from "@/builder/layout/meta";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({
-    meta: [
-      { title: "Sign in — Northpeak" },
-      { name: "robots", content: "noindex, follow" },
-      { name: "description", content: "Sign in to your Northpeak project workspace." },
-      { property: "og:title", content: "Sign in — Northpeak" },
-      { property: "og:description", content: "Sign in to your Northpeak project workspace." },
-    ],
-  }),
+  head: () => {
+    const page = meta("Sign in", "Sign in to your Northpeak project workspace.", "/login");
+    return { ...page, meta: [...page.meta, { name: "robots", content: "noindex, follow" }] };
+  },
   component: LoginPage,
 });
 
@@ -59,8 +57,16 @@ function LoginPage() {
     } catch (error) {
       setSubmitting(false);
       const message = error instanceof Error ? error.message : "Failed to sign in";
+      if (message === "Verify your email before signing in") {
+        void navigate({ to: "/verify-email", search: { email } });
+      }
       toast.error(message);
     }
+  }
+
+  async function handleGoogleSuccess(userRole: AppRole) {
+    await reload();
+    void navigate({ to: homePathForRole(userRole), replace: true });
   }
 
   return (
@@ -79,7 +85,17 @@ function LoginPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <div className="space-y-2.5">
+        <GoogleSignInButton
+          onSuccess={(googleRole) => void handleGoogleSuccess(googleRole)}
+          onError={(message) => toast.error(message)}
+          disabled={submitting}
+        />
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <span className="h-px flex-1 bg-border" />
+          <span>or sign in with email</span>
+          <span className="h-px flex-1 bg-border" />
+        </div>
+        <div className="space-y-3">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
@@ -97,7 +113,7 @@ function LoginPage() {
             </p>
           ) : null}
         </div>
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <Label htmlFor="password">Password</Label>
           <PasswordInput
             id="password"

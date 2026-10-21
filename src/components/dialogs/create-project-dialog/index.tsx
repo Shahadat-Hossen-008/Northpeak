@@ -120,7 +120,7 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
           <DialogDescription>Set the scope, dates and priority for the work.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <Label htmlFor="project-title">
               Project name{" "}
               <span aria-hidden="true" className="text-danger">
@@ -155,7 +155,7 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
               </p>
             ) : null}
           </div>
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <Label htmlFor="project-description">Description</Label>
             <Textarea
               id="project-description"
@@ -172,7 +172,7 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
           />
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               <Label htmlFor="project-start">Start date</Label>
               <Input
                 id="project-start"
@@ -194,7 +194,7 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
                 }}
               />
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               <Label htmlFor="project-deadline">Deadline</Label>
               <Input
                 id="project-deadline"
@@ -225,7 +225,7 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
               ) : null}
             </div>
           </div>
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <Label htmlFor="project-priority">Priority</Label>
             <Select
               value={form.priority}

@@ -132,18 +132,23 @@ test("AUTH-05: register -> login -> me -> change password -> old password reject
     .post("/api/auth/register")
     .send({ name: "New Person", email: "new@x.invalid", password: "first-pass-1" });
   assert.equal(reg.status, 201);
-  assert.ok(reg.body.token);
-  assert.equal(reg.body.user.role, "developer");
+  assert.equal(reg.body.requiresEmailVerification, true);
+  assert.equal(reg.body.email, "new@x.invalid");
   assert.equal(
     JSON.stringify(reg.body).includes("passwordHash"),
     false,
     "hash must never be serialized",
   );
+  const pendingUser = await User.findOne({ email: "new@x.invalid" });
+  assert.equal(pendingUser?.emailVerified, false);
 
   const dup = await request(app)
     .post("/api/auth/register")
     .send({ name: "New Person", email: "new@x.invalid", password: "first-pass-1" });
   assert.ok([400, 409].includes(dup.status));
+
+  pendingUser!.emailVerified = true;
+  await pendingUser!.save();
 
   const bad = await request(app)
     .post("/api/auth/login")

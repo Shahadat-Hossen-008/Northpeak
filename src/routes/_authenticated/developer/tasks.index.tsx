@@ -3,7 +3,7 @@ import { useEffect, useMemo } from "react";
 
 import { AppShell } from "@/builder/layout/app-shell";
 import { ErrorState } from "@/components/feedback/error-state";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { WorkspaceLoadingState } from "@/components/feedback/workspace-loading-state";
 import { PageHeader } from "@/components/page-header";
 import { meta } from "@/builder/layout/meta";
 import { TaskBoard } from "@/sections/task-board";
@@ -15,6 +15,7 @@ import {
 } from "@/lib/task-utils";
 import { useAllSubtasks, useCommentCounts, useProjects, useTasks } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
+import { useMinimumLoading } from "@/hooks/use-minimum-loading";
 import { findProjectByIdOrSlug } from "@/lib/utils";
 import { taskFiltersFromSearch, taskFiltersToSearch } from "@/lib/task-utils";
 
@@ -36,7 +37,8 @@ export const Route = createFileRoute("/_authenticated/developer/tasks/")({
         ? search["projectName"]
         : undefined,
   }),
-  head: () => meta("My tasks", "Every task assigned to you with deadline status."),
+  head: () =>
+    meta("My tasks", "Every task assigned to you with deadline status.", "/developer/tasks"),
   component: DeveloperTasks,
 });
 
@@ -49,6 +51,12 @@ function DeveloperTasks() {
   const projects = useProjects();
   const subtasks = useAllSubtasks();
   const commentCounts = useCommentCounts();
+  const isLoading =
+    (tasks.isLoading && !tasks.data) ||
+    (projects.isLoading && !projects.data) ||
+    (subtasks.isLoading && !subtasks.data) ||
+    (commentCounts.isLoading && !commentCounts.data);
+  const loading = useMinimumLoading(isLoading);
   const mine = (tasks.data ?? []).filter((t) => t.assigned_developer_id === profile?.id);
   const eligibleProjects = getTaskFilterProjects(
     projects.data ?? [],
@@ -154,8 +162,8 @@ function DeveloperTasks() {
             />
           </div>
         </div>
-        {tasks.isLoading ? (
-          <LoadingState />
+        {loading ? (
+          <WorkspaceLoadingState />
         ) : tasks.isError ? (
           <ErrorState message={(tasks.error as Error).message} />
         ) : (

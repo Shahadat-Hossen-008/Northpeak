@@ -6,7 +6,7 @@ import { CreateProjectDialog } from "@/components/dialogs/create-project-dialog"
 import { ProjectCard } from "@/sections/project-card";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { ErrorState } from "@/components/feedback/error-state";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { WorkspaceLoadingState } from "@/components/feedback/workspace-loading-state";
 import { PageHeader } from "@/components/page-header";
 import { meta } from "@/builder/layout/meta";
 import { useProjects, useTasks } from "@/hooks/queries";
@@ -30,7 +30,12 @@ export const Route = createFileRoute("/_authenticated/manager/projects/")({
       priority?: string | undefined;
       status?: string | undefined;
     },
-  head: () => meta("Projects", "All projects you manage with progress and deadline status."),
+  head: () =>
+    meta(
+      "Projects",
+      "All projects you manage with progress and deadline status.",
+      "/manager/projects",
+    ),
   component: ManagerProjects,
 });
 
@@ -59,7 +64,7 @@ function ManagerProjects() {
       />
       <div className="mt-6">
         {projects.isLoading || tasks.isLoading ? (
-          <LoadingState />
+          <WorkspaceLoadingState />
         ) : projects.isError ? (
           <ErrorState message={(projects.error as Error).message} />
         ) : (projects.data ?? []).length === 0 ? (

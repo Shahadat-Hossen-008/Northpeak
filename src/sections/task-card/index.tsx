@@ -37,9 +37,9 @@ export function TaskCard({
         "surface-card group rounded-xl border p-3.5 sm:p-4 transition-all duration-150 select-none shadow-xs",
         borderForState(state),
         isDraggable
-          ? "cursor-grab active:cursor-grabbing hover:shadow-card hover:-translate-y-0.5 hover:border-primary/40"
+          ? "cursor-grab active:cursor-grabbing hover:shadow-card hover:translate-y-0.5 hover:border-primary/40"
           : "",
-        isDragging ? "opacity-40 scale-[0.98] ring-2 ring-primary ring-offset-2" : "",
+        isDragging ? "opacity-40 scale-[0.98]" : "",
       )}
     >
       <div className="mb-2 flex items-center gap-1.5">

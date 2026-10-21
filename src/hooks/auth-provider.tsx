@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api, getAuthToken, setAuthToken } from "@/lib/api";
+import { getAuthToken, setAuthToken } from "@/lib/api";
+import { currentUserQueryKey, currentUserQueryOptions } from "@/hooks/queries/current-user";
 import type { AppRole, AuthUser, Profile } from "@/types";
 import { AuthContext, type AuthValue } from "./auth-context";
 
@@ -9,41 +10,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadUser = useCallback(async () => {
-    const token = getAuthToken();
-    if (!token) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
+  const loadUser = useCallback(
+    async (forceRefresh = false) => {
+      const token = getAuthToken();
+      if (!token) {
+        setUser(null);
+        queryClient.removeQueries({ queryKey: currentUserQueryKey });
+        setLoading(false);
+        return;
+      }
 
-    try {
-      const data = await api.getMe();
-      if (data?.id) {
-        setUser({
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          role: data.role as AppRole,
+      try {
+        const data = await queryClient.fetchQuery({
+          ...currentUserQueryOptions(),
+          ...(forceRefresh ? { staleTime: 0 } : {}),
         });
-      } else {
+        if (data?.id) {
+          setUser({
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            role: data.role as AppRole,
+          });
+        } else {
+          setAuthToken(null);
+          setUser(null);
+          queryClient.removeQueries({ queryKey: currentUserQueryKey });
+        }
+      } catch {
         setAuthToken(null);
         setUser(null);
+        queryClient.removeQueries({ queryKey: currentUserQueryKey });
+      } finally {
+        setLoading(false);
       }
-    } catch {
-      setAuthToken(null);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [queryClient],
+  );
 
   useEffect(() => {
     void loadUser();
   }, [loadUser]);
 
   const reload = useCallback(async () => {
-    await loadUser();
+    await loadUser(true);
   }, [loadUser]);
 
   const logout = useCallback(() => {

@@ -20,3 +20,4 @@ export * from "./subtasks";
 export * from "./comments";
 export * from "./activity";
 export * from "./notifications";
+export * from "./current-user";

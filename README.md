@@ -38,25 +38,33 @@ Northpeak is a modern, deadline-aware project management platform designed speci
 ## Project Structure
 
 ```
-├── server/                    # Express.js + TypeScript + MongoDB backend
-│   ├── src/
-│   │   ├── config/            # Database connection (Mongoose)
-│   │   ├── models/            # Mongoose schemas (User, Project, Task, Subtask, Comment, Notification, Activity)
-│   │   ├── middleware/        # JWT auth and role authorization
-│   │   ├── routes/            # REST API endpoints
-│   │   ├── seed/              # Database demo data seeder
-│   │   └── index.ts           # Express server entry point (port 5000)
-│   ├── package.json
-│   └── README.md              # Backend API documentation
-├── src/                       # React 19 frontend application
-│   ├── components/            # UI components, dialogs, badges, and layout
-│   ├── hooks/                 # TanStack Query hooks, useAuth, and React context
-│   ├── lib/                   # API client (fetch wrapper), deadline engine, utilities
-│   ├── routes/                # TanStack Router file-based routes
-│   │   └── README.md          # Route map & conventions documentation
-│   └── styles.css             # Tailwind v4 theme and styling
-├── package.json               # Root scripts & Vite proxy configuration
-└── vite.config.ts             # Vite configuration (/api proxied to port 5000)
+├── src/
+│   ├── backend/                # Domain API modules and shared HTTP client
+│   ├── builder/                # Layouts and assembled page builders
+│   ├── components/             # Reusable UI components and primitives
+│   ├── hooks/queries/          # Domain React Query hooks
+│   ├── lib/                    # Deadline, dashboard, project, task and error utilities
+│   ├── routes/                 # TanStack file routes; route guide is in routes/README.md
+│   ├── sections/               # Feature UI and typed section registry
+│   ├── types/                  # Shared backend contracts and frontend types
+│   ├── router.tsx              # Router setup
+│   ├── server.ts               # TanStack Start server entry
+│   └── start.ts                # Nitro/TanStack Start entry
+├── server/
+│   ├── src/app.ts              # Express app and middleware pipeline
+│   ├── src/routes/             # API route handlers
+│   ├── src/services/           # Business logic and authorization
+│   ├── src/serializers/        # API response mapping
+│   ├── src/models/             # Mongoose models
+│   ├── src/middleware/         # Auth, logging, security, errors and rate limits
+│   ├── src/config/             # Environment validation and MongoDB connection
+│   ├── src/server.ts           # Listener and lifecycle setup
+│   ├── src/start.ts            # Executable backend entry point
+│   └── test/                   # Backend tests
+├── tests/                      # Root regression tests
+├── package.json                # Frontend and workspace scripts
+├── vite.config.ts              # Vite/TanStack/Nitro configuration and local API proxy
+└── vercel.json                 # Vercel build command for the Nitro Vercel preset
 ```
 
 ---
@@ -120,7 +128,7 @@ Northpeak deploys as two independent services:
 - **Install command**: `npm ci`
 - **Build command**: `npm run build` (or `npm run server:build` from repo root)
 - **Output directory**: `server/dist/`
-- **Production start command**: `npm start` (`node dist/index.js`, or `npm run server:start` from repo root)
+- **Production start command**: `npm start` (`node dist/start.js`, or `npm run server:start` from repo root)
 - **Health check endpoints**:
   - `GET /api/health` — Base health status
   - `GET /api/health/live` — Liveness probe with process uptime
@@ -138,16 +146,17 @@ Northpeak deploys as two independent services:
 | `TRUST_PROXY`           | Optional              | Set to `true` only when the host places the API behind a trusted one-hop reverse proxy/load balancer                       |
 | `RECONCILE_INTERVAL_MS` | Optional              | Periodic assignment reconciler interval in ms (defaults to `300000`; `0` disables)                                         |
 
-### 2. Frontend Client Application (Repository Root)
+### 2. Frontend Client Application (Vercel, Repository Root)
 
-The frontend uses TanStack Start + Vite + Nitro. Public marketing pages are server-rendered with SEO metadata; the authenticated workspace has SSR disabled and loads its private data through the API after authentication. This is an SSR application, not a static SPA: deploy the Node Nitro server and its full build output. The client contains no MongoDB credentials or JWT signing secret.
+The frontend uses TanStack Start + Vite + Nitro. Public marketing pages are server-rendered with SEO metadata; authenticated workspace data loads from the API after authentication. This is an SSR application, not a static SPA. The root `vercel.json` selects Nitro's Vercel preset and emits the Vercel Build Output API. The client contains no MongoDB credentials or JWT signing secret.
 
-- **Working directory**: `/` (repository root)
+- **Vercel Root Directory**: repository root (`.`)
 - **Install command**: `npm ci`
-- **Build command**: `npm run build:client` (selects Nitro's `node-server` preset)
-- **Start command**: `npm run start:client` (`node .output/server/index.mjs`; Nitro reads the host-provided `PORT`)
-- **Output directory**: `.output/` — deploy this whole directory; Nitro serves SSR routes and the assets under `.output/public/` (including `northpeak-social.png`, icons, and `robots.txt`). Do not deploy only the static directory.
+- **Build command**: `npm run build:vercel` (set by `vercel.json`)
+- **Output**: leave the output directory unset; Nitro writes `.vercel/output` with SSR functions and static assets.
 - **Health check**: `GET /` (public marketing page)
+
+For a non-Vercel Node host, use `npm run build:client` and `npm run start:client`; that path emits the `.output/` Node server bundle.
 
 **Required Client Environment Variables (configure on the frontend hosting platform at build time):**
 
@@ -161,22 +170,22 @@ The frontend uses TanStack Start + Vite + Nitro. Public marketing pages are serv
 ### Recommended Deployment Order
 
 1. **Provision MongoDB**: Create a production replica set or Atlas cluster that supports transactions; put its URI only in the backend service environment.
-2. **Create the frontend service and reserve its HTTPS origin**: Configure the host's Node service using the repository root, `npm ci`, `npm run build:client`, `npm run start:client`, and `/` as its health check. Set the build-time `VITE_API_BASE_URL` to the planned backend HTTPS origin and `VITE_SITE_URL` to this frontend's real HTTPS origin.
+2. **Reserve the frontend HTTPS origin**: Create the Vercel project from the repository root and note its production domain.
 3. **Deploy the backend API (`server/`)**: Configure a separate Node web service with working directory `server`, install command `npm ci`, build command `npm run build`, start command `npm start`, and health check `/api/health/ready`. Set production server variables from `server/.env.example`; set `CORS_ORIGIN` to the exact frontend HTTPS origin. Set `TRUST_PROXY=true` only if required by the host's trusted proxy topology. Confirm readiness returns `200`.
-4. **Build and deploy the frontend**: Build the frontend service after the backend is available, and confirm it can reach the API health endpoint from the service environment. Check that the final CORS allowlist contains only the deployed frontend origin or origins.
+4. **Configure and deploy the frontend**: Set Vercel's build-time `VITE_API_BASE_URL` to the backend HTTPS origin and `VITE_SITE_URL` to the frontend HTTPS origin, then deploy. Confirm API calls work from the deployed site. Add any needed preview origin explicitly to the backend CORS allowlist.
 
 ### Hosting Dashboard Settings
 
-Create two independent Node web services from the same repository. Do not configure the frontend service to run the Express API, or the API service to build or serve the frontend.
+Deploy the frontend as a Vercel project and the API as a separate Node web service. Do not configure either service to build or serve the other app.
 
-| Setting           | Frontend SSR service                              | Backend API service                                                                                                             |
-| :---------------- | :------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------ |
-| Working directory | Repository root                                   | `server`                                                                                                                        |
-| Install command   | `npm ci`                                          | `npm ci`                                                                                                                        |
-| Build command     | `npm run build:client`                            | `npm run build`                                                                                                                 |
-| Start command     | `npm run start:client`                            | `npm start`                                                                                                                     |
-| Health check path | `/`                                               | `/api/health/ready`                                                                                                             |
-| Environment       | `VITE_API_BASE_URL`, `VITE_SITE_URL` (build time) | `NODE_ENV`, `PORT` (host provided), `MONGODB_URI`, `JWT_SECRET`, `CORS_ORIGIN`, optional `TRUST_PROXY`, `RECONCILE_INTERVAL_MS` |
+| Setting           | Frontend on Vercel                                               | Backend API service                                                                                                             |
+| :---------------- | :--------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
+| Root directory    | Repository root                                                   | `server`                                                                                                                        |
+| Install command   | `npm ci`                                                          | `npm ci`                                                                                                                        |
+| Build command     | `npm run build:vercel` (from `vercel.json`)                      | `npm run build`                                                                                                                 |
+| Start command     | Managed by Vercel/Nitro                                           | `npm start`                                                                                                                     |
+| Health check path | `/`                                                               | `/api/health/ready`                                                                                                             |
+| Environment       | `VITE_API_BASE_URL`, `VITE_SITE_URL` (build time)                | `NODE_ENV`, `PORT` (host provided), `MONGODB_URI`, `JWT_SECRET`, `CORS_ORIGIN`, optional `TRUST_PROXY`, `RECONCILE_INTERVAL_MS` |
 
 Use a Node host that supports long-running Nitro/Express services and supplies `PORT`. On hosts that require a single `Root Directory`, configure one service for the repository root and a second for `server`. Keep the two environment groups separate. Configure MongoDB network access to allow the backend host, never the frontend build or browser.
 

@@ -2,12 +2,13 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/builder/layout/app-shell";
 import { PageHeader } from "@/components/page-header";
-import { LoadingState } from "@/components/feedback/loading-state";
+import { WorkspaceLoadingState } from "@/components/feedback/workspace-loading-state";
 import { ErrorState } from "@/components/feedback/error-state";
 import { DashboardMetricCard } from "@/components/cards/metric-card";
 import { SectionRenderer } from "@/sections/registry";
 import { useProjects, useTasks } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
+import { useMinimumLoading } from "@/hooks/use-minimum-loading";
 import { selectDeveloperDashboardMetrics } from "@/lib/dashboard-selectors";
 import type { DeveloperDashboardPageProps } from "./interface";
 
@@ -32,7 +33,8 @@ export function DeveloperDashboardPage(_props: DeveloperDashboardPageProps) {
     profileId: profile?.id,
   });
 
-  const loading = (tasks.isLoading && !tasks.data) || (projects.isLoading && !projects.data);
+  const isLoading = (tasks.isLoading && !tasks.data) || (projects.isLoading && !projects.data);
+  const loading = useMinimumLoading(isLoading);
   const isError = (!tasks.data && tasks.isError) || (!projects.data && projects.isError);
   const errorMessage = ((tasks.error || projects.error) as Error)?.message;
 
@@ -53,7 +55,7 @@ export function DeveloperDashboardPage(_props: DeveloperDashboardPageProps) {
         description="Your tasks, sorted by where they stand."
       />
       {loading ? (
-        <LoadingState />
+        <WorkspaceLoadingState />
       ) : isError ? (
         <div className="mt-6">
           <ErrorState message={errorMessage} />

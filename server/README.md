@@ -107,7 +107,7 @@ All seed accounts use the password: `password123`
 
 ### Authentication (`/api/auth`)
 
-- `POST /api/auth/register` — Register a new account (`name`, `email`, `password`, `role`). Returns JWT token & user object.
+- `POST /api/auth/register` — Register a new account (`name`, `email`, `password`, `role`). Returns `{ requiresEmailVerification: true, email }`; email verification is required before sign-in.
 - `POST /api/auth/login` — Sign in (`email`, `password`). Returns JWT token & user object.
 - `GET /api/auth/me` — Retrieve current authenticated user profile (`Bearer` token required).
 - `PATCH /api/auth/profile` — Update display name and/or password.
@@ -151,6 +151,7 @@ All seed accounts use the password: `password123`
 - `GET /api/comments/task/:taskId` — Retrieve task discussion comments with author info.
 - `GET /api/comments/counts` — Retrieve a mapping of task ID to total comment counts.
 - `POST /api/comments/task/:taskId` — Post a new comment on a task.
+- `PATCH /api/comments/:id` — Update a comment body (_Author only_).
 - `DELETE /api/comments/:id` — Delete a comment (_Author or Manager only_).
 
 ### Notifications (`/api/notifications`)

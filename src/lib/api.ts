@@ -15,6 +15,7 @@ export type {
 export {
   api,
   getAuthToken,
+  getAuthTokenRevision,
   setAuthToken,
   request,
   resolveApiBaseUrl,

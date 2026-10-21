@@ -12,9 +12,33 @@ export const authApi = {
   },
 
   async register(payload: { name: string; email: string; password: string; role: string }) {
-    const data = await request<{ token: string; user: AuthUser }>("/auth/register", {
+    return request<{ requiresEmailVerification: true; email: string }>("/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
+    });
+  },
+
+  async verifyEmail(payload: { email: string; code: string }) {
+    const data = await request<{ token: string; user: AuthUser }>("/auth/verify-email", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    setAuthToken(data.token);
+    return data;
+  },
+
+  async resendVerification(email: string) {
+    // Calls the backend resend endpoint; delivery and cooldown checks stay server-side.
+    return request<{ message: string }>("/auth/resend-verification", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async googleSignIn(credential: string, role?: string) {
+    const data = await request<{ token: string; user: AuthUser }>("/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ credential, role }),
     });
     setAuthToken(data.token);
     return data;

@@ -9,6 +9,7 @@ import { activityApi } from "./activity";
 
 export {
   getAuthToken,
+  getAuthTokenRevision,
   setAuthToken,
   request,
   resolveApiBaseUrl,

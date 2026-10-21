@@ -1,16 +1,17 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { api, getAuthToken } from "@/lib/api";
+import { getAuthToken } from "@/lib/api";
+import { currentUserQueryOptions } from "@/hooks/queries/current-user";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   head: () => ({
     meta: [{ name: "robots", content: "noindex, nofollow" }],
   }),
-  beforeLoad: async () => {
+  beforeLoad: async ({ context }) => {
     const token = getAuthToken();
     if (!token) throw redirect({ to: "/login" });
     try {
-      const user = await api.getMe();
+      const user = await context.queryClient.fetchQuery(currentUserQueryOptions());
       if (!user) throw redirect({ to: "/login" });
       return { user };
     } catch {

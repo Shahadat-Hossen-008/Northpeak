@@ -104,7 +104,7 @@ export function SubtaskList({ taskId, projectId, actorId, canEdit, canAssign }: 
               >
                 {isEditing ? (
                   <form
-                    className="space-y-2.5"
+                    className="space-y-3"
                     onSubmit={(event) => {
                       event.preventDefault();
                       if (!editing.title.trim() || mutations.rename.isPending) return;
@@ -260,7 +260,7 @@ export function SubtaskList({ taskId, projectId, actorId, canEdit, canAssign }: 
 
       {canEdit ? (
         <form
-          className="space-y-2.5 rounded-xl border border-border/80 p-3 sm:p-4"
+          className="space-y-3 rounded-xl border border-border/80 p-3 sm:p-4"
           onSubmit={(event) => {
             event.preventDefault();
             const title = newTitle.trim();
@@ -291,7 +291,7 @@ export function SubtaskList({ taskId, projectId, actorId, canEdit, canAssign }: 
             );
           }}
         >
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <label className="text-sm font-medium" htmlFor="new-subtask-title">
               Title <span className="text-danger">*</span>
             </label>
@@ -304,7 +304,7 @@ export function SubtaskList({ taskId, projectId, actorId, canEdit, canAssign }: 
               required
             />
           </div>
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <label className="text-sm font-medium" htmlFor="new-subtask-description">
               Description
             </label>
@@ -328,7 +328,7 @@ export function SubtaskList({ taskId, projectId, actorId, canEdit, canAssign }: 
                 No eligible developers are available for assignment.
               </p>
             ) : (
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 <label className="text-sm font-medium" htmlFor="new-subtask-assignee">
                   Assignee
                 </label>

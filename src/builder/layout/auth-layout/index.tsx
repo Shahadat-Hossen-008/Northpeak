@@ -20,7 +20,7 @@ export function AuthLayout({
       <HomeNav />
       <div className="grid min-h-[calc(100vh-4.5rem)] lg:grid-cols-2">
         <main className="flex items-center justify-center px-4 py-10 sm:px-6 sm:py-14">
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-md lg:max-w-lg">
             <div className="lg:hidden">
               <Brand />
             </div>
