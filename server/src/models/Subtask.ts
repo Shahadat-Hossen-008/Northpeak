@@ -13,7 +13,7 @@ export interface ISubtask extends Document {
 
 const subtaskSchema = new Schema<ISubtask>(
   {
-    task: { type: Schema.Types.ObjectId, ref: "Task", required: true, index: true },
+    task: { type: Schema.Types.ObjectId, ref: "Task", required: true },
     assignedDeveloper: { type: Schema.Types.ObjectId, ref: "User", default: null },
     title: { type: String, required: true, trim: true },
     description: { type: String, default: "", trim: true },
@@ -24,5 +24,7 @@ const subtaskSchema = new Schema<ISubtask>(
     timestamps: true,
   },
 );
+
+subtaskSchema.index({ task: 1, createdAt: 1 });
 
 export const Subtask = mongoose.model<ISubtask>("Subtask", subtaskSchema);
