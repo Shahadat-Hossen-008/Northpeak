@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate, type AuthRequest } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/error.js";
-import { notificationService } from "../services/notification.service.js";
+import * as notificationService from "../services/notification.service.js";
 
 export const notificationsRouter = Router();
 
