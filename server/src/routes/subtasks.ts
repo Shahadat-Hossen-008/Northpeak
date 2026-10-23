@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate, type AuthRequest } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/error.js";
-import { subtaskService } from "../services/subtask.service.js";
+import * as subtaskService from "../services/subtask/subtask.service.js";
 
 export const subtasksRouter = Router();
 
