@@ -65,7 +65,14 @@ function ManagerTasks() {
     (subtasks.isLoading && !subtasks.data) ||
     (members.isLoading && !members.data) ||
     (commentCounts.isLoading && !commentCounts.data);
-  const loading = useMinimumLoading(isLoading);
+  // Cached task-board inputs can render while stale data refreshes in the background.
+  const loading = useMinimumLoading(isLoading, "manager-tasks", [
+    ["tasks"],
+    ["projects"],
+    ["subtasks", "all"],
+    ["members"],
+    ["comment-counts"],
+  ]);
   const developers = (members.data ?? []).filter((m) => m.role === "developer");
   const filters = useMemo(() => taskFiltersFromSearch(search, true), [search]);
   const managerProjects = getTaskFilterProjects(

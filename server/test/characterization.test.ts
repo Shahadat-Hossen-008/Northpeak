@@ -7,6 +7,8 @@ import mongoose from "mongoose";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import app from "../src/index.ts";
 import { User } from "../src/models/User.ts";
+import { PendingRegistration } from "../src/models/PendingRegistration.ts";
+import { hashVerificationCode } from "../src/services/auth/auth.utils.ts";
 import { Project } from "../src/models/Project.ts";
 import { Task } from "../src/models/Task.ts";
 import { Subtask } from "../src/models/Subtask.ts";
@@ -155,15 +157,26 @@ test("CHAR-AUTH: POST /api/auth/register success, validation errors, and activit
   assert.equal(res.status, 201);
   assert.equal(res.body.requiresEmailVerification, true);
   assert.equal(res.body.email, "new@test.dev");
+  assert.equal(await User.countDocuments({ email: "new@test.dev" }), 0);
+  assert.equal(await Activity.countDocuments({ message: /^joined Northpeak/ }), 0);
+
+  await PendingRegistration.updateOne(
+    { email: "new@test.dev" },
+    { $set: { codeHash: hashVerificationCode("new@test.dev", "123456") } },
+  );
+  const planted = await request(app)
+    .post("/api/auth/verify-email")
+    .send({ email: "new@test.dev", code: "123456" });
+  assert.equal(planted.status, 200);
   const registeredUser = await User.findOne({ email: "new@test.dev" });
-  assert.equal(registeredUser?.emailVerified, false);
+  assert.equal(registeredUser?.emailVerified, true);
 
   // Verify Activity side effect
-  const joinActivity = await Activity.findOne({
+  const joinActivities = await Activity.find({
     actor: registeredUser!._id,
     message: "joined Northpeak as developer",
   });
-  assert.ok(joinActivity, "Registration must record a joined Northpeak activity");
+  assert.equal(joinActivities.length, 1, "Verification must record exactly one joined Northpeak activity");
 
   // Validation: missing fields
   const missing = await request(app).post("/api/auth/register").send({});

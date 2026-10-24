@@ -40,7 +40,14 @@ export function ManagerDashboardPage(_props: ManagerDashboardPageProps) {
     (members.isLoading && !members.data) ||
     (subtasks.isLoading && !subtasks.data) ||
     (activity.isLoading && !activity.data);
-  const loading = useMinimumLoading(isLoading);
+  // Cached dashboard inputs can render while stale data refreshes in the background.
+  const loading = useMinimumLoading(isLoading, "manager-dashboard", [
+    ["projects"],
+    ["tasks"],
+    ["members"],
+    ["subtasks", "all"],
+    ["activity", null, null, 8],
+  ]);
   const failed = (!projects.data && projects.isError) || (!tasks.data && tasks.isError);
   const errorMessage = ((projects.error || tasks.error) as Error)?.message;
 

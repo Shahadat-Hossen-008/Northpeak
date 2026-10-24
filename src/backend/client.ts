@@ -122,6 +122,34 @@ export function getAuthToken(): string | null {
 
 let authTokenRevision = 0;
 let lastAuthToken: string | null | undefined;
+let authFailureHandler: (() => void) | null = null;
+let tokenStoredHandler: (() => void) | null = null;
+// Gate concurrent 401 responses so they share one logout and navigation.
+let handlingAuthFailure = false;
+
+export function registerAuthHandlers(handlers: {
+  onUnauthorized: () => void;
+  onTokenStored: () => void;
+}): () => void {
+  authFailureHandler = handlers.onUnauthorized;
+  tokenStoredHandler = handlers.onTokenStored;
+  return () => {
+    authFailureHandler = null;
+    tokenStoredHandler = null;
+  };
+}
+
+function isAuthEndpoint(endpoint: string): boolean {
+  // Credential and verification failures do not mean an existing session expired.
+  const path = endpoint.split(/[?#]/, 1)[0]?.replace(/^\/api(?=\/)/, "") ?? endpoint;
+  return [
+    "/auth/login",
+    "/auth/register",
+    "/auth/verify-email",
+    "/auth/resend-verification",
+    "/auth/google",
+  ].includes(path);
+}
 
 export function getAuthTokenRevision(): number {
   const token = getAuthToken();
@@ -143,6 +171,10 @@ export function setAuthToken(token: string | null): void {
   }
   if (token) {
     localStorage.setItem("northpeak_token", token);
+    if (currentToken !== token) {
+      handlingAuthFailure = false;
+      tokenStoredHandler?.();
+    }
   } else {
     localStorage.removeItem("northpeak_token");
   }
@@ -166,6 +198,11 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
   });
 
   if (!response.ok) {
+    // A tokened API 401 means the server no longer accepts this session.
+    if (response.status === 401 && token && !isAuthEndpoint(endpoint) && !handlingAuthFailure) {
+      handlingAuthFailure = true;
+      authFailureHandler?.();
+    }
     let errorMsg = `Request failed: ${response.statusText}`;
     try {
       const errorData = await response.json();

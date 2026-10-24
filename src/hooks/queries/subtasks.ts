@@ -3,10 +3,13 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { Subtask } from "@/types";
 import { useInvalidate } from "./utils";
+import { STALE } from "./stale-times";
 
 export function useSubtasks(taskId: string) {
   return useQuery({
     queryKey: ["subtasks", taskId],
+    // Subtasks change through edits and completions, so reuse them for one minute.
+    staleTime: STALE.normal,
     queryFn: async (): Promise<Subtask[]> => {
       if (!taskId) return [];
       const data = await api.getSubtasks(taskId);
@@ -19,6 +22,8 @@ export function useSubtasks(taskId: string) {
 export function useAllSubtasks() {
   return useQuery({
     queryKey: ["subtasks", "all"],
+    // The aggregate follows subtask edits but does not need a live feed interval.
+    staleTime: STALE.normal,
     queryFn: async (): Promise<Subtask[]> => {
       const data = await api.getAllSubtasks();
       return (data ?? []) as Subtask[];
@@ -34,7 +39,8 @@ export function useSubtaskMutations(taskId: string, _actorId?: string | null, _p
       return api.createSubtask(taskId, input);
     },
     onSuccess: () => {
-      invalidate(["subtasks", "activity"]);
+      // Refresh subtask views, activity, and workload because workload shows subtask counts.
+      invalidate(["subtasks", "activity", "member-workload"]);
       toast.success("Subtask added");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -45,7 +51,8 @@ export function useSubtaskMutations(taskId: string, _actorId?: string | null, _p
       const completed = !subtask.is_completed;
       return api.updateSubtask(subtask.id, { is_completed: completed });
     },
-    onSuccess: () => invalidate(["subtasks", "notifications"]),
+    // Completion changes subtask views, notifications, and workload completion counts.
+    onSuccess: () => invalidate(["subtasks", "notifications", "member-workload"]),
     onError: (error: Error) => toast.error(error.message),
   });
 
@@ -67,7 +74,8 @@ export function useSubtaskMutations(taskId: string, _actorId?: string | null, _p
         ...(assigned_developer_id !== undefined ? { assigned_developer_id } : {}),
       });
     },
-    onSuccess: () => invalidate(["subtasks"]),
+    // Refresh subtask text and workload because reassignment can change its task entries.
+    onSuccess: () => invalidate(["subtasks", "member-workload"]),
     onError: (error: Error) => toast.error(error.message),
   });
 
@@ -76,7 +84,8 @@ export function useSubtaskMutations(taskId: string, _actorId?: string | null, _p
       return api.deleteSubtask(id);
     },
     onSuccess: () => {
-      invalidate(["subtasks"]);
+      // Remove the deleted subtask from lists and workload counts.
+      invalidate(["subtasks", "member-workload"]);
       toast.success("Subtask deleted");
     },
     onError: (error: Error) => toast.error(error.message),

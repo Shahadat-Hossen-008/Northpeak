@@ -56,7 +56,13 @@ function DeveloperTasks() {
     (projects.isLoading && !projects.data) ||
     (subtasks.isLoading && !subtasks.data) ||
     (commentCounts.isLoading && !commentCounts.data);
-  const loading = useMinimumLoading(isLoading);
+  // Cached task-board inputs can render while stale data refreshes in the background.
+  const loading = useMinimumLoading(isLoading, "developer-tasks", [
+    ["tasks"],
+    ["projects"],
+    ["subtasks", "all"],
+    ["comment-counts"],
+  ]);
   const mine = (tasks.data ?? []).filter((t) => t.assigned_developer_id === profile?.id);
   const eligibleProjects = getTaskFilterProjects(
     projects.data ?? [],

@@ -3,10 +3,13 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { Priority, Project } from "@/types";
 import { useInvalidate } from "./utils";
+import { STALE } from "./stale-times";
 
 export function useProjects() {
   return useQuery({
     queryKey: ["projects"],
+    // Project edits affect shared lists, so reuse them briefly between visits.
+    staleTime: STALE.normal,
     queryFn: async (): Promise<Project[]> => {
       const data = await api.getProjects();
       return (data ?? []) as Project[];
@@ -28,6 +31,7 @@ export function useCreateProject(_actorId?: string | null) {
       return api.createProject(input);
     },
     onSuccess: () => {
+      // Refresh project, member, activity, and notification views changed by creation.
       invalidate(["projects", "members", "activity", "notifications"]);
       toast.success("Project created");
     },
@@ -42,7 +46,8 @@ export function useUpdateProject(_actorId?: string | null) {
       return api.updateProject(id, patch);
     },
     onSuccess: () => {
-      invalidate(["projects", "members", "tasks", "activity"]);
+      // Refresh project details and related task, member, activity, and workload views.
+      invalidate(["projects", "members", "tasks", "activity", "member-workload"]);
       toast.success("Project updated");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -56,7 +61,17 @@ export function useDeleteProject() {
       return api.deleteProject(id);
     },
     onSuccess: () => {
-      invalidate(["projects", "tasks", "activity", "members"]);
+      // A removed project also removes its tasks, subtasks, comments, and workload entries.
+      invalidate([
+        "projects",
+        "tasks",
+        "activity",
+        "members",
+        "member-workload",
+        "subtasks",
+        "comments",
+        "comment-counts",
+      ]);
       toast.success("Project deleted");
     },
     onError: (error: Error) => toast.error(error.message),

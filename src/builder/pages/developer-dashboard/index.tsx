@@ -34,7 +34,8 @@ export function DeveloperDashboardPage(_props: DeveloperDashboardPageProps) {
   });
 
   const isLoading = (tasks.isLoading && !tasks.data) || (projects.isLoading && !projects.data);
-  const loading = useMinimumLoading(isLoading);
+  // Cached dashboard inputs can render while stale data refreshes in the background.
+  const loading = useMinimumLoading(isLoading, "developer-dashboard", [["tasks"], ["projects"]]);
   const isError = (!tasks.data && tasks.isError) || (!projects.data && projects.isError);
   const errorMessage = ((tasks.error || projects.error) as Error)?.message;
 
