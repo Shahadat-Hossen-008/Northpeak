@@ -301,6 +301,59 @@ test("CHAR-MEMBERS: GET /api/members, /:id, /:id/workload success, 401, 400", as
   assert.equal(badId.status, 400);
 });
 
+test("MEMBER-SCOPE: project filters and missing member responses", async () => {
+  const { manager, dev, otherDev, devToken, project } = await createFixtures();
+  const otherProject = await Project.create({
+    title: "Second Project",
+    manager: manager._id,
+    team: [otherDev._id],
+    priority: "medium",
+  });
+  await Task.create({
+    project: otherProject._id,
+    title: "Second Assigned Task",
+    assignedDeveloper: dev._id,
+    priority: "low",
+    status: "todo",
+    isCompleted: false,
+  });
+
+  const eligible = await request(app)
+    .get(`/api/members?projectId=${project._id}`)
+    .set("Authorization", `Bearer ${devToken}`);
+  assert.equal(eligible.status, 200);
+  assert.deepEqual(eligible.body.map((member: { id: string }) => member.id), [dev._id.toString()]);
+
+  const otherEligible = await request(app)
+    .get(`/api/members?projectId=${otherProject._id}`)
+    .set("Authorization", `Bearer ${devToken}`);
+  assert.equal(otherEligible.status, 200);
+  assert.deepEqual(
+    otherEligible.body.map((member: { id: string }) => member.id),
+    [otherDev._id.toString()],
+  );
+
+  const workload = await request(app)
+    .get(`/api/members/${dev._id}/workload?projectId=${project._id}`)
+    .set("Authorization", `Bearer ${devToken}`);
+  assert.equal(workload.status, 200);
+  assert.equal(workload.body.stats.total, 1);
+  assert.equal(workload.body.tasks[0].project_id, project._id.toString());
+
+  const missingId = new mongoose.Types.ObjectId().toString();
+  const missingProfile = await request(app)
+    .get(`/api/members/${missingId}`)
+    .set("Authorization", `Bearer ${devToken}`);
+  assert.equal(missingProfile.status, 404);
+  assert.equal(missingProfile.body.message, "Member not found");
+
+  const missingWorkload = await request(app)
+    .get(`/api/members/${missingId}/workload`)
+    .set("Authorization", `Bearer ${devToken}`);
+  assert.equal(missingWorkload.status, 404);
+  assert.equal(missingWorkload.body.message, "Member not found");
+});
+
 // ---------------------------------------------------------------------------
 // 8-13: Projects Endpoints
 // ---------------------------------------------------------------------------
@@ -407,6 +460,132 @@ test("CHAR-PROJECTS: GET, POST, PATCH, DELETE /api/projects success, 401, 403, 4
   assert.equal(del.status, 200);
   const remainingProjectActs = await Activity.find({ project: create.body.id });
   assert.equal(remainingProjectActs.length, 0, "Project deletion must cascade delete activities");
+});
+
+test("PROJECT-DELETE-CASCADE: deleting a project removes dependent records and keeps unrelated records", async () => {
+  const { managerToken, dev, project, task, subtask, comment, activity, notification } =
+    await createFixtures();
+  const projectNotification = await Notification.create({
+    audience: "manager",
+    kind: "project_created",
+    title: "Project created",
+    body: project.title,
+    project: project._id,
+  });
+  const otherProject = await Project.create({
+    title: "Unrelated Project",
+    manager: project.manager,
+    team: [],
+    priority: "low",
+  });
+  const otherTask = await Task.create({ project: otherProject._id, title: "Unrelated task" });
+  const otherSubtask = await Subtask.create({ task: otherTask._id, title: "Unrelated subtask" });
+  const otherComment = await Comment.create({ task: otherTask._id, author: dev._id, body: "Keep me" });
+  const otherActivity = await Activity.create({
+    project: otherProject._id,
+    actor: dev._id,
+    message: "Unrelated activity",
+  });
+  const otherNotification = await Notification.create({
+    audience: "manager",
+    kind: "project_created",
+    title: "Unrelated notification",
+    body: "Keep me",
+    project: otherProject._id,
+  });
+
+  const deleted = await request(app)
+    .delete(`/api/projects/${project._id}`)
+    .set("Authorization", `Bearer ${managerToken}`);
+  assert.equal(deleted.status, 200);
+
+  assert.equal(await Project.exists({ _id: project._id }), null);
+  assert.equal(await Task.exists({ _id: task._id }), null);
+  assert.equal(await Subtask.exists({ _id: subtask._id }), null);
+  assert.equal(await Comment.exists({ _id: comment._id }), null);
+  assert.equal(await Activity.exists({ _id: activity._id }), null);
+  assert.equal(await Notification.exists({ _id: projectNotification._id }), null);
+  assert.ok(await Notification.exists({ _id: notification._id }));
+
+  assert.ok(await Project.exists({ _id: otherProject._id }));
+  assert.ok(await Task.exists({ _id: otherTask._id }));
+  assert.ok(await Subtask.exists({ _id: otherSubtask._id }));
+  assert.ok(await Comment.exists({ _id: otherComment._id }));
+  assert.ok(await Activity.exists({ _id: otherActivity._id }));
+  assert.ok(await Notification.exists({ _id: otherNotification._id }));
+});
+
+test("PROJECT-TEAM-VALIDATION: create and update preserve team input errors", async () => {
+  const { managerToken, project } = await createFixtures();
+  const createNonArray = await request(app)
+    .post("/api/projects")
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({ title: "Valid title", team: "not-an-array" });
+  assert.equal(createNonArray.status, 400);
+  assert.equal(createNonArray.body.message, "Team must be an array of developer IDs");
+
+  const updateNonArray = await request(app)
+    .patch(`/api/projects/${project._id}`)
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({ team: "not-an-array" });
+  assert.equal(updateNonArray.status, 400);
+  assert.equal(updateNonArray.body.message, "Team must be an array of developer IDs");
+
+  const invalidId = "not-a-valid-id";
+  const createInvalidId = await request(app)
+    .post("/api/projects")
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({ title: "Valid title", team: [invalidId] });
+  assert.equal(createInvalidId.status, 400);
+  assert.equal(createInvalidId.body.message, `Invalid developer ID: ${invalidId}`);
+
+  const updateInvalidId = await request(app)
+    .patch(`/api/projects/${project._id}`)
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({ team: ["not-a-valid-id"] });
+  assert.equal(updateInvalidId.status, 400);
+  assert.equal(updateInvalidId.body.message, "Invalid developer ID: not-a-valid-id");
+
+  const unregisteredId = new mongoose.Types.ObjectId().toString();
+  const createUnregisteredDeveloper = await request(app)
+    .post("/api/projects")
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({ title: "Valid title", team: [unregisteredId] });
+  assert.equal(createUnregisteredDeveloper.status, 400);
+  assert.equal(createUnregisteredDeveloper.body.message, "All team members must be registered developers");
+
+  const updateUnregisteredDeveloper = await request(app)
+    .patch(`/api/projects/${project._id}`)
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({ team: [unregisteredId] });
+  assert.equal(updateUnregisteredDeveloper.status, 400);
+  assert.equal(updateUnregisteredDeveloper.body.message, "All team members must be registered developers");
+});
+
+test("PROJECT-CREATE-NOTIFICATION: project creation records activity and manager notification", async () => {
+  const { manager, managerToken } = await createFixtures();
+  const created = await request(app)
+    .post("/api/projects")
+    .set("Authorization", `Bearer ${managerToken}`)
+    .send({ title: "Notification Project" });
+  assert.equal(created.status, 201);
+
+  const projectId = created.body.id;
+  const activity = await Activity.findOne({ project: projectId, actor: manager._id });
+  assert.ok(activity);
+  assert.equal(activity.message, "created project Notification Project");
+
+  const notification = await Notification.findOne({ project: projectId, audience: "manager" });
+  assert.ok(notification);
+  assert.equal(notification.kind, "project_created");
+  assert.equal(notification.title, "Project created");
+  assert.equal(notification.body, "Notification Project was created.");
+  assert.equal(notification.audience, "manager");
+  assert.equal(notification.recipient, null);
+  assert.equal(notification.project?.toString(), projectId);
+  assert.equal(notification.task, null);
+  assert.equal(notification.isRead, false);
+  assert.ok(activity.createdAt <= notification.createdAt);
 });
 
 // ---------------------------------------------------------------------------
@@ -740,6 +919,30 @@ test("CHAR-TASKS: GET, POST, PATCH, PATCH /complete, DELETE /api/tasks", async (
   assert.equal(del.status, 200);
   const deletedTaskActs = await Activity.find({ task: create.body.id });
   assert.equal(deletedTaskActs.length, 0, "Task deletion must cascade delete activities");
+});
+
+test("TASK-DELETE-CASCADE: deleting a task removes subtasks, comments, activity, and notifications", async () => {
+  const { managerToken, dev, project, task, subtask, comment, activity, notification } =
+    await createFixtures();
+  const taskNotification = await Notification.create({
+    recipient: dev._id,
+    kind: "task_assigned",
+    title: "Assigned task",
+    body: task.title,
+    task: task._id,
+    project: project._id,
+  });
+
+  const deleted = await request(app)
+    .delete(`/api/tasks/${task._id}`)
+    .set("Authorization", `Bearer ${managerToken}`);
+  assert.equal(deleted.status, 200);
+
+  assert.equal(await Subtask.exists({ _id: subtask._id }), null);
+  assert.equal(await Comment.exists({ _id: comment._id }), null);
+  assert.equal(await Activity.exists({ _id: activity._id }), null);
+  assert.equal(await Notification.exists({ _id: taskNotification._id }), null);
+  assert.ok(await Notification.exists({ _id: notification._id }));
 });
 
 // ---------------------------------------------------------------------------

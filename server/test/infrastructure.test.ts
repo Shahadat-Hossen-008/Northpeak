@@ -54,7 +54,7 @@ test("INFRA-01: Validated config fails fast when NODE_ENV or secrets are invalid
   const origEnv = { ...process.env };
   try {
     // 1. Invalid NODE_ENV
-    (process.env as any).NODE_ENV = "invalid_environment";
+    process.env.NODE_ENV = "invalid_environment";
     assert.throws(() => loadAndValidateConfig(), /NODE_ENV must be defined and set to one of/);
 
     // 2. Production missing JWT_SECRET

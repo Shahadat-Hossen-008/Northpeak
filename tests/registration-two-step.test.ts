@@ -133,7 +133,7 @@ test("REG-04: /verify-email compatibility route redirects to /register preservin
   assert.equal(options.replace, true);
 });
 
-test("REG-05: OTP verification component enforces six-digit code validation and timer cooldown", () => {
+test("REG-05: OTP verification component enforces six-digit code validation and 30s UI resend cooldown", () => {
   const otpSrc = readFileSync(
     join(rootDir, "src/components/auth/email-verification-form/index.tsx"),
     "utf8",
@@ -143,9 +143,20 @@ test("REG-05: OTP verification component enforces six-digit code validation and 
   assert.ok(otpSrc.includes("code.length !== 6"), "must disable or reject code lengths !== 6");
   assert.ok(otpSrc.includes("maxLength={6}"), "InputOTP maxLength must be 6");
 
-  // Cooldown timer of 60 seconds
-  assert.ok(otpSrc.includes("secondsLeft"), "must track resend cooldown timer");
-  assert.ok(otpSrc.includes("setSecondsLeft(60)"), "must reset cooldown to 60s");
+  // UI resend cooldown of 30 seconds
+  assert.ok(
+    otpSrc.includes("RESEND_COOLDOWN_SECONDS = 30"),
+    "must define named RESEND_COOLDOWN_SECONDS constant set to 30",
+  );
+  assert.ok(
+    otpSrc.includes("setResendSecondsLeft(RESEND_COOLDOWN_SECONDS)"),
+    "must reset resend cooldown to 30s on resend",
+  );
+  assert.equal(
+    otpSrc.includes("setSecondsLeft(60)"),
+    false,
+    "must remove obsolete 60-second server cooldown assumption",
+  );
 
   // Back action without false claims of deletion
   assert.ok(
@@ -153,4 +164,104 @@ test("REG-05: OTP verification component enforces six-digit code validation and 
     "must provide honest back action label",
   );
   assert.equal(otpSrc.includes("cancelled"), false, "must not claim registration was cancelled");
+});
+
+test("REG-06: code lifetime countdown mirrors server 120s and disables verify on expiry", () => {
+  const otpSrc = readFileSync(
+    join(rootDir, "src/components/auth/email-verification-form/index.tsx"),
+    "utf8",
+  );
+
+  // Named constant with mirroring comment
+  assert.match(
+    otpSrc,
+    /\/\/[^\n]*mirrors server[^\n]*\nexport const CODE_LIFETIME_SECONDS = 120/i,
+    "must export CODE_LIFETIME_SECONDS = 120 with comment mentioning it mirrors the server",
+  );
+
+  // Expiry message and disabled state
+  assert.ok(
+    otpSrc.includes("This code has expired. Send a new code."),
+    "must display exact expiration message when countdown reaches zero",
+  );
+  assert.ok(
+    otpSrc.includes("codeSecondsLeft <= 0"),
+    "must disable verify button when code countdown reaches zero",
+  );
+});
+
+test("REG-07: going Back and re-submitting passes new countdown and displays replacement notice", () => {
+  const regSrc = readFileSync(join(rootDir, "src/routes/register.tsx"), "utf8");
+
+  assert.ok(
+    regSrc.includes("A new code was sent. Earlier codes no longer work."),
+    "must provide replacement notice when user re-submits after going Back",
+  );
+  assert.ok(
+    regSrc.includes("codeExpiresInSeconds"),
+    "register.tsx must pass codeExpiresInSeconds to verification form",
+  );
+  assert.ok(
+    regSrc.includes("resubmitNotice"),
+    "register.tsx must pass resubmitNotice to verification form",
+  );
+});
+
+test("REG-08: server 429 message is displayed inline and in a toast", () => {
+  const regSrc = readFileSync(join(rootDir, "src/routes/register.tsx"), "utf8");
+  const otpSrc = readFileSync(
+    join(rootDir, "src/components/auth/email-verification-form/index.tsx"),
+    "utf8",
+  );
+
+  // Register page inline error & toast
+  assert.ok(
+    regSrc.includes("setServerError(message)"),
+    "register.tsx must set inline server error",
+  );
+  assert.ok(regSrc.includes("toast.error(message)"), "register.tsx must toast error message");
+  assert.ok(
+    regSrc.includes("{serverError ? (") && regSrc.includes('role="alert"'),
+    "register.tsx must render inline server error in role='alert'",
+  );
+
+  // Verification component inline error & toast
+  assert.ok(
+    otpSrc.includes("setErrorMessage(msg)"),
+    "verification form must set inline error message",
+  );
+  assert.ok(otpSrc.includes("toast.error(msg)"), "verification form must toast error message");
+  assert.ok(
+    otpSrc.includes("{errorMessage ? (") && otpSrc.includes('role="alert"'),
+    "verification form must render inline error in role='alert'",
+  );
+});
+
+test("REG-09: registration inputs clear only their existing field error when edited", () => {
+  const regSrc = readFileSync(join(rootDir, "src/routes/register.tsx"), "utf8");
+
+  assert.ok(regSrc.includes("if (errors.name)") && regSrc.includes("name: undefined"));
+  assert.ok(regSrc.includes("if (errors.email)") && regSrc.includes("email: undefined"));
+  assert.ok(regSrc.includes("if (errors.password)") && regSrc.includes("password: undefined"));
+  assert.ok(regSrc.includes("if (errors.confirm)") && regSrc.includes("confirm: undefined"));
+  assert.ok(regSrc.includes("next.name = nameErr"));
+  assert.ok(regSrc.includes("next.email = emailErr"));
+  assert.ok(regSrc.includes("next.password = passwordErr"));
+  assert.ok(regSrc.includes("next.confirm = confirmErr"));
+  assert.ok(regSrc.includes("if (!validate()) return"));
+  assert.equal(regSrc.includes("validateName(nextName)"), false);
+  assert.equal(regSrc.includes("validateEmail(nextEmail)"), false);
+  assert.equal(regSrc.includes("validatePassword(nextPassword)"), false);
+  assert.equal(regSrc.includes("validateConfirm(nextPassword"), false);
+  assert.equal(regSrc.includes("validateConfirm(form.password, nextConfirm)"), false);
+});
+
+test("REG-10: login inputs clear only their existing field error when edited", () => {
+  const loginSrc = readFileSync(join(rootDir, "src/routes/login.tsx"), "utf8");
+
+  assert.ok(loginSrc.includes("if (errors.email)") && loginSrc.includes("email: undefined"));
+  assert.ok(loginSrc.includes("if (errors.password)") && loginSrc.includes("password: undefined"));
+  assert.ok(loginSrc.includes("if (!validate()) return"));
+  assert.equal(loginSrc.includes("validateEmail(val)"), false);
+  assert.equal(loginSrc.includes("validatePassword(val)"), false);
 });
