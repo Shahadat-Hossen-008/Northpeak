@@ -120,7 +120,10 @@ export function EditTaskDialog({
             <Input
               id="edit-task-title"
               value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              onChange={(e) => {
+                setForm({ ...form, title: e.target.value });
+                setError(null);
+              }}
             />
           </div>
           <div className="space-y-3">

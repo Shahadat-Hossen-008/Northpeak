@@ -48,8 +48,7 @@ const taskSchema = new Schema<ITask>(
   },
 );
 
-taskSchema.index({ project: 1, status: 1 });
-taskSchema.index({ assignedDeveloper: 1, status: 1 });
-taskSchema.index({ deadline: 1 });
+taskSchema.index({ project: 1, deadline: 1 });
+taskSchema.index({ assignedDeveloper: 1, deadline: 1, createdAt: -1 });
 
 export const Task = mongoose.model<ITask>("Task", taskSchema);

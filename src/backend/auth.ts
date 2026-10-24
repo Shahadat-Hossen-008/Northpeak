@@ -12,7 +12,11 @@ export const authApi = {
   },
 
   async register(payload: { name: string; email: string; password: string; role: string }) {
-    return request<{ requiresEmailVerification: true; email: string }>("/auth/register", {
+    return request<{
+      requiresEmailVerification: true;
+      email: string;
+      codeExpiresInSeconds: number;
+    }>("/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
     });

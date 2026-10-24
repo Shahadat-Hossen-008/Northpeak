@@ -5,16 +5,18 @@ import assert from "node:assert/strict";
 import request from "supertest";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 import { app } from "../src/app.ts";
 import { config } from "../src/config/env.ts";
 import { User } from "../src/models/User.ts";
+import { PendingRegistration } from "../src/models/PendingRegistration.ts";
+import { hashVerificationCode } from "../src/services/auth/auth.utils.ts";
 import { generateToken } from "../src/middleware/auth.ts";
 
-let mongod: MongoMemoryServer;
+let mongod: MongoMemoryReplSet;
 
 before(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await MongoMemoryReplSet.create({ replSet: { count: 1, storageEngine: "wiredTiger" } });
   await mongoose.connect(mongod.getUri());
 });
 after(async () => {
@@ -55,7 +57,7 @@ test("AUTH-02: malformed, tampered, wrong-secret and expired tokens are rejected
     name: "Auth User",
     email: "auth@x.invalid",
     passwordHash: "h",
-    role: "developer",
+    role: "developer" as const,
   });
   const payload = {
     id: user._id.toString(),
@@ -64,7 +66,7 @@ test("AUTH-02: malformed, tampered, wrong-secret and expired tokens are rejected
     name: user.name,
   };
 
-  const valid = generateToken(payload as any);
+  const valid = generateToken(payload);
   const ok = await request(app).get("/api/auth/me").set("Authorization", `Bearer ${valid}`);
   assert.equal(ok.status, 200);
 
@@ -72,12 +74,14 @@ test("AUTH-02: malformed, tampered, wrong-secret and expired tokens are rejected
   const wrongSecret = jwt.sign(payload, "a-completely-different-secret-value-0000");
   const tampered = valid.slice(0, -4) + (valid.endsWith("AAAA") ? "BBBB" : "AAAA");
   const noneAlg = `${Buffer.from('{"alg":"none","typ":"JWT"}').toString("base64url")}.${Buffer.from(JSON.stringify(payload)).toString("base64url")}.`;
+  const missingUserId = jwt.sign({ email: payload.email }, config.JWT_SECRET);
 
   for (const [label, token] of Object.entries({
     expired,
     wrongSecret,
     tampered,
     noneAlg,
+    missingUserId,
     garbage: "not.a.jwt",
   })) {
     const res = await request(app).get("/api/auth/me").set("Authorization", `Bearer ${token}`);
@@ -139,16 +143,23 @@ test("AUTH-05: register -> login -> me -> change password -> old password reject
     false,
     "hash must never be serialized",
   );
-  const pendingUser = await User.findOne({ email: "new@x.invalid" });
-  assert.equal(pendingUser?.emailVerified, false);
+  assert.equal(await User.countDocuments({ email: "new@x.invalid" }), 0);
+
+  await PendingRegistration.updateOne(
+    { email: "new@x.invalid" },
+    { $set: { codeHash: hashVerificationCode("new@x.invalid", "123456") } },
+  );
+  const planted = await request(app)
+    .post("/api/auth/verify-email")
+    .send({ email: "new@x.invalid", code: "123456" });
+  assert.equal(planted.status, 200);
+  const verifiedUser = await User.findOne({ email: "new@x.invalid" });
+  assert.equal(verifiedUser?.emailVerified, true);
 
   const dup = await request(app)
     .post("/api/auth/register")
     .send({ name: "New Person", email: "new@x.invalid", password: "first-pass-1" });
   assert.ok([400, 409].includes(dup.status));
-
-  pendingUser!.emailVerified = true;
-  await pendingUser!.save();
 
   const bad = await request(app)
     .post("/api/auth/login")

@@ -168,3 +168,20 @@ All seed accounts use the password: `password123`
 - Deleting a **Project** automatically removes all associated **Tasks**, **Subtasks**, **Comments**, and **Activity** records.
 - Deleting a **Task** automatically removes all associated **Subtasks** and **Comments**.
 - Unassigning a developer sets `assigned_developer_id` to `null` while preserving the task.
+
+## Production Index Migration Runbook
+
+Before release, confirm the `PendingRegistration` indexes exist: unique on `email` and TTL on `expiresAt` (`expireAfterSeconds: 0`).
+
+Removing an index from a Mongoose schema does not drop it from an existing MongoDB deployment (and `syncIndexes()` must not be used in production). Follow these steps when rolling out index updates:
+
+1. **Deploy the application**: Deploy the updated backend so Mongoose builds the new compound indexes (`tasks`: `project_1_deadline_1`, `assignedDeveloper_1_deadline_1_createdAt_-1`; `projects`: `manager_1_createdAt_-1`, `team_1_createdAt_-1`; `subtasks`/`comments`: `task_1_createdAt_1`; `notifications`: `recipient_1_audience_1_createdAt_-1`).
+2. **Verify query plans (`explain`)**: Run `explain("executionStats")` against representative queries (`getTasks`, `getMemberWorkload`, `getUserNotifications`, `getActivities`) to confirm the query planner selects the new indexes with no blocking in-memory `SORT` stage.
+3. **Dry-run redundant index removal**: Preview which allowlisted redundant/legacy indexes will be dropped (verifies replacement indexes exist before allowing any drop):
+   ```bash
+   npx tsx scripts/drop-redundant-indexes.ts
+   ```
+4. **Drop old indexes by name**: Once verified, execute the allowlisted drop script with `--apply` (and `--allow-production` when `NODE_ENV=production`):
+   ```bash
+   npx tsx scripts/drop-redundant-indexes.ts --apply --allow-production
+   ```

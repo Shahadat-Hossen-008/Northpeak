@@ -41,14 +41,12 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
   });
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<ProjectFieldErrors>({});
-  const [hasSubmitted, setHasSubmitted] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
   const deadlineRef = useRef<HTMLInputElement>(null);
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
     if (create.isPending) return;
-    setHasSubmitted(true);
     const nextErrors: ProjectFieldErrors = {};
     if (!form.title.trim()) nextErrors.title = "Enter a name for this project.";
     else if (form.title.trim().length < 3) {
@@ -78,7 +76,6 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
       {
         onSuccess: () => {
           setOpen(false);
-          setHasSubmitted(false);
           setFieldErrors({});
           setForm({
             title: "",
@@ -104,7 +101,6 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
         if (nextOpen) {
           setFieldErrors({});
           setError(null);
-          setHasSubmitted(false);
         }
       }}
     >
@@ -137,14 +133,12 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
               onChange={(e) => {
                 const title = e.target.value;
                 setForm((prev) => ({ ...prev, title }));
-                if (hasSubmitted) {
-                  const message = !title.trim()
-                    ? "Enter a name for this project."
-                    : title.trim().length < 3
-                      ? "Use at least 3 characters for the project name."
-                      : "";
-                  setFieldErrors((prev) => ({ ...prev, title: message }));
-                }
+                setFieldErrors((prev) => {
+                  if (!prev.title) return prev;
+                  const nextErrors = { ...prev };
+                  delete nextErrors.title;
+                  return nextErrors;
+                });
                 setError(null);
               }}
               placeholder="E-Commerce Platform"
@@ -181,16 +175,12 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
                 onChange={(e) => {
                   const start = e.target.value;
                   setForm((prev) => ({ ...prev, start }));
-                  if (hasSubmitted) {
-                    const deadlineIsBeforeStart =
-                      start && form.deadline && new Date(form.deadline) < new Date(start);
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      deadline: deadlineIsBeforeStart
-                        ? "Choose a deadline on or after the start date."
-                        : "",
-                    }));
-                  }
+                  setFieldErrors((prev) => {
+                    if (!prev.deadline) return prev;
+                    const nextErrors = { ...prev };
+                    delete nextErrors.deadline;
+                    return nextErrors;
+                  });
                 }}
               />
             </div>
@@ -206,16 +196,12 @@ export function CreateProjectDialog({ actorId }: CreateProjectDialogProps) {
                 onChange={(e) => {
                   const deadline = e.target.value;
                   setForm((prev) => ({ ...prev, deadline }));
-                  if (hasSubmitted) {
-                    const deadlineIsBeforeStart =
-                      form.start && deadline && new Date(deadline) < new Date(form.start);
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      deadline: deadlineIsBeforeStart
-                        ? "Choose a deadline on or after the start date."
-                        : "",
-                    }));
-                  }
+                  setFieldErrors((prev) => {
+                    if (!prev.deadline) return prev;
+                    const nextErrors = { ...prev };
+                    delete nextErrors.deadline;
+                    return nextErrors;
+                  });
                 }}
               />
               {fieldErrors.deadline ? (

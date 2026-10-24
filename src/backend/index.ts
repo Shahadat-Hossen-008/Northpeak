@@ -11,6 +11,7 @@ export {
   getAuthToken,
   getAuthTokenRevision,
   setAuthToken,
+  registerAuthHandlers,
   request,
   resolveApiBaseUrl,
   buildApiUrl,

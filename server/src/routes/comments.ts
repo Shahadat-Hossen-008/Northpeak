@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate, type AuthRequest } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/error.js";
-import { commentService } from "../services/comment.service.js";
+import * as commentService from "../services/comment/comment.service.js";
 
 export const commentsRouter = Router();
 

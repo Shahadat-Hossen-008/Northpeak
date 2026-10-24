@@ -27,7 +27,8 @@ function Page() {
   const { taskId } = Route.useParams();
   const { from } = Route.useSearch();
   const task = useTask(taskId);
-  const loading = useMinimumLoading(task.isLoading && !task.data, taskId);
+  // Cached task details can render while stale data refreshes in the background.
+  const loading = useMinimumLoading(task.isLoading && !task.data, taskId, [["task", taskId]]);
   return (
     <AppShell section="manager">
       <TaskDetail taskId={taskId} backHref={from || "/manager/tasks"} />

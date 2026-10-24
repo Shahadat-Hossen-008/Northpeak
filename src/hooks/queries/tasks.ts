@@ -3,10 +3,13 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { Priority, Task, TaskWorkflowStatus } from "@/types";
 import { useInvalidate } from "./utils";
+import { STALE } from "./stale-times";
 
 export function useTasks() {
   return useQuery({
     queryKey: ["tasks"],
+    // Task lists change through edits, so reuse them briefly between visits.
+    staleTime: STALE.normal,
     queryFn: async (): Promise<Task[]> => {
       const data = await api.getTasks();
       return (data ?? []) as Task[];
@@ -17,6 +20,8 @@ export function useTasks() {
 export function useTask(taskId: string) {
   return useQuery({
     queryKey: ["task", taskId],
+    // Task details share the same edit cadence as task lists.
+    staleTime: STALE.normal,
     queryFn: async (): Promise<Task | null> => {
       if (!taskId) return null;
       const data = await api.getTask(taskId);
@@ -43,11 +48,9 @@ export function useCreateTask(_actorId?: string | null) {
         description: input.description ?? "",
       });
     },
-    onSuccess: (task) => {
+    onSuccess: () => {
+      // Refresh task, project, member, activity, notification, and workload views affected by creation.
       invalidate(["tasks", "projects", "members", "activity", "notifications", "member-workload"]);
-      if (task?.project_id) {
-        invalidate([`project-${task.project_id}`]);
-      }
       toast.success("Task created");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -75,6 +78,7 @@ export function useUpdateTask(_actorId?: string | null) {
       return api.updateTask(id, patch);
     },
     onSuccess: () => {
+      // Refresh task details and every shared list or summary that displays edited task data.
       invalidate([
         "tasks",
         "task",
@@ -143,6 +147,7 @@ export function useUpdateTaskStatus() {
       toast.error("Failed to move task");
     },
     onSettled: () => {
+      // Reconcile optimistic task data with lists, activity, and workload summaries.
       invalidate(["tasks", "task", "activity", "member-workload"]);
     },
   });
@@ -158,6 +163,7 @@ export function useSetTaskCompletion(_actorId?: string | null) {
       return api.setTaskCompletion(input.task.id, input.completed);
     },
     onSuccess: (_data, variables) => {
+      // Completion changes task lists, activity, and workload totals.
       invalidate(["tasks", "task", "activity", "member-workload"]);
       toast.success(variables.completed ? "Task marked complete" : "Task reopened");
     },
@@ -173,6 +179,7 @@ export function useDeleteTask() {
       return api.deleteTask(id);
     },
     onSuccess: () => {
+      // Remove task-related rows and counts from every cached view that can display them.
       invalidate([
         "tasks",
         "task",
@@ -181,6 +188,7 @@ export function useDeleteTask() {
         "activity",
         "notifications",
         "comments",
+        "comment-counts",
         "subtasks",
         "member-workload",
       ]);

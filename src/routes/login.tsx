@@ -22,6 +22,22 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+function validateEmail(val: string): string | undefined {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+    return "Enter a valid email address.";
+  }
+  return undefined;
+}
+
+function validatePassword(val: string): string | undefined {
+  if (val.length < 6) {
+    return "Password must be at least 6 characters.";
+  }
+  return undefined;
+}
+
+type LoginErrors = { email?: string | undefined; password?: string | undefined };
+
 function LoginPage() {
   const navigate = useNavigate();
   const { user, role, loading, reload } = useAuth();
@@ -29,7 +45,8 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<LoginErrors>({});
+  const [serverError, setServerError] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading || !user) return;
@@ -38,14 +55,17 @@ function LoginPage() {
 
   function validate() {
     const next: { email?: string; password?: string } = {};
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = "Enter a valid email address.";
-    if (password.length < 6) next.password = "Password must be at least 6 characters.";
+    const emailErr = validateEmail(email);
+    const passwordErr = validatePassword(password);
+    if (emailErr) next.email = emailErr;
+    if (passwordErr) next.password = passwordErr;
     setErrors(next);
     return Object.keys(next).length === 0;
   }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    setServerError(null);
     if (!validate()) return;
     setSubmitting(true);
     try {
@@ -58,8 +78,9 @@ function LoginPage() {
       setSubmitting(false);
       const message = error instanceof Error ? error.message : "Failed to sign in";
       if (message === "Verify your email before signing in") {
-        void navigate({ to: "/verify-email", search: { email } });
+        void navigate({ to: "/register", search: { email, step: "verify" } });
       }
+      setServerError(message);
       toast.error(message);
     }
   }
@@ -102,7 +123,14 @@ function LoginPage() {
             type="email"
             autoComplete="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setEmail(val);
+              if (errors.email) {
+                setErrors((prev) => ({ ...prev, email: undefined }));
+              }
+              if (serverError) setServerError(null);
+            }}
             placeholder="you@company.com"
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? "login-email-error" : undefined}
@@ -119,7 +147,14 @@ function LoginPage() {
             id="password"
             autoComplete="current-password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setPassword(val);
+              if (errors.password) {
+                setErrors((prev) => ({ ...prev, password: undefined }));
+              }
+              if (serverError) setServerError(null);
+            }}
             placeholder="••••••••"
             aria-invalid={Boolean(errors.password)}
             aria-describedby={errors.password ? "login-password-error" : undefined}
@@ -136,6 +171,13 @@ function LoginPage() {
             Remember me
           </label>
         </div>
+
+        {serverError ? (
+          <p role="alert" className="text-xs sm:text-sm text-danger">
+            {serverError}
+          </p>
+        ) : null}
+
         <Button type="submit" size="lg" className="w-full" disabled={submitting}>
           {submitting ? "Signing in…" : "Sign in"}
         </Button>
@@ -143,3 +185,4 @@ function LoginPage() {
     </AuthLayout>
   );
 }
+export default LoginPage;

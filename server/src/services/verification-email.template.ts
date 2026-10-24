@@ -14,7 +14,7 @@ export function createVerificationEmail(name: string, code: string) {
       `Hi ${name},`,
       "",
       `Your Northpeak verification code is ${code}.`,
-      "It expires in 10 minutes.",
+      "It expires in 2 minutes.",
       "",
       "If you did not create this account, you can ignore this email.",
     ].join("\n"),
@@ -29,7 +29,7 @@ export function createVerificationEmail(name: string, code: string) {
         </head>
         <body style="margin:0;padding:0;background-color:#f3f6fc;font-family:Arial,Helvetica,sans-serif;color:#1c2537;">
           <div style="display:none;font-size:1px;color:#f3f6fc;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
-            Your Northpeak verification code expires in 10 minutes.
+            Your Northpeak verification code expires in 2 minutes.
           </div>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background-color:#f3f6fc;">
             <tr>
@@ -73,7 +73,7 @@ export function createVerificationEmail(name: string, code: string) {
                   <tr>
                     <td align="center" style="padding:8px 24px 24px;">
                       <p style="margin:0;font-size:14px;line-height:24px;color:#4a5876;">
-                        This code expires in <strong style="color:#172b4d;">10 minutes.</strong>
+                        This code expires in <strong style="color:#172b4d;">2 minutes.</strong>
                       </p>
                     </td>
                   </tr>

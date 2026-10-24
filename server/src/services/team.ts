@@ -1,3 +1,7 @@
+// Shared project-team membership queries used by cross-domain services.
+// Callers retain their own authorization and write responsibilities.
+// Concurrency test barriers are re-exported from their dedicated shared module.
+
 import mongoose, { isValidObjectId } from "mongoose";
 import { Project } from "../models/Project.js";
 import { User, type IUser } from "../models/User.js";
@@ -10,6 +14,8 @@ import { User, type IUser } from "../models/User.js";
  * - Developers on the team are eligible even if they currently have 0 tasks assigned.
  * - Legacy or empty teams return [] safely without inventing memberships.
  * - Verified against the User model to ensure role === "developer".
+ * Who may call it: project-team membership helpers. Side effects: database reads only.
+ * Errors: database errors propagate; invalid or missing projects return an empty list.
  */
 export async function getProjectEngineeringTeamIds(
   projectId: string | mongoose.Types.ObjectId,
@@ -39,6 +45,8 @@ export async function getProjectEngineeringTeamIds(
 
 /**
  * Checks whether a specific developer belongs to a project's engineering team.
+ * Who may call it: assignment validation workflows. Side effects: database reads only.
+ * Errors: database errors propagate; invalid IDs return false.
  */
 export async function isDeveloperInProjectTeam(
   projectId: string | mongoose.Types.ObjectId,
@@ -54,6 +62,8 @@ export async function isDeveloperInProjectTeam(
 
 /**
  * Retrieves full developer User documents belonging to a project's engineering team.
+ * Who may call it: project and member read workflows. Side effects: database reads only.
+ * Errors: database errors propagate; invalid or empty teams return an empty list.
  */
 export async function getProjectEligibleDevelopers(
   projectId: string | mongoose.Types.ObjectId,
@@ -71,102 +81,4 @@ export async function getProjectEligibleDevelopers(
     .sort({ name: 1 });
 }
 
-interface BarrierAction {
-  emit?: string;
-  wait?: string;
-}
-
-class BarrierManager {
-  private eventWaiters = new Map<string, Array<() => void>>();
-  private emittedEvents = new Set<string>();
-
-  public afterTaskCreateSave: (() => Promise<void>) | null = null;
-  public afterTaskCreateMembershipCheck: (() => Promise<void>) | null = null;
-  public afterTaskPatchSave: (() => Promise<void>) | null = null;
-  public afterTaskPatchMembershipCheck: (() => Promise<void>) | null = null;
-  public duringProjectTeamRemoval: (() => Promise<void>) | null = null;
-  public beforeProjectSave: (() => Promise<void>) | null = null;
-  public simulateRemovalFailure: boolean = false;
-  public simulateReconcileFailure: boolean = false;
-
-  public emit(eventName: string): void {
-    this.emittedEvents.add(eventName);
-    const waiters = this.eventWaiters.get(eventName);
-    if (waiters && waiters.length > 0) {
-      this.eventWaiters.delete(eventName);
-      for (const resolve of waiters) {
-        resolve();
-      }
-    }
-  }
-
-  public async wait(eventName: string, timeoutMs = 10000): Promise<boolean> {
-    if (this.emittedEvents.has(eventName)) {
-      this.emittedEvents.delete(eventName);
-      return true;
-    }
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        const arr = this.eventWaiters.get(eventName) || [];
-        this.eventWaiters.set(
-          eventName,
-          arr.filter((cb) => cb !== onResolve),
-        );
-        reject(new Error(`Timeout waiting for barrier event: ${eventName}`));
-      }, timeoutMs);
-
-      const onResolve = () => {
-        clearTimeout(timer);
-        this.emittedEvents.delete(eventName);
-        resolve(true);
-      };
-
-      const existing = this.eventWaiters.get(eventName) || [];
-      existing.push(onResolve);
-      this.eventWaiters.set(eventName, existing);
-    });
-  }
-
-  public setHook(
-    hookName:
-      | "afterTaskCreateSave"
-      | "afterTaskCreateMembershipCheck"
-      | "afterTaskPatchSave"
-      | "afterTaskPatchMembershipCheck"
-      | "duringProjectTeamRemoval"
-      | "beforeProjectSave",
-    action: BarrierAction | null,
-  ) {
-    if (!action) {
-      this[hookName] = null;
-      return;
-    }
-    this[hookName] = async () => {
-      if (action.emit) {
-        this.emit(action.emit);
-      }
-      if (action.wait) {
-        await this.wait(action.wait);
-      }
-    };
-  }
-
-  public reset() {
-    this.afterTaskCreateSave = null;
-    this.afterTaskCreateMembershipCheck = null;
-    this.afterTaskPatchSave = null;
-    this.afterTaskPatchMembershipCheck = null;
-    this.duringProjectTeamRemoval = null;
-    this.beforeProjectSave = null;
-    this.simulateRemovalFailure = false;
-    this.simulateReconcileFailure = false;
-    this.emittedEvents.clear();
-    this.eventWaiters.clear();
-  }
-}
-
-/**
- * Test synchronization barriers for deterministic concurrent testing.
- * In production / regular operation, all barrier hooks are null (zero overhead).
- */
-export const concurrencyTestBarriers = new BarrierManager();
+export { concurrencyTestBarriers } from "./team.barriers.js";

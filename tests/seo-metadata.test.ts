@@ -17,9 +17,12 @@ function walk(dir: string): string[] {
 type Meta = Record<string, string>;
 async function headMeta(file: string): Promise<{ metas: Meta[]; hasHead: boolean }> {
   const mod = await import(file);
-  const options = (mod.Route as { options?: { head?: () => { meta?: Meta[] } } } | undefined)
-    ?.options;
-  const head = options?.head?.();
+  const options = (
+    mod.Route as
+      | { options?: { head?: (ctx?: { params?: Record<string, string> }) => { meta?: Meta[] } } }
+      | undefined
+  )?.options;
+  const head = options?.head?.({ params: { taskId: "1", projectId: "1" } });
   return { metas: head?.meta ?? [], hasHead: Boolean(options?.head) };
 }
 

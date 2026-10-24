@@ -92,7 +92,7 @@ export function GoogleSignInButton({
       ref={mountRef}
       aria-label="Continue with Google"
       aria-disabled={disabled}
-      className={disabled ? "pointer-events-none opacity-60" : "min-h-10 max-w-100  mx-auto"}
+      className={`min-h-10 max-w-100 mx-auto ${disabled ? "pointer-events-none opacity-60" : ""}`}
     />
   );
 }

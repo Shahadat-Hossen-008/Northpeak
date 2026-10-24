@@ -6,6 +6,8 @@ import request from "supertest";
 import mongoose from "mongoose";
 import app from "../src/index.ts";
 import { User } from "../src/models/User.ts";
+import { PendingRegistration } from "../src/models/PendingRegistration.ts";
+import { hashVerificationCode } from "../src/services/auth/auth.utils.ts";
 import { Notification } from "../src/models/Notification.ts";
 
 import { MongoMemoryReplSet } from "mongodb-memory-server";
@@ -52,13 +54,30 @@ test("AUTH-REG: POST /api/auth/register honors client-supplied manager role", as
     });
 
   assert.equal(res.status, 201);
+  assert.equal(res.body.requiresEmailVerification, true);
+  assert.equal(res.body.email, "attacker@northpeak.dev");
+
+  assert.equal(await User.countDocuments({ email: "attacker@northpeak.dev" }), 0);
+  await PendingRegistration.updateOne(
+    { email: "attacker@northpeak.dev" },
+    { $set: { codeHash: hashVerificationCode("attacker@northpeak.dev", "123456") } },
+  );
+  const planted = await request(app)
+    .post("/api/auth/verify-email")
+    .send({ email: "attacker@northpeak.dev", code: "123456" });
+  assert.equal(planted.status, 200);
+
+  const loginRes = await request(app)
+    .post("/api/auth/login")
+    .send({ email: "attacker@northpeak.dev", password: "password123" });
+  assert.equal(loginRes.status, 200);
   assert.equal(
-    res.body.user.role,
+    loginRes.body.user.role,
     "manager",
-    `Expected manager role, but got: ${res.body.user.role}`,
+    `Expected manager role, but got: ${loginRes.body.user.role}`,
   );
 
-  const userInDb = await User.findById(res.body.user.id);
+  const userInDb = await User.findById(loginRes.body.user.id);
   assert.ok(userInDb);
   assert.equal(
     userInDb.role,
@@ -80,7 +99,17 @@ test("SEC-B: PATCH /api/notifications/mark-read cannot mark another user's priva
       password: "password123",
     });
   assert.equal(victimRes.status, 201);
-  const victimId = victimRes.body.user.id;
+  await PendingRegistration.updateOne(
+    { email: "victim@northpeak.dev" },
+    { $set: { codeHash: hashVerificationCode("victim@northpeak.dev", "123456") } },
+  );
+  const victimVerify = await request(app)
+    .post("/api/auth/verify-email")
+    .send({ email: "victim@northpeak.dev", code: "123456" });
+  assert.equal(victimVerify.status, 200);
+  const victimUser = await User.findOne({ email: "victim@northpeak.dev" });
+  assert.ok(victimUser);
+  const victimId = victimUser._id.toString();
 
   // 2. Create Attacker (developer)
   const attackerRes = await request(app)
@@ -91,7 +120,21 @@ test("SEC-B: PATCH /api/notifications/mark-read cannot mark another user's priva
       password: "password123",
     });
   assert.equal(attackerRes.status, 201);
-  const attackerToken = attackerRes.body.token;
+  await PendingRegistration.updateOne(
+    { email: "attacker_dev@northpeak.dev" },
+    { $set: { codeHash: hashVerificationCode("attacker_dev@northpeak.dev", "123456") } },
+  );
+  const attackerVerify = await request(app)
+    .post("/api/auth/verify-email")
+    .send({ email: "attacker_dev@northpeak.dev", code: "123456" });
+  assert.equal(attackerVerify.status, 200);
+  const attackerUser = await User.findOne({ email: "attacker_dev@northpeak.dev" });
+  assert.ok(attackerUser);
+  const attackerLoginRes = await request(app)
+    .post("/api/auth/login")
+    .send({ email: "attacker_dev@northpeak.dev", password: "password123" });
+  assert.equal(attackerLoginRes.status, 200);
+  const attackerToken = attackerLoginRes.body.token;
 
   // 3. Create a private unread notification for the victim
   const victimNotification = await Notification.create({
@@ -192,4 +235,106 @@ test("SEC-D: /api/test/barriers routes are functional when NODE_ENV === 'test'",
 
   assert.equal(res.status, 200);
   assert.equal(res.body.reset, true);
+});
+
+// ---------------------------------------------------------------------------
+// Index cleanup script safety guards (isolated replica set)
+// ---------------------------------------------------------------------------
+test("IDX-SAFE-A: drop-redundant-indexes skips indexes that do not exist and reports 'not present'", async () => {
+  const { runDropRedundantIndexes } = await import("../scripts/drop-redundant-indexes.ts");
+  const records = await runDropRedundantIndexes({
+    uri: replSet.getUri("northpeak_idx_safe_a"),
+    apply: true,
+    allowProduction: false,
+    nodeEnv: "test",
+  });
+  assert.ok(records.length > 0);
+  for (const r of records) {
+    assert.equal(r.existsOnDisk, false);
+    assert.equal(r.action, "not present");
+  }
+});
+
+test("IDX-SAFE-B: drop-redundant-indexes refuses NODE_ENV=production without --allow-production", async () => {
+  const { runDropRedundantIndexes } = await import("../scripts/drop-redundant-indexes.ts");
+  await assert.rejects(
+    () =>
+      runDropRedundantIndexes({
+        uri: replSet.getUri("northpeak_idx_safe_b"),
+        apply: false,
+        allowProduction: false,
+        nodeEnv: "production",
+      }),
+    /Refusing to run in NODE_ENV=production without --allow-production flag/,
+  );
+});
+
+test("IDX-SAFE-C: drop-redundant-indexes never drops _id_, unique, or TTL indexes", async () => {
+  const { runDropRedundantIndexes } = await import("../scripts/drop-redundant-indexes.ts");
+  const uri = replSet.getUri("northpeak_idx_safe_c");
+  const conn = await mongoose.createConnection(uri).asPromise();
+  try {
+    const coll = conn.db!.collection("tasks");
+    await coll.createIndex({ project: 1, deadline: 1 });
+    await coll.createIndex({ email: 1 }, { name: "unique_idx", unique: true });
+    await coll.createIndex({ expiresAt: 1 }, { name: "ttl_idx", expireAfterSeconds: 0 });
+
+    const records = await runDropRedundantIndexes({
+      uri,
+      apply: true,
+      allowProduction: false,
+      nodeEnv: "test",
+      allowlist: [
+        { collection: "tasks", indexName: "_id_", replacementNames: ["project_1_deadline_1"] },
+        { collection: "tasks", indexName: "unique_idx", replacementNames: ["project_1_deadline_1"] },
+        { collection: "tasks", indexName: "ttl_idx", replacementNames: ["project_1_deadline_1"] },
+      ],
+    });
+
+    assert.equal(records.length, 3);
+    for (const r of records) {
+      assert.equal(r.action, "skip (protected _id/unique/TTL index)");
+    }
+
+    const remaining = new Set((await coll.indexes()).map((i) => i.name));
+    assert.equal(remaining.has("_id_"), true);
+    assert.equal(remaining.has("unique_idx"), true);
+    assert.equal(remaining.has("ttl_idx"), true);
+  } finally {
+    await conn.close();
+  }
+});
+
+test("IDX-SAFE-D: drop-redundant-indexes refuses to drop a legacy index whose replacement is missing", async () => {
+  const { runDropRedundantIndexes } = await import("../scripts/drop-redundant-indexes.ts");
+  const uri = replSet.getUri("northpeak_idx_safe_d");
+  const conn = await mongoose.createConnection(uri).asPromise();
+  try {
+    const coll = conn.db!.collection("tasks");
+    await coll.createIndex({ project: 1, status: 1 }, { name: "project_1_status_1" });
+
+    const records = await runDropRedundantIndexes({
+      uri,
+      apply: true,
+      allowProduction: false,
+      nodeEnv: "test",
+      allowlist: [
+        {
+          collection: "tasks",
+          indexName: "project_1_status_1",
+          replacementNames: ["project_1_deadline_1"],
+        },
+      ],
+    });
+
+    assert.equal(records.length, 1);
+    assert.equal(records[0].existsOnDisk, true);
+    assert.equal(records[0].replacementPresent, false);
+    assert.equal(records[0].action, "skip (missing replacement: project_1_deadline_1)");
+
+    const remaining = new Set((await coll.indexes()).map((i) => i.name));
+    assert.equal(remaining.has("project_1_status_1"), true);
+  } finally {
+    await conn.close();
+  }
 });
