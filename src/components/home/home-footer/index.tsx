@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Github, Linkedin } from "lucide-react";
 
 import { Brand } from "@/builder/layout/app-shell";
 import { cn } from "@/lib/utils";
@@ -40,8 +41,24 @@ export function HomeFooter({ className }: HomeFooterProps) {
               <span className="size-2 rounded-full bg-success" />
               Engine Online
             </span>
-            <span>TypeScript 5</span>
-            <span>React 19</span>
+            <a
+              href="https://github.com/Shahadat-Hossen-008"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="GitHub profile (opens in a new tab)"
+              className="rounded-sm text-[#24292f] transition-colors hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:text-white"
+            >
+              <Github aria-hidden="true" className="size-5" />
+            </a>
+            <a
+              href="https://linkedin.com/in/shahadat-hossain-b2berror"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="LinkedIn profile (opens in a new tab)"
+              className="rounded-sm text-[#0a66c2] transition-colors hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <Linkedin aria-hidden="true" className="size-5" />
+            </a>
           </div>
         </div>
       </div>
