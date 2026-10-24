@@ -4,6 +4,11 @@ import { Task } from "../models/Task.js";
 import { Subtask } from "../models/Subtask.js";
 import { concurrencyTestBarriers } from "./team.js";
 
+/**
+ * Reconciles task and subtask assignments against each owning project's team.
+ * Project, task, and subtask flows plus server startup call these functions.
+ * This service owns database repair only and never handles HTTP requests.
+ */
 export interface ReconcileResult {
   projects: number;
   tasks: number;
@@ -11,15 +16,9 @@ export interface ReconcileResult {
 }
 
 /**
- * Restores the invariant: an OPEN task/subtask is never assigned to a developer who is not in
- * the owning project's team.
- *
- * - Source of truth is `project.team`; the predicate is derived from it (not from a "removed IDs"
- *   list), so the sweep is idempotent and also repairs state left behind by crashes or failed
- *   compensations.
- * - Completed tasks/subtasks are never touched, preserving completion attribution.
- * - Safe to run at any time and concurrently with requests: each write is a single updateMany whose
- *   filter re-evaluates membership against the team snapshot read just before it.
+ * Clears invalid assignments on open tasks and subtasks, returning modified counts.
+ * Project, task, and subtask workflows and the periodic server job may call this.
+ * Database errors propagate without an HTTP status; the barrier throws "Simulated failure during assignment reconciliation".
  */
 export async function reconcileAssignments(
   options: { projectId?: mongoose.Types.ObjectId | string } = {},
@@ -31,38 +30,53 @@ export async function reconcileAssignments(
   const filter = options.projectId ? { _id: options.projectId } : {};
   const result: ReconcileResult = { projects: 0, tasks: 0, subtasks: 0 };
 
+  // 1. Load each project's current team membership.
   for await (const project of Project.find(filter).select("_id team").cursor()) {
     result.projects += 1;
     const team = (project.team || []).map((id) => id);
 
-    const tasks = await Task.updateMany(
-      {
-        project: project._id,
-        isCompleted: false,
-        assignedDeveloper: { $ne: null, $nin: team },
-      },
-      { $set: { assignedDeveloper: null, assignedBy: null } },
-    );
-    result.tasks += tasks.modifiedCount || 0;
-
-    const taskIds = await Task.find({ project: project._id }).distinct("_id");
-    if (taskIds.length > 0) {
-      const subtasks = await Subtask.updateMany(
-        {
-          task: { $in: taskIds },
-          isCompleted: false,
-          assignedDeveloper: { $ne: null, $nin: team },
-        },
-        { $set: { assignedDeveloper: null } },
-      );
-      result.subtasks += subtasks.modifiedCount || 0;
-    }
+    // 2. Repair assignments for open work in this project.
+    await reconcileProjectAssignments(project._id, team, result);
   }
 
+  // 3. Return the number of repaired records.
   return result;
 }
 
-/** Runs {@link reconcileAssignments} with bounded retries; never throws. */
+/** Repairs invalid task and subtask assignments for one project. */
+async function reconcileProjectAssignments(
+  projectId: mongoose.Types.ObjectId,
+  team: mongoose.Types.ObjectId[],
+  result: ReconcileResult,
+): Promise<void> {
+  const tasks = await Task.updateMany(
+    {
+      project: projectId,
+      isCompleted: false,
+      assignedDeveloper: { $ne: null, $nin: team },
+    },
+    { $set: { assignedDeveloper: null, assignedBy: null } },
+  );
+  result.tasks += tasks.modifiedCount || 0;
+
+  const taskIds = await Task.find({ project: projectId }).distinct("_id");
+  if (taskIds.length > 0) {
+    const subtasks = await Subtask.updateMany(
+      {
+        task: { $in: taskIds },
+        isCompleted: false,
+        assignedDeveloper: { $ne: null, $nin: team },
+      },
+      { $set: { assignedDeveloper: null } },
+    );
+    result.subtasks += subtasks.modifiedCount || 0;
+  }
+}
+
+/**
+ * Retries reconciliation and logs "Assignment reconciliation failed; periodic reconciler will retry" on exhaustion.
+ * Mutation workflows and the periodic job may call this; database writes happen in each attempt.
+ */
 export async function reconcileAssignmentsSafely(
   options: { projectId?: mongoose.Types.ObjectId | string } = {},
   attempts = 3,
@@ -87,8 +101,8 @@ export async function reconcileAssignmentsSafely(
 }
 
 /**
- * Starts the periodic safety-net reconciler. Disabled in tests and when the interval is 0.
- * The timer is unref'd so it never blocks graceful shutdown.
+ * Starts immediate and periodic reconciliation for server startup, returning an unref'd timer or null.
+ * Failures are contained by the safe wrapper; non-positive intervals disable the schedule.
  */
 export function startAssignmentReconciler(intervalMs: number): NodeJS.Timeout | null {
   if (!intervalMs || intervalMs <= 0) return null;

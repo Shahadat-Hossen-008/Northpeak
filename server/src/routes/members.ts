@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/error.js";
-import * as memberService from "../services/member.service.js";
+import * as memberService from "../services/member/member.service.js";
 
 export const membersRouter = Router();
 
