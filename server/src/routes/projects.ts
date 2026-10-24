@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate, requireRole, type AuthRequest } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/error.js";
-import { projectService } from "../services/project.service.js";
+import * as projectService from "../services/project/project.service.js";
 
 export const projectsRouter = Router();
 
