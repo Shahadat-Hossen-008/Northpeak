@@ -58,7 +58,7 @@ function LoginPage() {
       setSubmitting(false);
       const message = error instanceof Error ? error.message : "Failed to sign in";
       if (message === "Verify your email before signing in") {
-        void navigate({ to: "/verify-email", search: { email } });
+        void navigate({ to: "/register", search: { email, step: "verify" } });
       }
       toast.error(message);
     }
