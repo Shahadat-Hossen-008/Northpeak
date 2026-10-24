@@ -19,6 +19,11 @@ import { notificationsRouter } from "./routes/notifications.js";
 import { activityRouter } from "./routes/activity.js";
 import { testBarriersRouter } from "./routes/testBarriers.js";
 
+// Stricter per-IP limits for the unauthenticated auth endpoints that send email or write data.
+export const REGISTER_RATE_LIMIT = { windowMs: 15 * 60 * 1000, maxRequests: 5 };
+export const RESEND_RATE_LIMIT = { windowMs: 15 * 60 * 1000, maxRequests: 5 };
+export const VERIFY_RATE_LIMIT = { windowMs: 15 * 60 * 1000, maxRequests: 20 };
+
 export function createCorsOptions(
   allowedOrigins: string[] = config.CORS_ORIGINS,
 ): cors.CorsOptions {
@@ -69,6 +74,27 @@ const authLimiter = createAuthRateLimiter({
   windowMs: 15 * 60 * 1000,
   maxRequests: 100,
 });
+app.use(
+  "/api/auth/register",
+  createAuthRateLimiter({
+    ...REGISTER_RATE_LIMIT,
+    message: "Too many registration attempts, please try again later",
+  }),
+);
+app.use(
+  "/api/auth/resend-verification",
+  createAuthRateLimiter({
+    ...RESEND_RATE_LIMIT,
+    message: "Too many verification email requests, please try again later",
+  }),
+);
+app.use(
+  "/api/auth/verify-email",
+  createAuthRateLimiter({
+    ...VERIFY_RATE_LIMIT,
+    message: "Too many verification attempts, please try again later",
+  }),
+);
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
 const authVerificationLimiter = createAuthRateLimiter({
