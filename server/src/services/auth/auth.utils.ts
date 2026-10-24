@@ -39,7 +39,7 @@ export interface RegisterResult {
 
 export interface UpdateProfileInput {
   name?: string;
-  password?: any;
+  password?: unknown;
 }
 
 export interface AuthResult {

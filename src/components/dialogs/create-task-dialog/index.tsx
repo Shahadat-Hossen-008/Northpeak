@@ -53,7 +53,6 @@ export function CreateTaskDialog({
   });
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<TaskFieldErrors>({});
-  const [hasSubmitted, setHasSubmitted] = useState(false);
   const projectRef = useRef<HTMLButtonElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const deadlineRef = useRef<HTMLInputElement>(null);
@@ -83,14 +82,12 @@ export function CreateTaskDialog({
       });
       setError(null);
       setFieldErrors({});
-      setHasSubmitted(false);
     }
   }, [open, defaultProjectId, defaultStatus]);
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
     if (create.isPending) return;
-    setHasSubmitted(true);
     const nextErrors: TaskFieldErrors = {};
     if (!form.projectId) nextErrors.projectId = "Choose the project this task belongs to.";
     if (!form.title.trim()) nextErrors.title = "Enter a title for this task.";
@@ -121,7 +118,6 @@ export function CreateTaskDialog({
       {
         onSuccess: () => {
           setOpen(false);
-          setHasSubmitted(false);
           setFieldErrors({});
           setForm({
             projectId: defaultProjectId ?? "",
@@ -167,7 +163,11 @@ export function CreateTaskDialog({
               value={form.projectId}
               onValueChange={(value) => {
                 setForm((prev) => ({ ...prev, projectId: value, developerId: "" }));
-                setFieldErrors((prev) => ({ ...prev, projectId: "" }));
+                setFieldErrors((prev) => {
+                  const nextErrors = { ...prev };
+                  delete nextErrors.projectId;
+                  return nextErrors;
+                });
                 setError(null);
               }}
             >
@@ -214,14 +214,12 @@ export function CreateTaskDialog({
                   onChange={(e) => {
                     const title = e.target.value;
                     setForm((prev) => ({ ...prev, title }));
-                    if (hasSubmitted) {
-                      const message = !title.trim()
-                        ? "Enter a title for this task."
-                        : title.trim().length < 3
-                          ? "Use at least 3 characters for the title."
-                          : "";
-                      setFieldErrors((prev) => ({ ...prev, title: message }));
-                    }
+                    setFieldErrors((prev) => {
+                      if (!prev.title) return prev;
+                      const nextErrors = { ...prev };
+                      delete nextErrors.title;
+                      return nextErrors;
+                    });
                     setError(null);
                   }}
                   placeholder="e.g. Add sign-in with passkeys"
@@ -347,11 +345,12 @@ export function CreateTaskDialog({
                   value={form.deadline}
                   onChange={(e) => {
                     setForm((prev) => ({ ...prev, deadline: e.target.value }));
-                    if (hasSubmitted)
-                      setFieldErrors((prev) => ({
-                        ...prev,
-                        deadline: e.target.value ? "" : "Choose a due date to track this task.",
-                      }));
+                    setFieldErrors((prev) => {
+                      if (!prev.deadline) return prev;
+                      const nextErrors = { ...prev };
+                      delete nextErrors.deadline;
+                      return nextErrors;
+                    });
                     setError(null);
                   }}
                 />

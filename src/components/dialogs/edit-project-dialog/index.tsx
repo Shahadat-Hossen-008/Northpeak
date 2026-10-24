@@ -138,7 +138,10 @@ export function EditProjectDialog({ project, trigger }: EditProjectDialogProps) 
             <Input
               id="edit-project-title"
               value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              onChange={(e) => {
+                setForm({ ...form, title: e.target.value });
+                setError(null);
+              }}
             />
           </div>
           <div className="space-y-3">

@@ -1,13 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
-  Link,
   createRootRouteWithContext,
-  useRouter,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -22,8 +21,18 @@ function NotFoundComponent() {
   return <NotFoundPage />;
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  return <ServerErrorPage error={error} reset={reset} />;
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
+  const pageError =
+    error instanceof Error
+      ? error
+      : error &&
+          typeof error === "object" &&
+          "message" in error &&
+          typeof error.message === "string"
+        ? new Error(error.message)
+        : undefined;
+
+  return <ServerErrorPage error={pageError} reset={reset} />;
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({

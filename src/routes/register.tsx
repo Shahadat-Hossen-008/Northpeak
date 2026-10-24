@@ -36,7 +36,31 @@ export const Route = createFileRoute("/register")({
   component: RegisterPage,
 });
 
-type Errors = Partial<Record<"name" | "email" | "password" | "confirm", string>>;
+type Errors = Partial<Record<"name" | "email" | "password" | "confirm", string | undefined>>;
+
+function validateName(val: string): string | undefined {
+  if (val.trim().length < 2) return "Enter your full name.";
+  return undefined;
+}
+
+function validateEmail(val: string): string | undefined {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+    return "Enter a valid email address.";
+  }
+  return undefined;
+}
+
+function validatePassword(val: string): string | undefined {
+  if (val.length < 6) {
+    return "Password must be at least 6 characters.";
+  }
+  return undefined;
+}
+
+function validateConfirm(password: string, confirm: string): string | undefined {
+  if (password !== confirm) return "Passwords do not match.";
+  return undefined;
+}
 
 function RegisterPage() {
   const navigate = useNavigate();
@@ -70,19 +94,23 @@ function RegisterPage() {
 
   function validate() {
     const next: Errors = {};
-    if (form.name.trim().length < 2) next.name = "Enter your full name.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) next.email = "Enter a valid email address.";
-    if (form.password.length < 6) next.password = "Password must be at least 6 characters.";
-    if (form.password !== form.confirm) next.confirm = "Passwords do not match.";
+    const nameErr = validateName(form.name);
+    const emailErr = validateEmail(form.email);
+    const passwordErr = validatePassword(form.password);
+    const confirmErr = validateConfirm(form.password, form.confirm);
+    if (nameErr) next.name = nameErr;
+    if (emailErr) next.email = emailErr;
+    if (passwordErr) next.password = passwordErr;
+    if (confirmErr) next.confirm = confirmErr;
     setErrors(next);
     return Object.keys(next).length === 0;
   }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    setServerError(null);
     if (!validate()) return;
     setSubmitting(true);
-    setServerError(null);
     try {
       const data = await api.register({
         name: form.name.trim(),
@@ -199,7 +227,11 @@ function RegisterPage() {
               autoComplete="name"
               value={form.name}
               onChange={(e) => {
-                setForm({ ...form, name: e.target.value });
+                const nextName = e.target.value;
+                setForm((prev) => ({ ...prev, name: nextName }));
+                if (errors.name) {
+                  setErrors((prev) => ({ ...prev, name: undefined }));
+                }
                 if (serverError) setServerError(null);
               }}
               placeholder="Sarah Khan"
@@ -220,7 +252,11 @@ function RegisterPage() {
               autoComplete="email"
               value={form.email}
               onChange={(e) => {
-                setForm({ ...form, email: e.target.value });
+                const nextEmail = e.target.value;
+                setForm((prev) => ({ ...prev, email: nextEmail }));
+                if (errors.email) {
+                  setErrors((prev) => ({ ...prev, email: undefined }));
+                }
                 if (serverError) setServerError(null);
               }}
               placeholder="you@company.com"
@@ -241,7 +277,11 @@ function RegisterPage() {
                 autoComplete="new-password"
                 value={form.password}
                 onChange={(e) => {
-                  setForm({ ...form, password: e.target.value });
+                  const nextPassword = e.target.value;
+                  setForm((prev) => ({ ...prev, password: nextPassword }));
+                  if (errors.password) {
+                    setErrors((prev) => ({ ...prev, password: undefined }));
+                  }
                   if (serverError) setServerError(null);
                 }}
                 placeholder="At least 6 characters"
@@ -265,7 +305,11 @@ function RegisterPage() {
                 autoComplete="new-password"
                 value={form.confirm}
                 onChange={(e) => {
-                  setForm({ ...form, confirm: e.target.value });
+                  const nextConfirm = e.target.value;
+                  setForm((prev) => ({ ...prev, confirm: nextConfirm }));
+                  if (errors.confirm) {
+                    setErrors((prev) => ({ ...prev, confirm: undefined }));
+                  }
                   if (serverError) setServerError(null);
                 }}
                 placeholder="Confirm password"
