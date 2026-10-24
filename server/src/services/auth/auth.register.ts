@@ -6,26 +6,73 @@ import { PendingRegistration } from "../../models/PendingRegistration.js";
 import { User, type AppRole } from "../../models/User.js";
 import { AppError } from "../../middleware/error.js";
 import { sendVerificationCode, assertEmailDeliveryConfigured } from "../email.service.js";
-import { newVerificationChallenge } from "./auth.utils.js";
+import {
+  CODE_TTL_MS,
+  SEND_WINDOW_MS,
+  MAX_CODE_SENDS,
+  newVerificationChallenge,
+  tooManySendsError,
+  type RegisterInput,
+  type RegisterResult,
+} from "./auth.utils.js";
 
 function isDuplicateKeyError(err: unknown): boolean {
   return typeof err === "object" && err !== null && (err as { code?: number }).code === 11000;
 }
 
+interface PendingFields {
+  name: string;
+  passwordHash: string;
+  role: AppRole;
+  codeHash: string;
+  codeExpiresAt: Date;
+}
+
+async function savePending(email: string, fields: PendingFields): Promise<void> {
+  for (let round = 0; round < 3; round++) {
+    const now = new Date();
+    try {
+      await PendingRegistration.create({
+        email,
+        ...fields,
+        attempts: 0,
+        sendCount: 1,
+        expiresAt: new Date(now.getTime() + SEND_WINDOW_MS),
+      });
+      return;
+    } catch (err) {
+      if (!isDuplicateKeyError(err)) {
+        throw err;
+      }
+      const updated = await PendingRegistration.findOneAndUpdate(
+        { email, expiresAt: { $gt: now }, sendCount: { $lt: MAX_CODE_SENDS } },
+        {
+          $set: { ...fields, attempts: 0 },
+          $inc: { sendCount: 1 },
+        },
+      );
+      if (updated) {
+        return;
+      }
+      const blocked = await PendingRegistration.findOne({ email, expiresAt: { $gt: now } });
+      if (blocked) {
+        throw tooManySendsError(blocked.expiresAt, now);
+      }
+      await PendingRegistration.deleteOne({ email, expiresAt: { $lte: now } });
+    }
+  }
+  throw new AppError("Could not start registration. Please try again.", 500);
+}
+
 /**
- * Starts a registration. Returns { requiresEmailVerification: true, email }.
+ * Starts a registration. Returns { requiresEmailVerification: true, email, codeExpiresInSeconds }.
  * Side effects: saves or replaces a PendingRegistration and sends one email. Creates no User
  * and no Activity.
  * Errors: 400 invalid input or "Email is already registered";
- * 429 "Please wait before requesting another code" if a sign-up for this email was made less
- * than 60 seconds ago.
+ * 429 "Too many code requests for this email. Try again in X minutes." if 5 codes were sent
+ * within the 15-minute window.
  */
-export async function register(input: {
-  name?: string;
-  email?: string;
-  password?: string;
-  role?: string;
-}): Promise<{ requiresEmailVerification: true; email: string }> {
+export async function register(input: RegisterInput): Promise<RegisterResult> {
   // 1. Validate input
   const { name, email, password } = input;
   if (!name || !email || !password) {
@@ -47,36 +94,16 @@ export async function register(input: {
 
   // 3. Apply the change: hash the password and build the code
   const passwordHash = await bcrypt.hash(password, await bcrypt.genSalt(10));
-  // The client-supplied role is still honored (pending product decision, test AUTH-REG)
   const role: AppRole = input.role === "manager" ? "manager" : "developer";
   const challenge = newVerificationChallenge(normalizedEmail);
 
-  // A new sign-up replaces the stored name, password, role and code, so an earlier sign-up
-  // for this address by someone else can never be verified by its owner. The cooldown filter
-  // stops repeated sign-ups from flooding the inbox: if the cooldown has not passed, nothing
-  // matches, the upsert tries to insert, and the unique email index raises a duplicate error.
-  try {
-    await PendingRegistration.updateOne(
-      { email: normalizedEmail, resendAvailableAt: { $lte: new Date() } },
-      {
-        $set: {
-          name: name.trim(),
-          passwordHash,
-          role,
-          codeHash: challenge.codeHash,
-          expiresAt: challenge.expiresAt,
-          resendAvailableAt: challenge.resendAvailableAt,
-          attempts: 0,
-        },
-      },
-      { upsert: true },
-    );
-  } catch (err) {
-    if (isDuplicateKeyError(err)) {
-      throw new AppError("Please wait before requesting another code", 429);
-    }
-    throw err;
-  }
+  await savePending(normalizedEmail, {
+    name: name.trim(),
+    passwordHash,
+    role,
+    codeHash: challenge.codeHash,
+    codeExpiresAt: challenge.codeExpiresAt,
+  });
 
   // 4. Side effect: send the email. On failure remove only the record this request wrote.
   try {
@@ -87,5 +114,9 @@ export async function register(input: {
   }
 
   // 5. Return the result
-  return { requiresEmailVerification: true, email: normalizedEmail };
+  return {
+    requiresEmailVerification: true,
+    email: normalizedEmail,
+    codeExpiresInSeconds: CODE_TTL_MS / 1000,
+  };
 }

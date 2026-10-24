@@ -20,9 +20,9 @@ import { activityRouter } from "./routes/activity.js";
 import { testBarriersRouter } from "./routes/testBarriers.js";
 
 // Stricter per-IP limits for the unauthenticated auth endpoints that send email or write data.
-export const REGISTER_RATE_LIMIT = { windowMs: 15 * 60 * 1000, maxRequests: 5 };
-export const RESEND_RATE_LIMIT = { windowMs: 15 * 60 * 1000, maxRequests: 5 };
-export const VERIFY_RATE_LIMIT = { windowMs: 15 * 60 * 1000, maxRequests: 20 };
+export const REGISTER_RATE_LIMIT = { windowMs: 15 * 60 * 1000, maxRequests: 20 };
+export const RESEND_RATE_LIMIT = { windowMs: 15 * 60 * 1000, maxRequests: 10 };
+export const VERIFY_RATE_LIMIT = { windowMs: 15 * 60 * 1000, maxRequests: 30 };
 
 export function createCorsOptions(
   allowedOrigins: string[] = config.CORS_ORIGINS,
@@ -101,8 +101,6 @@ const authVerificationLimiter = createAuthRateLimiter({
   windowMs: 15 * 60 * 1000,
   maxRequests: 20,
 });
-app.use("/api/auth/verify-email", authVerificationLimiter);
-app.use("/api/auth/resend-verification", authVerificationLimiter);
 app.use("/api/auth/google", authVerificationLimiter);
 
 // 5. Ensure database connection for API routes (supports serverless entrypoints like Vercel)

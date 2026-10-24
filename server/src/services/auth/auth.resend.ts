@@ -1,15 +1,18 @@
-// Resend: issues a new code for a pending registration, at most once per cooldown.
+// Resend: issues a new code for a pending registration, up to 5 sends per 15-minute window.
 // Called through auth/auth.service.ts.
 
-import { AppError } from "../../middleware/error.js";
 import { PendingRegistration } from "../../models/PendingRegistration.js";
 import { sendVerificationCode } from "../email.service.js";
-import { newVerificationChallenge } from "./auth.utils.js";
+import {
+  MAX_CODE_SENDS,
+  newVerificationChallenge,
+  tooManySendsError,
+} from "./auth.utils.js";
 
 /**
- * Sends a new code if a registration for this email is pending and its cooldown has passed.
- * Side effects: replaces the code and resets the attempts, then sends one email.
- * Errors: 429 "Please wait before requesting another code" during the cooldown.
+ * Sends a new code if a registration for this email is pending and under the send limit.
+ * Side effects: replaces the code and resets the attempts, increments sendCount, then sends one email.
+ * Errors: 429 if 5 codes have been sent in the current 15-minute window.
  * Any other case returns the same generic message, so the response does not reveal the account state.
  */
 export async function resendVerification({
@@ -27,32 +30,31 @@ export async function resendVerification({
   const now = new Date();
   const challenge = newVerificationChallenge(normalizedEmail);
   const previous = await PendingRegistration.findOneAndUpdate(
-    { email: normalizedEmail, expiresAt: { $gt: now }, resendAvailableAt: { $lte: now } },
+    { email: normalizedEmail, expiresAt: { $gt: now }, sendCount: { $lt: MAX_CODE_SENDS } },
     {
       $set: {
         codeHash: challenge.codeHash,
-        expiresAt: challenge.expiresAt,
-        resendAvailableAt: challenge.resendAvailableAt,
+        codeExpiresAt: challenge.codeExpiresAt,
         attempts: 0,
       },
+      $inc: { sendCount: 1 },
     },
     { new: false },
   ).select("+codeHash");
 
-  // 2. Nothing changed: the cooldown is running, or nothing is pending
+  // 2. Nothing changed: the limit was reached, or nothing is pending
   if (!previous) {
-    const waiting = await PendingRegistration.exists({
+    const waiting = await PendingRegistration.findOne({
       email: normalizedEmail,
       expiresAt: { $gt: now },
-      resendAvailableAt: { $gt: now },
-    });
+    }).select("expiresAt");
     if (waiting) {
-      throw new AppError("Please wait before requesting another code", 429);
+      throw tooManySendsError(waiting.expiresAt, now);
     }
     return generic;
   }
 
-  // 3. Send the email. On failure put the old code and cooldown back so a retry works at once.
+  // 3. Send the email. On failure revert the counter and challenge so a retry works.
   try {
     await sendVerificationCode(previous.email, previous.name, challenge.code);
   } catch (err) {
@@ -61,10 +63,10 @@ export async function resendVerification({
       {
         $set: {
           codeHash: previous.codeHash,
-          expiresAt: previous.expiresAt,
-          resendAvailableAt: previous.resendAvailableAt,
+          codeExpiresAt: previous.codeExpiresAt,
           attempts: previous.attempts,
         },
+        $inc: { sendCount: -1 },
       },
     );
     throw err;

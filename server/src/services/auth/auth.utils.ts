@@ -3,11 +3,13 @@
 import crypto from "node:crypto";
 import { generateToken } from "../../middleware/auth.js";
 import { config } from "../../config/env.js";
+import { AppError } from "../../middleware/error.js";
 import { serializeAuthUser, type SerializedAuthUser } from "../../serializers/user.serializer.js";
 import type { User } from "../../models/User.js";
 
-export const VERIFICATION_TTL_MS = 10 * 60 * 1000;
-export const RESEND_COOLDOWN_MS = 60 * 1000;
+export const CODE_TTL_MS = 2 * 60 * 1000;
+export const SEND_WINDOW_MS = 15 * 60 * 1000;
+export const MAX_CODE_SENDS = 5;
 export const MAX_CODE_ATTEMPTS = 5;
 
 type UserDoc = InstanceType<typeof User>;
@@ -32,6 +34,7 @@ export interface RegisterInput {
 export interface RegisterResult {
   requiresEmailVerification: true;
   email: string;
+  codeExpiresInSeconds: number;
 }
 
 export interface UpdateProfileInput {
@@ -44,6 +47,15 @@ export interface AuthResult {
   user: SerializedAuthUser;
 }
 
+/** Builds an error with the remaining minutes until a new code may be requested. */
+export function tooManySendsError(windowEndsAt: Date, now: Date): AppError {
+  const minutes = Math.max(1, Math.ceil((windowEndsAt.getTime() - now.getTime()) / 60_000));
+  return new AppError(
+    `Too many code requests for this email. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+    429,
+  );
+}
+
 /** Hashes a code together with the email, so the same code gives a different hash per address. */
 export function hashVerificationCode(email: string, code: string): string {
   return crypto
@@ -52,15 +64,14 @@ export function hashVerificationCode(email: string, code: string): string {
     .digest("hex");
 }
 
-/** Makes a new six-digit code with its hash, expiry time and next-resend time. */
+/** Makes a new six-digit code with its hash and expiry time. */
 export function newVerificationChallenge(email: string) {
   const code = crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
   const now = Date.now();
   return {
     code,
     codeHash: hashVerificationCode(email, code),
-    expiresAt: new Date(now + VERIFICATION_TTL_MS),
-    resendAvailableAt: new Date(now + RESEND_COOLDOWN_MS),
+    codeExpiresAt: new Date(now + CODE_TTL_MS),
   };
 }
 

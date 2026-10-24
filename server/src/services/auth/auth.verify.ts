@@ -36,7 +36,7 @@ export async function verifyEmail(input: VerifyInput): Promise<AuthResult> {
 
   // 2. Count this attempt first, in one atomic step, so parallel guesses can never go past the limit
   const pending = await PendingRegistration.findOneAndUpdate(
-    { email: normalizedEmail, expiresAt: { $gt: new Date() }, attempts: { $lt: MAX_CODE_ATTEMPTS } },
+    { email: normalizedEmail, codeExpiresAt: { $gt: new Date() }, attempts: { $lt: MAX_CODE_ATTEMPTS } },
     { $inc: { attempts: 1 } },
     { new: true },
   ).select("+codeHash");
