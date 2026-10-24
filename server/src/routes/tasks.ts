@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate, requireRole, type AuthRequest } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/error.js";
-import { taskService } from "../services/task.service.js";
+import * as taskService from "../services/task/task.service.js";
 
 export const tasksRouter = Router();
 
