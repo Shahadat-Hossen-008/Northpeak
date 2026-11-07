@@ -1,19 +1,21 @@
+// MongoDB connection for the server: builds the connection string and connects on demand.
+// Failure logging lives in db.errors.ts (re-exported below so importers keep using "./db.js").
+
 import mongoose from "mongoose";
 import { config } from "./env.js";
+import { logSanitizedConnectError } from "./db.errors.js";
 
-let connectPromise: Promise<typeof mongoose> | null = null;
+export { sanitizeDatabaseErrorMessage, logSanitizedConnectError } from "./db.errors.js";
 
 const DEFAULT_DATABASE_NAME = "northpeak";
 const SERVER_SELECTION_TIMEOUT_MS = 5000;
-const MONGODB_URI_PATTERN = /mongodb(\+srv)?:\/\/[^\s"']+/gi;
-const AUTHORITY_CREDENTIALS_PATTERN = /([a-z][a-z0-9+.-]*:\/\/)?[^/\s"':@]+:[^@\s"']+@/gi;
 
-interface ConnectionErrorContext {
-  reqId?: string;
-  readyStateBefore: number;
-  readyStateAfter: number;
-}
+/** The connection attempt in progress, so parallel requests wait for one attempt instead of starting many. */
+let connectPromise: Promise<typeof mongoose> | null = null;
 
+// ---------- Connection string ----------
+
+/** Splits "mongodb://host/db?a=1" into base "mongodb://host/db" and query "?a=1". */
 function splitUriQuery(uri: string): { base: string; query: string } {
   const queryIndex = uri.indexOf("?");
   if (queryIndex === -1) return { base: uri, query: "" };
@@ -24,117 +26,67 @@ function splitUriQuery(uri: string): { base: string; query: string } {
   };
 }
 
+/** Puts the database name at the end of the base, without doubling the slash. */
 function appendDefaultDatabase(base: string, query: string, databaseName: string): string {
   return `${base.replace(/\/+$/, "")}/${databaseName}${query}`;
 }
 
 /**
- * Normalizes a MongoDB connection URI by ensuring a database name is present
- * (defaulting to "northpeak") without corrupting query strings or trailing slashes.
+ * Makes sure the connection string names a database ("northpeak" if none is given).
+ * The query string (?retryWrites=true ...) is kept as it is.
+ *
+ *   mongodb://localhost:27017                    -> mongodb://localhost:27017/northpeak
+ *   mongodb://localhost:27017/?retryWrites=true  -> mongodb://localhost:27017/northpeak?retryWrites=true
+ *   mongodb+srv://user:pass@host/app/            -> mongodb+srv://user:pass@host/app
+ *   mongodb://localhost:27017/mydb               -> unchanged
  */
 export function resolveMongoUri(rawUri: string, defaultDbName = DEFAULT_DATABASE_NAME): string {
-  const trimmed = rawUri.trim();
-  const { base, query } = splitUriQuery(trimmed);
+  const { base, query } = splitUriQuery(rawUri.trim());
 
+  // 1. No "scheme://" at all: just add the database name
   const schemeEndIndex = base.indexOf("://");
   if (schemeEndIndex === -1) {
     return appendDefaultDatabase(base, query, defaultDbName);
   }
 
-  const authorityAndPath = base.slice(schemeEndIndex + 3);
-  const pathStartIndex = authorityAndPath.indexOf("/");
-
-  if (pathStartIndex === -1) {
+  // 2. Nothing after the host: add "/<database>"
+  const afterScheme = base.slice(schemeEndIndex + 3);
+  const slashIndex = afterScheme.indexOf("/");
+  if (slashIndex === -1) {
     return `${base}/${defaultDbName}${query}`;
   }
 
-  const databasePath = authorityAndPath.slice(pathStartIndex + 1).replace(/\/+$/, "");
+  // 3. A slash but no database name after it: add the name
+  const databasePath = afterScheme.slice(slashIndex + 1).replace(/\/+$/, "");
   if (!databasePath) {
     return appendDefaultDatabase(base, query, defaultDbName);
   }
 
-  const authority = base.slice(0, schemeEndIndex + 3 + pathStartIndex);
-  return `${authority}/${databasePath}${query}`;
+  // 4. A database name is already there: keep it, only drop trailing slashes
+  const hostPart = base.slice(0, schemeEndIndex + 3 + slashIndex);
+  return `${hostPart}/${databasePath}${query}`;
 }
 
-export function sanitizeDatabaseErrorMessage(rawMessage: unknown): string {
-  if (!rawMessage) {
-    return "Unknown connection error";
-  }
-
-  return (
-    String(rawMessage)
-      // Redact full mongodb / mongodb+srv URIs.
-      .replace(MONGODB_URI_PATTERN, "[REDACTED_URI]")
-      // Redact any remaining scheme://user:pass@host or bare user:pass@host authority segments.
-      .replace(AUTHORITY_CREDENTIALS_PATTERN, "$1[REDACTED]@")
-  );
-}
-
-function summarizeDriverError(error: any): Record<string, unknown> | undefined {
-  if (!error) return undefined;
-
-  return {
-    name: error.name || "Error",
-    code: error.code ?? undefined,
-    syscall: error.syscall ?? undefined,
-    message: sanitizeDatabaseErrorMessage(error.message),
-  };
-}
-
-function describeServerSelectionFailure(error: any): Record<string, unknown> {
-  const topology = error?.reason;
-  const servers = topology?.servers;
-
-  return {
-    topologyType: topology?.type,
-    setName: topology?.setName,
-    servers:
-      servers instanceof Map
-        ? Array.from(servers.entries(), ([address, server]: [string, any]) => ({
-            address: sanitizeDatabaseErrorMessage(address),
-            type: server?.type,
-            error: summarizeDriverError(server?.error),
-          }))
-        : undefined,
-    cause: summarizeDriverError(error?.cause),
-  };
-}
-
-export function logSanitizedConnectError(error: any, context: ConnectionErrorContext): void {
-  console.error(
-    JSON.stringify({
-      level: "error",
-      component: "database",
-      message: "MongoDB connection failed",
-      reqId: context.reqId,
-      connectionAttempted: true,
-      readyStateBefore: context.readyStateBefore,
-      readyStateAfter: context.readyStateAfter,
-      errorName: error?.name || "Error",
-      errorCode: error?.code ?? undefined,
-      syscall: error?.syscall ?? undefined,
-      reason: sanitizeDatabaseErrorMessage(error?.message),
-      details: describeServerSelectionFailure(error),
-      timestamp: new Date().toISOString(),
-    }),
-  );
-}
+// ---------- Connecting ----------
 
 /**
- * Lazily ensures an active Mongoose connection for serverless / on-demand runtimes
- * while deduplicating concurrent connection attempts.
+ * Connects to MongoDB if there is no open connection (for serverless runtimes that start on demand).
+ * Parallel calls share one attempt. A call with overrideUri always makes its own attempt and
+ * does not store it. Logs a sanitized line and rethrows if the attempt fails.
  */
 export async function ensureDBConnection(overrideUri?: string, reqId?: string): Promise<void> {
+  // 1. Already connected
   if (mongoose.connection.readyState === 1) {
     return;
   }
 
+  // 2. Another call is already connecting: wait for it
   if (connectPromise && !overrideUri) {
     await connectPromise;
     return;
   }
 
+  // 3. Start a new attempt
   const uri = resolveMongoUri(overrideUri || config.MONGODB_URI);
   const readyStateBefore = mongoose.connection.readyState;
   const attempt = mongoose.connect(uri, {
@@ -145,6 +97,7 @@ export async function ensureDBConnection(overrideUri?: string, reqId?: string): 
     connectPromise = attempt;
   }
 
+  // 4. Log the result. The finally block clears the stored attempt so a later call can try again.
   try {
     const conn = await attempt;
     console.log(`[Database] MongoDB connected: ${conn.connection.host}/${conn.connection.name}`);
@@ -162,6 +115,7 @@ export async function ensureDBConnection(overrideUri?: string, reqId?: string): 
   }
 }
 
+/** Connects at server start. If it fails the process exits (the error was already logged above). */
 export async function connectDB(overrideUri?: string): Promise<void> {
   try {
     await ensureDBConnection(overrideUri);
