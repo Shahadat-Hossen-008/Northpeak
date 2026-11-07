@@ -4,6 +4,8 @@ import test, { before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+import { OAuth2Client, LoginTicket, type TokenPayload } from "google-auth-library";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import app from "../src/index.ts";
 import { User } from "../src/models/User.ts";
@@ -237,3 +239,305 @@ test("AUTHV-11: second party register replaces password & first code stops verif
     .send({ email: EMAIL, password: "firstPassword1" });
   assert.equal(loginAlice.status, 401);
 });
+
+async function withGoogleVerify<T>(
+  impl: () => Promise<Partial<TokenPayload>>,
+  run: () => Promise<T>,
+): Promise<T> {
+  const originalVerify = OAuth2Client.prototype.verifyIdToken;
+  const originalClientId = process.env.GOOGLE_CLIENT_ID;
+  process.env.GOOGLE_CLIENT_ID = "test-google-client-id";
+  OAuth2Client.prototype.verifyIdToken = (async () => {
+    const partial = await impl();
+    const payload: TokenPayload = {
+      iss: "https://accounts.google.com",
+      sub: partial.sub ?? "",
+      aud: "test-google-client-id",
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      ...partial,
+    };
+    return new LoginTicket(undefined, payload);
+  }) as typeof OAuth2Client.prototype.verifyIdToken;
+
+  try {
+    return await run();
+  } finally {
+    OAuth2Client.prototype.verifyIdToken = originalVerify;
+    if (originalClientId === undefined) {
+      delete process.env.GOOGLE_CLIENT_ID;
+    } else {
+      process.env.GOOGLE_CLIENT_ID = originalClientId;
+    }
+  }
+}
+
+test("GOOGLE-01: new Google user is created with emailVerified true and googleId, one Activity, stale PendingRegistration deleted", async () => {
+  assert.equal((await signUp()).status, 201);
+  assert.equal(await PendingRegistration.countDocuments({ email: EMAIL }), 1);
+
+  await withGoogleVerify(
+    async () => ({
+      sub: "google-sub-01",
+      email: `  ${EMAIL.toUpperCase()}  `,
+      email_verified: true,
+      name: "Google New User",
+    }),
+    async () => {
+      const res = await request(app)
+        .post("/api/auth/google")
+        .send({ credential: "fake-id-token", role: "manager" });
+      assert.equal(res.status, 200);
+      assert.ok(res.body.token);
+      assert.equal(res.body.user.role, "manager");
+      assert.equal(res.body.user.emailVerified, true);
+
+      const created = await User.findOne({ email: EMAIL }).select("+googleId +passwordHash");
+      assert.ok(created);
+      assert.equal(created.emailVerified, true);
+      assert.equal(created.googleId, "google-sub-01");
+      assert.equal(created.passwordHash, undefined);
+      assert.equal(
+        await Activity.countDocuments({
+          actor: created._id,
+          message: "joined Northpeak as manager",
+        }),
+        1,
+      );
+      assert.equal(await PendingRegistration.countDocuments({ email: EMAIL }), 0);
+
+      // Repeat sign-in with the same googleId returns the session without creating a second Activity
+      const repeat = await request(app)
+        .post("/api/auth/google")
+        .send({ credential: "fake-id-token" });
+      assert.equal(repeat.status, 200);
+      assert.equal(await Activity.countDocuments({ actor: created._id }), 1);
+    },
+  );
+});
+
+test("GOOGLE-02: existing password user (emailVerified true) is linked; role and passwordHash unchanged; password login still works", async () => {
+  const passwordHash = await bcrypt.hash("verifiedPass123", 10);
+  await User.create({
+    name: "Existing Verified",
+    email: EMAIL,
+    passwordHash,
+    role: "manager",
+    emailVerified: true,
+  });
+  await PendingRegistration.create({
+    email: EMAIL,
+    name: "Stale Pending",
+    passwordHash: "stale",
+    role: "developer",
+    codeHash: "stale",
+    codeExpiresAt: new Date(Date.now() + 60_000),
+    sendCount: 1,
+    expiresAt: new Date(Date.now() + 600_000),
+    attempts: 0,
+  });
+
+  await withGoogleVerify(
+    async () => ({
+      sub: "google-sub-02",
+      email: EMAIL,
+      email_verified: true,
+      name: "Google Name Ignored",
+    }),
+    async () => {
+      const res = await request(app)
+        .post("/api/auth/google")
+        .send({ credential: "fake-id-token", role: "developer" });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.user.role, "manager");
+      assert.equal(res.body.user.name, "Existing Verified");
+      assert.equal(res.body.user.emailVerified, true);
+
+      const user = await User.findOne({ email: EMAIL }).select("+googleId +passwordHash");
+      assert.equal(user?.googleId, "google-sub-02");
+      assert.equal(user?.emailVerified, true);
+      assert.equal(user?.role, "manager");
+      assert.equal(user?.passwordHash, passwordHash);
+      assert.equal(await Activity.countDocuments({}), 0);
+      assert.equal(await PendingRegistration.countDocuments({ email: EMAIL }), 0);
+
+      const pwLogin = await request(app)
+        .post("/api/auth/login")
+        .send({ email: EMAIL, password: "verifiedPass123" });
+      assert.equal(pwLogin.status, 200);
+    },
+  );
+});
+
+test("GOOGLE-03: existing user with emailVerified false: linked, emailVerified true, passwordHash removed, the old password now gets 401", async () => {
+  const passwordHash = await bcrypt.hash("unverifiedPass123", 10);
+  await User.create({
+    name: "Unverified Account",
+    email: EMAIL,
+    passwordHash,
+    role: "developer",
+    emailVerified: false,
+  });
+
+  await withGoogleVerify(
+    async () => ({
+      sub: "google-sub-03",
+      email: EMAIL,
+      email_verified: true,
+      name: "Real Owner",
+    }),
+    async () => {
+      const res = await request(app)
+        .post("/api/auth/google")
+        .send({ credential: "fake-id-token" });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.user.emailVerified, true);
+
+      const user = await User.findOne({ email: EMAIL }).select("+googleId +passwordHash");
+      assert.equal(user?.googleId, "google-sub-03");
+      assert.equal(user?.emailVerified, true);
+      assert.equal(user?.passwordHash, undefined);
+      assert.equal(await Activity.countDocuments({}), 0);
+
+      const oldPwLogin = await request(app)
+        .post("/api/auth/login")
+        .send({ email: EMAIL, password: "unverifiedPass123" });
+      assert.equal(oldPwLogin.status, 401);
+      assert.equal(oldPwLogin.body.message, "Invalid email or password");
+    },
+  );
+});
+
+test("GOOGLE-04: legacy user with emailVerified missing is linked like GOOGLE-02", async () => {
+  const passwordHash = await bcrypt.hash("legacyPass123", 10);
+  await User.collection.insertOne({
+    name: "Legacy Account",
+    email: EMAIL,
+    passwordHash,
+    role: "manager",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  assert.equal(
+    await User.collection.countDocuments({ email: EMAIL, emailVerified: { $exists: false } }),
+    1,
+  );
+
+  await withGoogleVerify(
+    async () => ({
+      sub: "google-sub-04",
+      email: EMAIL,
+      email_verified: true,
+      name: "Legacy Google",
+    }),
+    async () => {
+      const res = await request(app)
+        .post("/api/auth/google")
+        .send({ credential: "fake-id-token", role: "developer" });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.user.role, "manager");
+      assert.equal(res.body.user.emailVerified, true);
+
+      const user = await User.findOne({ email: EMAIL }).select("+googleId +passwordHash");
+      assert.equal(user?.googleId, "google-sub-04");
+      assert.equal(user?.emailVerified, true);
+      assert.equal(user?.role, "manager");
+      assert.equal(user?.passwordHash, passwordHash);
+      assert.equal(await Activity.countDocuments({}), 0);
+
+      const pwLogin = await request(app)
+        .post("/api/auth/login")
+        .send({ email: EMAIL, password: "legacyPass123" });
+      assert.equal(pwLogin.status, 200);
+    },
+  );
+});
+
+test("GOOGLE-05: same email but a different googleId returns 409, nothing changes", async () => {
+  await User.create({
+    name: "Already Linked",
+    email: EMAIL,
+    googleId: "google-sub-original",
+    emailVerified: true,
+    role: "developer",
+  });
+
+  await withGoogleVerify(
+    async () => ({
+      sub: "google-sub-other",
+      email: EMAIL,
+      email_verified: true,
+      name: "Other Google",
+    }),
+    async () => {
+      const res = await request(app)
+        .post("/api/auth/google")
+        .send({ credential: "fake-id-token" });
+      assert.equal(res.status, 409);
+      assert.equal(
+        res.body.message,
+        "An account already uses this email. Sign in with your password first.",
+      );
+
+      const user = await User.findOne({ email: EMAIL }).select("+googleId");
+      assert.equal(user?.googleId, "google-sub-original");
+      assert.equal(user?.name, "Already Linked");
+      assert.equal(await User.countDocuments({ email: EMAIL }), 1);
+    },
+  );
+});
+
+test("GOOGLE-06: invalid token and email_verified false return 401 and create no User", async () => {
+  await withGoogleVerify(
+    async () => {
+      throw new Error("Invalid signature");
+    },
+    async () => {
+      const res = await request(app)
+        .post("/api/auth/google")
+        .send({ credential: "bad-token" });
+      assert.equal(res.status, 401);
+      assert.equal(res.body.message, "Google sign-in could not be verified");
+    },
+  );
+
+  await withGoogleVerify(
+    async () => ({
+      sub: "google-sub-06",
+      email: EMAIL,
+      email_verified: false,
+      name: "Unverified Google",
+    }),
+    async () => {
+      const res = await request(app)
+        .post("/api/auth/google")
+        .send({ credential: "unverified-email-token" });
+      assert.equal(res.status, 401);
+      assert.equal(res.body.message, "Google sign-in requires a verified email address");
+    },
+  );
+
+  assert.equal(await User.countDocuments({}), 0);
+});
+
+test("GOOGLE-07: two parallel Google sign-ins for one new email end with exactly one User and no 500", async () => {
+  await withGoogleVerify(
+    async () => ({
+      sub: "google-sub-07",
+      email: EMAIL,
+      email_verified: true,
+      name: "Parallel Google User",
+    }),
+    async () => {
+      const [r1, r2] = await Promise.all([
+        request(app).post("/api/auth/google").send({ credential: "token-1" }),
+        request(app).post("/api/auth/google").send({ credential: "token-2" }),
+      ]);
+      const statuses = [r1.status, r2.status].sort((a, b) => a - b);
+      assert.ok(statuses.every((s) => s !== 500), `unexpected 500 in statuses: ${statuses.join(",")}`);
+      assert.ok(statuses.includes(200), `expected at least one 200 in statuses: ${statuses.join(",")}`);
+      assert.equal(await User.countDocuments({ email: EMAIL }), 1);
+    },
+  );
+});
+

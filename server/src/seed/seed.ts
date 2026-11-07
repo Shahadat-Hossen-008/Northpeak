@@ -3,6 +3,7 @@ dotenv.config();
 
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+
 import { connectDB } from "../config/db.js";
 import { User } from "../models/User.js";
 import { Project } from "../models/Project.js";
@@ -12,305 +13,828 @@ import { Comment } from "../models/Comment.js";
 import { Activity } from "../models/Activity.js";
 import { Notification } from "../models/Notification.js";
 
-async function seed() {
-  console.log("[Seed] Starting MongoDB database seeder...");
-  await connectDB();
+const MANAGER = {
+  name: "Nadia Chowdhury",
+  email: "nadia@northpeak.dev",
+  password: "Password123!",
+};
 
-  // Clear existing collections
-  await Promise.all([
-    User.deleteMany({}),
-    Project.deleteMany({}),
-    Task.deleteMany({}),
-    Subtask.deleteMany({}),
-    Comment.deleteMany({}),
-    Activity.deleteMany({}),
-    Notification.deleteMany({}),
-  ]);
+const DAY = 86_400_000;
 
-  const salt = await bcrypt.genSalt(10);
-  const passwordHash = await bcrypt.hash("password123", salt);
+const dateOffset = (days: number) => new Date(Date.now() + days * DAY);
 
-  // 1. Create Users
-  const nadia = await User.create({
-    name: "Nadia Chowdhury",
-    email: "nadia@northpeak.dev",
-    passwordHash,
-    role: "manager",
-  });
+const stats = {
+  users: 0,
+  projects: 0,
+  tasks: 0,
+  subtasks: 0,
+  comments: 0,
+  activities: 0,
+  notifications: 0,
+};
 
-  const sarah = await User.create({
-    name: "Sarah Khan",
-    email: "sarah@northpeak.dev",
-    passwordHash,
-    role: "developer",
-  });
-
-  const rahim = await User.create({
-    name: "Rahim Ahmed",
-    email: "rahim@northpeak.dev",
-    passwordHash,
-    role: "developer",
-  });
-
-  const john = await User.create({
-    name: "John Smith",
-    email: "john@northpeak.dev",
-    passwordHash,
-    role: "developer",
-  });
-
-  const ayesha = await User.create({
-    name: "Ayesha Rahman",
-    email: "ayesha@northpeak.dev",
-    passwordHash,
-    role: "developer",
-  });
-
-  console.log("[Seed] Created 5 users");
-
-  // 2. Create Projects
-  const now = new Date();
-  const dayMs = 86_400_000;
-
-  const ecommerce = await Project.create({
-    title: "E-Commerce Platform",
-    description: "Storefront, cart, checkout and order management for a multi-vendor marketplace.",
-    manager: nadia._id,
-    team: [sarah._id, rahim._id, john._id, ayesha._id],
-    startDate: new Date(now.getTime() - 40 * dayMs),
-    deadline: new Date(now.getTime() + 18 * dayMs),
-    priority: "high",
-  });
-
-  const banking = await Project.create({
-    title: "Mobile Banking Application",
-    description: "Secure account access, transfers and card controls for iOS and Android.",
-    manager: nadia._id,
-    team: [rahim._id, sarah._id],
-    startDate: new Date(now.getTime() - 25 * dayMs),
-    deadline: new Date(now.getTime() + 9 * dayMs),
-    priority: "critical",
-  });
-
-  const hospital = await Project.create({
-    title: "Hospital Management System",
-    description: "Patient records, appointment scheduling and billing for a 300-bed hospital.",
-    manager: nadia._id,
-    team: [john._id],
-    startDate: new Date(now.getTime() - 60 * dayMs),
-    deadline: new Date(now.getTime() - 3 * dayMs), // Overdue
-    priority: "high",
-  });
-
-  const lms = await Project.create({
-    title: "Learning Management System",
-    description: "Course authoring, enrolments and progress tracking for online cohorts.",
-    manager: nadia._id,
-    team: [ayesha._id],
-    startDate: new Date(now.getTime() - 12 * dayMs),
-    deadline: new Date(now.getTime() + 46 * dayMs),
-    priority: "medium",
-  });
-
-  console.log("[Seed] Created 4 projects");
-
-  // 3. Create Tasks
-  const task1 = await Task.create({
-    project: ecommerce._id,
-    title: "Authentication API",
-    description: "JWT login, refresh tokens and password reset endpoints.",
-    assignedDeveloper: sarah._id,
-    deadline: new Date(now.getTime() + 4 * dayMs),
-    priority: "high",
-    isCompleted: false,
-  });
-
-  const task2 = await Task.create({
-    project: ecommerce._id,
-    title: "Product catalogue service",
-    description: "Search, filtering and pagination across vendor catalogues.",
-    assignedDeveloper: rahim._id,
-    deadline: new Date(now.getTime() + 1 * dayMs), // Due soon
-    priority: "critical",
-    isCompleted: false,
-  });
-
-  const task3 = await Task.create({
-    project: ecommerce._id,
-    title: "Checkout flow UI",
-    description: "Multi-step checkout with address book and saved cards.",
-    assignedDeveloper: john._id,
-    deadline: new Date(now.getTime() - 2 * dayMs), // Overdue
-    priority: "high",
-    isCompleted: false,
-  });
-
-  const task4 = await Task.create({
-    project: ecommerce._id,
-    title: "Vendor onboarding forms",
-    description: "KYC upload and store profile setup.",
-    assignedDeveloper: ayesha._id,
-    deadline: new Date(now.getTime() - 6 * dayMs),
-    priority: "medium",
-    isCompleted: true,
-    completedAt: new Date(now.getTime() - 7 * dayMs),
-  });
-
-  const task5 = await Task.create({
-    project: banking._id,
-    title: "Biometric login",
-    description: "Face ID and fingerprint unlock with secure enclave storage.",
-    assignedDeveloper: rahim._id,
-    deadline: new Date(now.getTime() + 2 * dayMs), // Due soon
-    priority: "critical",
-    isCompleted: false,
-  });
-
-  const task6 = await Task.create({
-    project: hospital._id,
-    title: "Patient records module",
-    description: "Create, search and version patient medical records.",
-    assignedDeveloper: john._id,
-    deadline: new Date(now.getTime() - 8 * dayMs), // Overdue
-    priority: "critical",
-    isCompleted: false,
-  });
-
-  const task7 = await Task.create({
-    project: lms._id,
-    title: "Course builder",
-    description: "Drag-and-drop lesson and module authoring.",
-    assignedDeveloper: ayesha._id,
-    deadline: new Date(now.getTime() + 15 * dayMs),
-    priority: "high",
-    isCompleted: false,
-  });
-
-  console.log("[Seed] Created 7 tasks");
-
-  // 4. Create Subtasks
-  await Subtask.create([
+async function upsert<T>(
+  Model: mongoose.Model<T>,
+  filter: mongoose.FilterQuery<T>,
+  document: Record<string, unknown>,
+) {
+  return Model.findOneAndUpdate(
+    filter,
+    { $setOnInsert: document },
     {
-      task: task1._id,
-      title: "Create User model",
-      isCompleted: true,
-      completedAt: new Date(now.getTime() - 6 * dayMs),
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true,
+      runValidators: true,
     },
-    {
-      task: task1._id,
-      title: "Configure JWT signing",
-      isCompleted: true,
-      completedAt: new Date(now.getTime() - 4 * dayMs),
-    },
-    { task: task1._id, title: "Login endpoint", isCompleted: false },
-    { task: task1._id, title: "Refresh token rotation", isCompleted: false },
-    {
-      task: task2._id,
-      title: "Elasticsearch index mapping",
-      isCompleted: true,
-      completedAt: new Date(now.getTime() - 3 * dayMs),
-    },
-    { task: task2._id, title: "Faceted filter API", isCompleted: false },
-    {
-      task: task3._id,
-      title: "Address book component",
-      isCompleted: true,
-      completedAt: new Date(now.getTime() - 5 * dayMs),
-    },
-    { task: task3._id, title: "Payment step validation", isCompleted: false },
-    {
-      task: task5._id,
-      title: "Secure enclave key storage",
-      isCompleted: true,
-      completedAt: new Date(now.getTime() - 2 * dayMs),
-    },
-    { task: task5._id, title: "Fallback PIN flow", isCompleted: false },
-    { task: task6._id, title: "Record versioning schema", isCompleted: false },
-    { task: task7._id, title: "Lesson drag-and-drop", isCompleted: false },
-  ]);
-
-  console.log("[Seed] Created subtasks");
-
-  // 5. Create Comments
-  await Comment.create([
-    {
-      task: task1._id,
-      author: sarah._id,
-      body: "I've completed the JWT middleware. Login endpoint is next.",
-    },
-    {
-      task: task1._id,
-      author: nadia._id,
-      body: "Great. Please keep refresh token rotation in the same PR.",
-    },
-    {
-      task: task2._id,
-      author: rahim._id,
-      body: "Search latency is at 90ms after the new index mapping.",
-    },
-    {
-      task: task6._id,
-      author: nadia._id,
-      body: "This one is overdue — can we get a status update today?",
-    },
-  ]);
-
-  console.log("[Seed] Created comments");
-
-  // 6. Create Activities
-  await Activity.create([
-    {
-      project: ecommerce._id,
-      task: task1._id,
-      actor: sarah._id,
-      message: "commented on Authentication API",
-    },
-    { project: banking._id, task: task5._id, actor: rahim._id, message: "started Biometric login" },
-    {
-      project: hospital._id,
-      task: task6._id,
-      actor: nadia._id,
-      message: "flagged Patient records module as overdue",
-    },
-    { project: lms._id, task: task7._id, actor: nadia._id, message: "created Course builder" },
-  ]);
-
-  // 7. Create Notifications
-  await Notification.create([
-    {
-      audience: "manager",
-      kind: "task_overdue",
-      title: "Task overdue",
-      body: "Patient records module is 8 days past its deadline.",
-      task: task6._id,
-      project: hospital._id,
-      isRead: false,
-    },
-    {
-      audience: "manager",
-      kind: "deadline_approaching",
-      title: "Deadline approaching",
-      body: "Product catalogue service is due tomorrow.",
-      task: task2._id,
-      project: ecommerce._id,
-      isRead: false,
-    },
-    {
-      recipient: sarah._id,
-      kind: "task_assigned",
-      title: "New task assigned",
-      body: "Authentication API",
-      task: task1._id,
-      project: ecommerce._id,
-      isRead: false,
-    },
-  ]);
-
-  console.log("[Seed] Database seeded successfully!");
-  process.exit(0);
+  );
 }
 
-seed().catch((err) => {
-  console.error("[Seed] Error:", err);
-  process.exit(1);
-});
+// Each task: title, description, priority, deadline offset,
+// status, subtasks.
+const projectDefinitions = [
+  {
+    title: "E-Commerce Platform",
+    description:
+      "Development of a scalable multi-vendor commerce platform covering storefronts, product discovery, checkout, payments and order management.",
+    priority: "high",
+    start: -40,
+    deadline: 25,
+    tasks: [
+      {
+        title: "Design storefront architecture",
+        description:
+          "Define the storefront application structure, reusable layouts and component boundaries.",
+        priority: "high",
+        due: 4,
+        status: "done",
+        subtasks: ["Define page architecture", "Document component boundaries"],
+      },
+      {
+        title: "Implement authentication endpoints",
+        description: "Build registration, login, refresh token and logout endpoints.",
+        priority: "critical",
+        due: 3,
+        status: "in_progress",
+        subtasks: ["Implement login endpoint", "Implement refresh token rotation"],
+      },
+      {
+        title: "Build product catalogue API",
+        description: "Develop product listing, filtering, sorting and pagination.",
+        priority: "critical",
+        due: 1,
+        status: "todo",
+        subtasks: ["Implement product filters", "Add pagination support"],
+      },
+      {
+        title: "Create product detail page",
+        description: "Build product information, pricing, stock and image presentation.",
+        priority: "high",
+        due: 8,
+        status: "in_progress",
+        subtasks: ["Build product gallery", "Display product specifications"],
+      },
+      {
+        title: "Develop shopping cart",
+        description: "Implement cart operations and persistent cart state.",
+        priority: "high",
+        due: 10,
+        status: "todo",
+        subtasks: ["Add items to cart", "Implement quantity updates"],
+      },
+      {
+        title: "Implement checkout workflow",
+        description:
+          "Build the multi-step checkout experience with shipping and billing information.",
+        priority: "critical",
+        due: -2,
+        status: "in_review",
+        subtasks: ["Build shipping form", "Add order summary"],
+      },
+      {
+        title: "Integrate payment gateway",
+        description:
+          "Connect payment processing with transaction verification and failure handling.",
+        priority: "critical",
+        due: 12,
+        status: "todo",
+        subtasks: ["Configure payment provider", "Handle payment callbacks"],
+      },
+      {
+        title: "Build vendor onboarding",
+        description: "Create vendor registration and store profile setup.",
+        priority: "medium",
+        due: -5,
+        status: "done",
+        subtasks: ["Create vendor registration form", "Add store profile fields"],
+      },
+      {
+        title: "Implement order management",
+        description: "Create order processing, order history and status tracking.",
+        priority: "high",
+        due: 15,
+        status: "todo",
+        subtasks: ["Create order history API", "Implement order status tracking"],
+      },
+      {
+        title: "Add automated checkout tests",
+        description: "Cover checkout validation, payment failures and successful order placement.",
+        priority: "medium",
+        due: 20,
+        status: "todo",
+        subtasks: ["Test successful checkout", "Test payment failure scenarios"],
+      },
+    ],
+  },
+  {
+    title: "Mobile Banking Application",
+    description:
+      "A secure digital banking experience with account overview, fund transfers, transaction history, authentication and card management.",
+    priority: "critical",
+    start: -28,
+    deadline: 18,
+    tasks: [
+      {
+        title: "Define banking API architecture",
+        description: "Establish API boundaries, security requirements and service communication.",
+        priority: "critical",
+        due: -3,
+        status: "done",
+        subtasks: ["Document API contracts", "Define service boundaries"],
+      },
+      {
+        title: "Implement secure login",
+        description: "Develop secure authentication with session management and token validation.",
+        priority: "critical",
+        due: 2,
+        status: "in_progress",
+        subtasks: ["Implement authentication service", "Add session validation"],
+      },
+      {
+        title: "Integrate biometric authentication",
+        description: "Support device biometric authentication for returning users.",
+        priority: "critical",
+        due: 5,
+        status: "todo",
+        subtasks: ["Configure biometric API", "Implement fallback authentication"],
+      },
+      {
+        title: "Build account overview",
+        description: "Display account balances, account information and recent transactions.",
+        priority: "high",
+        due: 7,
+        status: "in_review",
+        subtasks: ["Create balance component", "Display recent transactions"],
+      },
+      {
+        title: "Implement fund transfers",
+        description: "Develop internal and external fund transfer workflows.",
+        priority: "critical",
+        due: -1,
+        status: "in_progress",
+        subtasks: ["Create transfer validation", "Implement transfer confirmation"],
+      },
+      {
+        title: "Develop transaction history",
+        description: "Provide searchable and filterable transaction records.",
+        priority: "medium",
+        due: 10,
+        status: "todo",
+        subtasks: ["Create transaction list", "Add date filters"],
+      },
+      {
+        title: "Add card management",
+        description: "Allow users to view, freeze and manage their payment cards.",
+        priority: "high",
+        due: 12,
+        status: "todo",
+        subtasks: ["Build card overview", "Implement card freeze workflow"],
+      },
+      {
+        title: "Implement transaction notifications",
+        description: "Provide transaction alerts and account activity notifications.",
+        priority: "medium",
+        due: 14,
+        status: "todo",
+        subtasks: ["Configure notification events", "Build notification preferences"],
+      },
+      {
+        title: "Perform security testing",
+        description: "Validate authentication, transfer authorization and sensitive data handling.",
+        priority: "critical",
+        due: 16,
+        status: "todo",
+        subtasks: ["Test authentication security", "Verify transfer authorization"],
+      },
+    ],
+  },
+  {
+    title: "Hospital Management System",
+    description:
+      "A hospital operations platform for patient records, appointments, medical staff workflows, billing and administrative reporting.",
+    priority: "high",
+    start: -55,
+    deadline: -5,
+    tasks: [
+      {
+        title: "Design patient database structure",
+        description:
+          "Define patient information, medical record relationships and data validation.",
+        priority: "critical",
+        due: -15,
+        status: "done",
+        subtasks: ["Define patient fields", "Design medical record relationships"],
+      },
+      {
+        title: "Build patient registration",
+        description: "Implement patient registration and profile management.",
+        priority: "high",
+        due: -8,
+        status: "done",
+        subtasks: ["Create registration form", "Implement profile validation"],
+      },
+      {
+        title: "Implement medical records",
+        description: "Develop medical history, diagnosis and clinical record management.",
+        priority: "critical",
+        due: -3,
+        status: "in_progress",
+        subtasks: ["Create medical record schema", "Implement record history"],
+      },
+      {
+        title: "Develop appointment scheduling",
+        description: "Allow administrators to schedule and manage patient appointments.",
+        priority: "high",
+        due: -2,
+        status: "in_review",
+        subtasks: ["Build appointment calendar", "Add scheduling validation"],
+      },
+      {
+        title: "Create doctor management",
+        description: "Manage doctor profiles, departments and availability.",
+        priority: "medium",
+        due: 4,
+        status: "todo",
+        subtasks: ["Create doctor profiles", "Manage department assignments"],
+      },
+      {
+        title: "Implement billing module",
+        description: "Generate patient invoices and maintain payment records.",
+        priority: "high",
+        due: -6,
+        status: "todo",
+        subtasks: ["Create invoice generation", "Add payment record management"],
+      },
+      {
+        title: "Build pharmacy inventory",
+        description: "Track medicine inventory, stock levels and expiry dates.",
+        priority: "medium",
+        due: 8,
+        status: "todo",
+        subtasks: ["Create inventory records", "Add expiry date tracking"],
+      },
+      {
+        title: "Develop administrative reports",
+        description:
+          "Provide operational reports for appointments, billing and patient statistics.",
+        priority: "low",
+        due: 12,
+        status: "todo",
+        subtasks: ["Create appointment report", "Create billing summary"],
+      },
+    ],
+  },
+  {
+    title: "Learning Management System",
+    description:
+      "An online learning platform for course creation, lesson delivery, student enrolment, assessments and learning progress.",
+    priority: "medium",
+    start: -12,
+    deadline: 45,
+    tasks: [
+      {
+        title: "Design course management architecture",
+        description: "Define course, module, lesson and enrolment relationships.",
+        priority: "high",
+        due: 5,
+        status: "done",
+        subtasks: ["Define course structure", "Document enrolment relationships"],
+      },
+      {
+        title: "Build course creation interface",
+        description: "Create an interface for instructors to create and edit courses.",
+        priority: "high",
+        due: 9,
+        status: "in_progress",
+        subtasks: ["Build course form", "Implement course editing"],
+      },
+      {
+        title: "Implement lesson builder",
+        description: "Develop lesson creation with support for structured learning content.",
+        priority: "critical",
+        due: 15,
+        status: "todo",
+        subtasks: ["Create lesson editor", "Support lesson ordering"],
+      },
+      {
+        title: "Develop student enrolment",
+        description: "Implement student enrolment and course access management.",
+        priority: "high",
+        due: 18,
+        status: "todo",
+        subtasks: ["Create enrolment endpoint", "Validate course access"],
+      },
+      {
+        title: "Build learning progress tracking",
+        description: "Track lesson completion and overall course progress.",
+        priority: "medium",
+        due: 20,
+        status: "in_progress",
+        subtasks: ["Track lesson completion", "Calculate course progress"],
+      },
+      {
+        title: "Implement assessment module",
+        description: "Create quizzes, questions and automated assessment results.",
+        priority: "high",
+        due: 25,
+        status: "todo",
+        subtasks: ["Create question management", "Implement assessment scoring"],
+      },
+      {
+        title: "Create instructor dashboard",
+        description: "Display course statistics, student activity and learning performance.",
+        priority: "medium",
+        due: 30,
+        status: "todo",
+        subtasks: ["Display course statistics", "Show student activity"],
+      },
+      {
+        title: "Add course completion certificates",
+        description: "Generate completion certificates after students meet course requirements.",
+        priority: "low",
+        due: 35,
+        status: "todo",
+        subtasks: ["Define certificate template", "Implement certificate generation"],
+      },
+    ],
+  },
+];
+
+const commentDefinitions = [
+  [
+    "E-Commerce Platform",
+    "Implement authentication endpoints",
+    "The authentication flow is in progress. We should keep refresh token rotation and session invalidation consistent.",
+  ],
+  [
+    "E-Commerce Platform",
+    "Build product catalogue API",
+    "Please make sure filtering and pagination can work together without affecting query performance.",
+  ],
+  [
+    "E-Commerce Platform",
+    "Implement checkout workflow",
+    "The checkout review should include shipping details, totals and payment validation.",
+  ],
+  [
+    "E-Commerce Platform",
+    "Develop shopping cart",
+    "We should preserve cart state when the user refreshes the page.",
+  ],
+  [
+    "E-Commerce Platform",
+    "Integrate payment gateway",
+    "Please include proper handling for unsuccessful and interrupted payment callbacks.",
+  ],
+  [
+    "Mobile Banking Application",
+    "Implement secure login",
+    "Security validation should be completed before connecting the remaining account features.",
+  ],
+  [
+    "Mobile Banking Application",
+    "Implement fund transfers",
+    "Please include transfer confirmation and clear transaction failure messages.",
+  ],
+  [
+    "Mobile Banking Application",
+    "Integrate biometric authentication",
+    "The fallback authentication flow should remain available when biometrics are unavailable.",
+  ],
+  [
+    "Mobile Banking Application",
+    "Perform security testing",
+    "Let's verify authorization at the service layer, not only in the interface.",
+  ],
+  [
+    "Hospital Management System",
+    "Implement medical records",
+    "Medical record updates should preserve the history of previous versions.",
+  ],
+  [
+    "Hospital Management System",
+    "Develop appointment scheduling",
+    "Please account for doctor availability and conflicting appointment times.",
+  ],
+  [
+    "Hospital Management System",
+    "Implement billing module",
+    "Invoice totals and payment records should remain consistent.",
+  ],
+  [
+    "Learning Management System",
+    "Build course creation interface",
+    "Keep the course editor easy to navigate for instructors.",
+  ],
+  [
+    "Learning Management System",
+    "Implement lesson builder",
+    "Lesson ordering should remain stable when modules are edited.",
+  ],
+  [
+    "Learning Management System",
+    "Build learning progress tracking",
+    "Progress should be calculated from completed lessons rather than page visits.",
+  ],
+];
+
+const notificationDefinitions = [
+  {
+    project: "E-Commerce Platform",
+    task: "Build product catalogue API",
+    kind: "deadline_approaching",
+    title: "Product catalogue deadline approaching",
+    body: "The product catalogue API is approaching its deadline. Review its progress.",
+  },
+  {
+    project: "E-Commerce Platform",
+    task: "Implement checkout workflow",
+    kind: "task_overdue",
+    title: "Checkout workflow is overdue",
+    body: "The checkout workflow has passed its planned deadline and requires attention.",
+  },
+  {
+    project: "Mobile Banking Application",
+    task: "Implement fund transfers",
+    kind: "deadline_approaching",
+    title: "Fund transfer milestone approaching",
+    body: "The fund transfer implementation is approaching its planned deadline.",
+  },
+  {
+    project: "Mobile Banking Application",
+    task: "Integrate biometric authentication",
+    kind: "task_assigned",
+    title: "Biometric authentication awaiting assignment",
+    body: "This task is currently unassigned and requires a developer.",
+  },
+  {
+    project: "Hospital Management System",
+    task: "Implement medical records",
+    kind: "task_overdue",
+    title: "Medical records require attention",
+    body: "The medical records implementation is behind its planned deadline.",
+  },
+  {
+    project: "Hospital Management System",
+    task: "Implement billing module",
+    kind: "deadline_approaching",
+    title: "Billing module deadline approaching",
+    body: "Review the remaining work on the hospital billing module.",
+  },
+  {
+    project: "Learning Management System",
+    task: "Implement lesson builder",
+    kind: "deadline_approaching",
+    title: "Lesson builder milestone approaching",
+    body: "The lesson builder milestone is approaching.",
+  },
+  {
+    project: "Learning Management System",
+    task: "Build learning progress tracking",
+    kind: "task_assigned",
+    title: "Learning progress task awaiting assignment",
+    body: "This task is currently unassigned and ready for assignment.",
+  },
+];
+
+async function seed() {
+  console.log("\n[Seed] Starting Northpeak demo data seeding...\n");
+
+  await connectDB();
+
+  // 1. Create or reuse the manager.
+  const passwordHash = await bcrypt.hash(MANAGER.password, 10);
+
+  let manager = await User.findOne({ email: MANAGER.email });
+
+  if (manager) {
+    if (manager.role !== "manager") {
+      throw new Error(
+        `${MANAGER.email} already exists but is not a manager. ` +
+          "Refusing to change an existing user's role.",
+      );
+    }
+
+    manager.passwordHash = passwordHash;
+    await manager.save();
+
+    console.log("[Seed] Existing manager reused; demo password refreshed.");
+  } else {
+    manager = await User.create({
+      name: MANAGER.name,
+      email: MANAGER.email,
+      passwordHash,
+      role: "manager",
+    });
+
+    console.log("[Seed] Manager created.");
+  }
+
+  stats.users = 1;
+
+  // 2. Create or reuse projects.
+  const projects = new Map<string, any>();
+
+  for (const definition of projectDefinitions) {
+    const project = await upsert(
+      Project,
+      {
+        manager: manager._id,
+        title: definition.title,
+      },
+      {
+        title: definition.title,
+        description: definition.description,
+        manager: manager._id,
+        team: [],
+        startDate: dateOffset(definition.start),
+        deadline: dateOffset(definition.deadline),
+        priority: definition.priority,
+      },
+    );
+
+    if (!project) {
+      throw new Error(`Could not create or retrieve project: ${definition.title}`);
+    }
+
+    projects.set(definition.title, project);
+    stats.projects++;
+  }
+
+  console.log(`[Seed] Projects ready: ${stats.projects}`);
+
+  // 3. Create or synchronize tasks.
+  // Unlike the generic upsert helper, this deliberately uses $set
+  // so existing demo tasks are also reset to the defined demo state.
+  const tasks = new Map<string, any>();
+
+  for (const projectDefinition of projectDefinitions) {
+    const project = projects.get(projectDefinition.title);
+
+    for (const definition of projectDefinition.tasks) {
+      const completed = definition.status === "done";
+
+      const task = await Task.findOneAndUpdate(
+        {
+          project: project._id,
+          title: definition.title,
+        },
+        {
+          $set: {
+            description: definition.description,
+            assignedDeveloper: null,
+            deadline: dateOffset(definition.due),
+            priority: definition.priority,
+            status: definition.status,
+            isCompleted: completed,
+            completedAt: completed ? dateOffset(-2) : null,
+          },
+          $setOnInsert: {
+            project: project._id,
+            title: definition.title,
+          },
+        },
+        {
+          upsert: true,
+          new: true,
+          runValidators: true,
+          setDefaultsOnInsert: true,
+        },
+      );
+
+      if (!task) {
+        throw new Error(`Could not create or retrieve task: ${definition.title}`);
+      }
+
+      tasks.set(`${projectDefinition.title}::${definition.title}`, task);
+      stats.tasks++;
+    }
+  }
+
+  console.log(`[Seed] Tasks ready: ${stats.tasks}`);
+
+  // 4. Create or reuse subtasks.
+  for (const projectDefinition of projectDefinitions) {
+    for (const definition of projectDefinition.tasks) {
+      const task = tasks.get(`${projectDefinition.title}::${definition.title}`);
+
+      for (const [index, title] of definition.subtasks.entries()) {
+        const completed =
+          definition.status === "done" || (definition.status === "in_progress" && index === 0);
+
+        await upsert(
+          Subtask,
+          {
+            task: task._id,
+            title,
+          },
+          {
+            task: task._id,
+            title,
+            isCompleted: completed,
+            completedAt: completed ? dateOffset(-1) : null,
+          },
+        );
+
+        stats.subtasks++;
+      }
+    }
+  }
+
+  console.log(`[Seed] Subtasks ready: ${stats.subtasks}`);
+
+  // 5. Create or reuse comments.
+  for (const [projectTitle, taskTitle, body] of commentDefinitions) {
+    const task = tasks.get(`${projectTitle}::${taskTitle}`);
+
+    if (!task) {
+      throw new Error(`Comment references unknown task: ${taskTitle}`);
+    }
+
+    await upsert(
+      Comment,
+      {
+        task: task._id,
+        author: manager._id,
+        body,
+      },
+      {
+        task: task._id,
+        author: manager._id,
+        body,
+      },
+    );
+
+    stats.comments++;
+  }
+
+  console.log(`[Seed] Comments ready: ${stats.comments}`);
+
+  // 6. Create or reuse activity history.
+  for (const projectDefinition of projectDefinitions) {
+    const project = projects.get(projectDefinition.title);
+
+    for (const definition of projectDefinition.tasks) {
+      const task = tasks.get(`${projectDefinition.title}::${definition.title}`);
+      const message = `created task "${definition.title}"`;
+
+      await upsert(
+        Activity,
+        {
+          project: project._id,
+          task: task._id,
+          actor: manager._id,
+          message,
+        },
+        {
+          project: project._id,
+          task: task._id,
+          actor: manager._id,
+          message,
+        },
+      );
+
+      stats.activities++;
+    }
+  }
+
+  console.log(`[Seed] Activities ready: ${stats.activities}`);
+
+  // 7. Create or reuse manager notifications.
+  for (const definition of notificationDefinitions) {
+    const project = projects.get(definition.project);
+    const task = tasks.get(`${definition.project}::${definition.task}`);
+
+    if (!project || !task) {
+      throw new Error(`Invalid notification relationship: ${definition.title}`);
+    }
+
+    await upsert(
+      Notification,
+      {
+        audience: "manager",
+        kind: definition.kind,
+        title: definition.title,
+        task: task._id,
+        project: project._id,
+      },
+      {
+        recipient: null,
+        audience: "manager",
+        kind: definition.kind,
+        title: definition.title,
+        body: definition.body,
+        task: task._id,
+        project: project._id,
+        isRead: false,
+      },
+    );
+
+    stats.notifications++;
+  }
+
+  console.log(`[Seed] Notifications ready: ${stats.notifications}`);
+
+  // 8. Final verification.
+  const projectIds = [...projects.values()].map((project) => project._id);
+
+  const [
+    projectCount,
+    taskCount,
+    unassignedCount,
+    subtaskCount,
+    commentCount,
+    activityCount,
+    notificationCount,
+  ] = await Promise.all([
+    Project.countDocuments({ manager: manager._id }),
+    Task.countDocuments({ project: { $in: projectIds } }),
+    Task.countDocuments({
+      project: { $in: projectIds },
+      assignedDeveloper: null,
+    }),
+    Subtask.countDocuments({
+      task: { $in: [...tasks.values()].map((task) => task._id) },
+    }),
+    Comment.countDocuments({
+      task: { $in: [...tasks.values()].map((task) => task._id) },
+      author: manager._id,
+    }),
+    Activity.countDocuments({
+      project: { $in: projectIds },
+      actor: manager._id,
+    }),
+    Notification.countDocuments({
+      audience: "manager",
+      project: { $in: projectIds },
+    }),
+  ]);
+
+  const verification = {
+    projects: projectCount,
+    tasks: taskCount,
+    unassigned: unassignedCount,
+    subtasks: subtaskCount,
+    comments: commentCount,
+    activities: activityCount,
+    notifications: notificationCount,
+  };
+
+  console.log("\n[Seed] Database verification:");
+  console.table(verification);
+
+  if (
+    projectCount < 4 ||
+    taskCount !== 35 ||
+    unassignedCount !== 35 ||
+    subtaskCount < 70 ||
+    commentCount < 15 ||
+    activityCount < 35 ||
+    notificationCount < 8
+  ) {
+    throw new Error(`Verification failed: ${JSON.stringify(verification)}`);
+  }
+
+  console.log("\n========================================");
+  console.log(" NORTHPEAK SEED COMPLETED SUCCESSFULLY");
+  console.log("========================================");
+  console.log(`Manager:       ${MANAGER.email}`);
+  console.log(`Password:      ${MANAGER.password}`);
+  console.log(`Projects:      ${projectCount}`);
+  console.log(`Tasks:         ${taskCount}`);
+  console.log(`Unassigned:    ${unassignedCount}`);
+  console.log(`Subtasks:      ${subtaskCount}`);
+  console.log(`Comments:      ${commentCount}`);
+  console.log(`Activities:    ${activityCount}`);
+  console.log(`Notifications: ${notificationCount}`);
+  console.log("========================================\n");
+}
+
+seed()
+  .catch((error) => {
+    console.error("\n[Seed] Failed:", error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await mongoose.disconnect();
+  });
